@@ -14,7 +14,15 @@ ehthumbs_vista.db
 *.msm
 *.msp
 *.lnk
+# Virtual Environments (가상환경 폴더)
+venv/
+.venv/
+env/
+.env/  # 보통 API 키나 데이터베이스(RDS 등) 접속 정보를 저장하는 환경 변수 파일
 
+# Environment Variables (환경 변수 파일)
+.env
+.env.*
 # vscode
 .vscode/
 *.code-workspace
