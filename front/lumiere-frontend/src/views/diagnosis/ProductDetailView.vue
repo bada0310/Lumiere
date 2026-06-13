@@ -183,7 +183,7 @@
 </template>
 
 <script setup>
-import AppHeader from '../components/AppHeader.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 const compareItems = [
   { icon: '☀️', name: '명도 (밝기)', mine: 65, product: 68, diff: '+3', analysis: '제품이 조금 더 밝아요.' },

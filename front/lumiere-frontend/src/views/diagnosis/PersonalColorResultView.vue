@@ -231,7 +231,7 @@
 </template>
 
 <script setup>
-import AppHeader from '../components/AppHeader.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 const keywordColors = ['#ef9eb8', '#e3c0dd', '#c5a5cf', '#b28ab0', '#b9c4d2', '#a8b5c5']
 

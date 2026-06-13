@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import AppHeader from '../components/AppHeader.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 const styleColors = ['#ef9eb8', '#e0bddb', '#c9aad2', '#b7839e', '#b8c3d1', '#8d9bb8']
 </script>

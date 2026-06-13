@@ -1,51 +1,57 @@
 <template>
-  <div class="analysis-container">
-    <div class="search-section">
-      <h1>제품 분석</h1>
-      <p>제품의 색상 옵션을 추출해 내 피부톤과 비교해요</p>
-      
-      <div class="input-wrapper">
-        <input v-model="query" placeholder="브랜드명 또는 제품명을 검색하세요" />
-        <button @click="searchProduct">검색</button>
-      </div>
-      
-      <div class="url-wrapper">
-        <input v-model="url" placeholder="올리브영 URL을 입력해주세요" />
-        <button @click="analyzeUrl" class="analyze-btn">분석하기</button>
-      </div>
-    </div>
+  <div class="analysis-view-container">
+    
+    <SearchBar 
+      @search-product="handleSearchProduct" 
+      @analyze-url="handleAnalyzeUrl" 
+    />
 
-    <RecentAnalysis :history="analysisHistory" />
+    <RecentAnalysis />
 
-    <SearchResult v-if="result" :data="result" />
+    <SearchResult v-if="showResult" :data="resultData" />
+    
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+
+// 세 가지 조각(컴포넌트)을 모두 불러옵니다.
+import SearchBar from '@/components/analysis/SearchBar.vue';
 import RecentAnalysis from '@/components/analysis/RecentAnalysis.vue';
 import SearchResult from '@/components/analysis/SearchResult.vue';
 
-const query = ref('');
-const url = ref('');
-const result = ref(null);
-const analysisHistory = ref([]); // ExternalAnalysis 데이터 리스트
+// 화면 상태 관리
+const showResult = ref(true); // 💡 퍼블리싱 화면을 바로 확인하기 위해 일단 true로 둡니다. 나중엔 false로 시작하세요.
+const resultData = ref(null);
 
-const searchProduct = () => {
-  // 백엔드 API 연동 로직
-  console.log('검색어:', query.value);
+// SearchBar.vue 에서 제품 검색 버튼을 눌렀을 때 실행되는 함수
+const handleSearchProduct = (keyword) => {
+  console.log('백엔드로 보낼 검색어:', keyword);
+  // TODO: 여기서 백엔드 API (axios 등)를 호출하여 데이터를 받아옵니다.
+  // resultData.value = response.data;
+  showResult.value = true; // 결과를 화면에 띄웁니다.
 };
 
-const analyzeUrl = () => {
-  // 백엔드 API 연동 로직 (URL 분석)
-  console.log('분석할 URL:', url.value);
+// SearchBar.vue 에서 URL 분석 버튼을 눌렀을 때 실행되는 함수
+const handleAnalyzeUrl = (url) => {
+  console.log('백엔드로 보낼 URL:', url);
+  // TODO: 여기서 백엔드 API (axios 등)를 호출하여 데이터를 받아옵니다.
+  // resultData.value = response.data;
+  showResult.value = true; // 결과를 화면에 띄웁니다.
 };
 </script>
 
 <style scoped>
-.analysis-container { max-width: 800px; margin: 0 auto; padding: 40px; }
-.search-section { display: flex; flex-direction: column; gap: 20px; margin-bottom: 50px; }
-.input-wrapper, .url-wrapper { display: flex; gap: 10px; }
-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
-.analyze-btn { background-color: #8b3a4a; color: white; border: none; padding: 10px 20px; border-radius: 8px; }
+/* 앱 전체의 배경색이나 페이지 전체 레이아웃을 잡아주는 래퍼 */
+.analysis-view-container {
+  width: 100%;
+  min-height: 100vh;
+  /* 목업 이미지의 은은한 배경색과 유사한 컬러를 깔아줍니다 */
+  background-color: #fffafb; 
+  padding: 40px 0 80px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* 각 컴포넌트 사이의 간격 */
+}
 </style>

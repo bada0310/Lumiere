@@ -139,6 +139,7 @@ const goToProductDetail = (id) => {
 const goToAnalysisResult = (id) => {
   router.push(`/analysis/result/${id}`); // 마이페이지 → 최근 URL 분석 결과
 };
+</script>
 
 <style scoped>
 .mypage-container {
@@ -147,7 +148,7 @@ const goToAnalysisResult = (id) => {
   padding: 40px 20px;
   font-family: 'Pretendard', sans-serif;
   color: #333;
-}
+};
 
 /* 1. 프로필 섹션 스타일 */
 .profile-section {
@@ -156,7 +157,7 @@ const goToAnalysisResult = (id) => {
   padding: 30px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   margin-bottom: 40px;
-}
+};
 .profile-card {
   display: flex;
   gap: 30px;

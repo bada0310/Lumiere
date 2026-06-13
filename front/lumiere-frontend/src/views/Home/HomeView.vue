@@ -20,8 +20,8 @@
     <section class="hero">
       <div class="hero-text">
         <h1>
-          나에게 가장<br />
-          잘 어울리는 <span>컬러</span>를 찾아보세요
+          나만의 <span class="point-color">분위기</span>를 찾는 가장<br />
+          똑똑한 방법
         </h1>
 
         <p>
