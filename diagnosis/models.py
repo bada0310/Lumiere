@@ -3,12 +3,9 @@ from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
-# 진단 결과의 기준 상품&사용자를 있는 매개체 -> 하나의 퍼컬에는 여러개의 상품 option
-
-class PerSonalColorAnalysis(models.Model):
-    # 1. 텍스트 & 카테고리 필드 (기존 작성 코드)
-    # ==========================================
-    # e.g) 여름 쿨 뮤트 와 같은 타입 풀네임 
+# 1. 퍼스널 컬러 기준 정보 (Master Data)
+class PersonalColor(models.Model):
+    # e.g) 여름 쿨 뮤트 와 같은 타입 풀네임  
     type_name = models.CharField(max_length=50, unique=True) # 예: 여름 쿨 (뮤트)
 
     # 0 = 완전 웜톤, 100 = 완전 쿨톤 
@@ -32,10 +29,10 @@ class PerSonalColorAnalysis(models.Model):
         MUTE = 'MUTE', '뮤트(Mute)'
         DEEP = 'DEEP', '딥(Deep)'
     tone = models.CharField(max_length=10, choices=ToneChoices.choices)
-     
+    
     # 짧은 설명 
-    description = models.TextField() 
-
+    description = models.TextField(help_text="퍼스널컬러에 대한 짧은 설명")
+    
     # 2. UI 슬라이더 / 프로그레스 바용 수치 필드
     # ==========================================
     # validators를 사용하여 0~100 사이의 값만 들어가도록 강제 (안정성 확보)
@@ -81,20 +78,23 @@ class PerSonalColorAnalysis(models.Model):
 
     def __str__(self):
         return self.type_name
-    # makeup 부위에 따라 추천하는 색감
+
+# 진단 결과의 기준 상품&사용자를 있는 매개체 -> 하나의 퍼컬에는 여러개의 상품 option
+
+# makeup 부위에 따라 추천하는 색감
 # 립 컬러 /베이스 컬러(블러서 ,셰딩,파운데이션) / 아이 메이크업 컬러(세도우, 아이라이너, 아이브로우,마스카라,)애교살 색상,뒷트임 라이너 )  
 
 # 퍼스널 컬러별 메이크업 부위 색상 추천을 담당하는 모델
 class ColorRecommendation(models.Model):
     
     personal_color = models.ForeignKey(
-        PerSonalColorAnalysis,
+        PersonalColor,
         on_delete=models.CASCADE,
         related_name='color_recommendation'
     )
     
     # 추천 타입(best,worst, Representative)
-    class RecoType(models.Model):
+    class RecoType(models.TextChoices):
         REP = 'REP', '대표 컬러(Representative)'
         BEST = 'BEST', '베스트 컬러(best)'
         WORST = 'WORST', '워스트 컬러(Worst)'

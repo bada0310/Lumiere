@@ -31,9 +31,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'accounts',
-    'personal_color',
-    'product',
+    'accounts', # user app 
+    'diagnosis', # 퍼스널 컬러 진단 app
+    'products',  # 제품 app 
+    'engagements' # 참여 활동 app (wishlist 관리하는 app)
+    
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
