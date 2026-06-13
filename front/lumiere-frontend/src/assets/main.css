@@ -1,35 +1,36 @@
-@import './base.css';
+/* src/assets/main.css */
 
+/* 1. 브라우저 기본 여백 없애기 */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2. 전체 배경색 및 기본 폰트 설정 */
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  /* 루미에르 목업 느낌의 아주 연한 핑크/화이트 톤 배경 */
+  background-color: #fffafb; 
+  color: #333;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden; /* 가로 스크롤 방지 */
+}
+
+/* 3. Vue 앱이 마운트되는 최상위 컨테이너 제한 풀기 */
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+  width: 100%;
+  /* 기존에 있던 max-width: 1280px; 와 padding: 2rem; 이 삭제됨 */
 }
 
-a,
-.green {
+/* 4. 링크 밑줄 제거 */
+a {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+  color: inherit;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+/* 5. 리스트(ul, li) 기본 스타일 제거 */
+ul, li {
+  list-style: none;
 }
