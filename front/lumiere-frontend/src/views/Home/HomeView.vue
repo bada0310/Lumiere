@@ -57,14 +57,14 @@
           <div class="icon">☺</div>
           <h3>AI 퍼스널컬러 진단</h3>
           <p>AI가 분석한 당신의 피부톤과 이미지로 퍼스널컬러를 찾아드려요.</p>
-          <a>바로 진단하기 →</a>
+          <RouterLink to="/upload" class="nav-item">바로 진단하기 →</RouterLink>
         </div>
 
         <div class="feature-card">
           <div class="icon">💄</div>
           <h3>맞춤 화장품 추천</h3>
           <p>당신의 퍼스널컬러에 맞는 화장품을 카테고리별로 추천해드려요.</p>
-          <a>추천 제품 보기 →</a>
+          <RouterLink to="/products" class="nav-item">추천 제품 보기 →</RouterLink>
         </div>
 
         <div class="feature-card">
