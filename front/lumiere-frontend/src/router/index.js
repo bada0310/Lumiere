@@ -12,7 +12,9 @@ import CommunityView from '@/views/community/CommunityView.vue'
 
 import LoginView from '@/views/accounts/LoginView.vue'
 import MyPageView from '@/views/accounts/MyPageView.vue'
-import HomeView from '@/views/Home/HomeView.vue'
+
+
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
