@@ -1,6 +1,6 @@
 <template>
   <main class="home">
-    <header class="header">
+    <!-- <header class="header">
       <div class="logo">
         <RouterLink to="/">Lumière</RouterLink> 
       </div>
@@ -17,7 +17,7 @@
         <input placeholder="제품명, 브랜드, 색상 검색" />
         <button class="login-btn" @click="$router.push('/login')">로그인</button>
       </div>
-    </header>
+    </header> -->
 
     <section class="hero">
       <div class="hero-text">
