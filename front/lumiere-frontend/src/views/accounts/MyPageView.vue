@@ -1,6 +1,5 @@
 <template>
   <div class="mypage-container">
-    
     <section class="profile-section">
       <div class="profile-card">
         <div class="profile-image-wrapper">
