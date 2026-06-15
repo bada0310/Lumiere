@@ -1,7 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
-
     <main class="result-page">
       <section class="steps">
         <div class="step done">✓</div>
@@ -21,40 +19,48 @@
         <div class="top-grid">
           <div class="main-result">
             <p class="eyebrow">나의 퍼스널컬러는</p>
-            <h1>여름 쿨 라이트</h1>
-            <p class="eng">Summer Cool Light</p>
+
+            <h1>{{ diagnosisResult.personal_color.type_name }}</h1>
+            <p class="eng">{{ diagnosisResult.personal_color.english_name }}</p>
 
             <p class="summary">
-              맑고 부드러운 쿨톤 컬러가<br />
-              당신의 매력을 가장 빛나게 해요.
+              {{ diagnosisResult.personal_color.summary_text }}
             </p>
 
             <div class="tags">
-              <span>맑은 톤</span>
-              <span>부드러운 대비</span>
-              <span>쿨 핑크 베이스</span>
-              <span>저채도</span>
+              <span
+                v-for="tag in diagnosisResult.personal_color.keywords"
+                :key="tag"
+              >
+                {{ tag }}
+              </span>
             </div>
           </div>
 
           <div class="confidence-area">
-            <div class="circle">
+            <div
+              class="circle"
+              :style="{
+                background: `conic-gradient(#c65367 0deg ${confidenceDegree}deg, #f1dddd ${confidenceDegree}deg 360deg)`
+              }"
+            >
               <div>
                 <small>AI Confidence</small>
-                <strong>93<span>%</span></strong>
+                <strong>{{ diagnosisResult.confidence_score }}<span>%</span></strong>
                 <p>높은 신뢰도</p>
               </div>
             </div>
 
             <div class="date-box">
               <span>진단 완료일</span>
-              <strong>2024.05.20</strong>
+              <strong>{{ diagnosisResult.created_at }}</strong>
             </div>
           </div>
 
           <div class="profile-box">
             <p>Gen AI로 완성한<br />나의 프로필 이미지</p>
             <div class="profile-img"></div>
+
             <div class="dots">
               <span class="active-dot"></span>
               <span></span>
@@ -66,30 +72,27 @@
           <aside class="feature-box">
             <h3>전체 이미지 특징</h3>
 
-            <div class="feature-item">
-              <span>☀️</span>
-              <p><strong>맑음</strong><br />깨끗하고 투명한 인상</p>
-            </div>
-
-            <div class="feature-item">
-              <span>☁️</span>
-              <p><strong>부드러움</strong><br />은은하고 부드러운 톤</p>
-            </div>
-
-            <div class="feature-item">
-              <span>💎</span>
-              <p><strong>세련됨</strong><br />차분하고 도시적인 분위기</p>
-            </div>
-
-            <div class="feature-item">
-              <span>🌿</span>
-              <p><strong>우아함</strong><br />자연스럽고 우아한 무드</p>
+            <div
+              class="feature-item"
+              v-for="feature in diagnosisResult.personal_color.image_features"
+              :key="feature.title"
+            >
+              <span>{{ feature.icon }}</span>
+              <p>
+                <strong>{{ feature.title }}</strong><br />
+                {{ feature.desc }}
+              </p>
             </div>
 
             <div class="keyword-colors">
               <p>대표 컬러 키워드</p>
+
               <div class="color-chips">
-                <span v-for="color in keywordColors" :key="color" :style="{ backgroundColor: color }"></span>
+                <span
+                  v-for="color in diagnosisResult.personal_color.best_colors"
+                  :key="color"
+                  :style="{ backgroundColor: color }"
+                ></span>
               </div>
             </div>
           </aside>
@@ -99,6 +102,7 @@
           <section class="analysis-box">
             <div class="box-title">
               <h3>피부톤 상세 분석</h3>
+
               <div class="level">
                 <span>낮음</span>
                 <span>보통</span>
@@ -106,14 +110,23 @@
               </div>
             </div>
 
-            <div class="metric" v-for="metric in metrics" :key="metric.name">
+            <div
+              class="metric"
+              v-for="metric in diagnosisResult.skin_metrics"
+              :key="metric.name"
+            >
               <div class="metric-info">
                 <strong>{{ metric.name }}</strong>
                 <small>{{ metric.desc }}</small>
               </div>
+
               <div class="bar">
-                <div class="fill" :style="{ width: metric.value + '%' }"></div>
+                <div
+                  class="fill"
+                  :style="{ width: metric.value + '%' }"
+                ></div>
               </div>
+
               <span class="score">{{ metric.value }}</span>
             </div>
           </section>
@@ -123,6 +136,7 @@
 
             <div class="radar">
               <div class="radar-shape"></div>
+
               <span class="radar-label top">명도</span>
               <span class="radar-label right">채도</span>
               <span class="radar-label bottom-right">탁도</span>
@@ -152,12 +166,15 @@
               <button>로맨틱</button>
               <button>스모키</button>
             </div>
-
-            <button class="more-btn">더 많은 스타일 보기 ›</button>
           </div>
 
           <div class="makeover-list">
-            <div class="look-card active" v-for="look in looks" :key="look.name">
+            <div
+              class="look-card"
+              v-for="look in looks"
+              :key="look.name"
+              :class="{ active: look.name === '내추럴' }"
+            >
               <div class="look-img"></div>
               <strong>{{ look.name }}</strong>
               <p>{{ look.desc }}</p>
@@ -169,80 +186,156 @@
           <div class="palette-box">
             <h3>BEST 컬러</h3>
             <p>당신을 가장 빛나게 하는 컬러</p>
+
             <div class="palette">
-              <span v-for="color in bestColors" :key="color" :style="{ backgroundColor: color }"></span>
+              <span
+                v-for="color in diagnosisResult.personal_color.best_colors"
+                :key="color"
+                :style="{ backgroundColor: color }"
+              ></span>
             </div>
           </div>
 
           <div class="palette-box">
             <h3>NEUTRAL 컬러</h3>
             <p>자연스럽고 안정적인 컬러</p>
+
             <div class="palette">
-              <span v-for="color in neutralColors" :key="color" :style="{ backgroundColor: color }"></span>
+              <span
+                v-for="color in diagnosisResult.personal_color.neutral_colors"
+                :key="color"
+                :style="{ backgroundColor: color }"
+              ></span>
             </div>
           </div>
 
           <div class="palette-box">
             <h3>ACCENT 컬러</h3>
             <p>포인트로 좋은 컬러</p>
+
             <div class="palette">
-              <span v-for="color in accentColors" :key="color" :style="{ backgroundColor: color }"></span>
+              <span
+                v-for="color in diagnosisResult.personal_color.accent_colors"
+                :key="color"
+                :style="{ backgroundColor: color }"
+              ></span>
             </div>
           </div>
 
           <div class="palette-box">
             <h3>WORST 컬러</h3>
             <p>피하는 것이 좋은 컬러</p>
+
             <div class="palette">
-              <span v-for="color in worstColors" :key="color" :style="{ backgroundColor: color }"></span>
+              <span
+                v-for="color in diagnosisResult.personal_color.worst_colors"
+                :key="color"
+                :style="{ backgroundColor: color }"
+              ></span>
             </div>
           </div>
         </section>
 
         <section class="recommend-section">
           <h3>맞춤 메이크업 추천</h3>
-          <p>당신의 퍼스널컬러와 조화로운 메이크업 제품을 추천드려요.</p>
+          <p>당신의 퍼스널컬러와 조화로운 메이크업 제품 옵션을 추천드려요.</p>
 
           <div class="product-grid">
-            <div class="product-card" v-for="product in products" :key="product.name">
+            <div
+              class="product-card"
+              v-for="product in recommendedProducts"
+              :key="product.optionId"
+            >
               <div class="product-img"></div>
+
               <div class="product-info">
                 <span class="category">{{ product.category }}</span>
                 <p class="tone">{{ product.tone }}</p>
                 <strong>{{ product.brand }}</strong>
                 <p>{{ product.name }}</p>
+                <p class="option-name">{{ product.optionName }}</p>
                 <small>{{ product.reason }}</small>
-                <button>제품 보기 ›</button>
+
+                <button @click="goToProductDetail(product.optionId)">
+                  제품 보기 ›
+                </button>
               </div>
             </div>
           </div>
         </section>
 
         <section class="bottom-buttons">
-          <RouterLink to="/products" class="main-btn">맞춤 화장품 추천 보기 ›</RouterLink>
-          <RouterLink to="/makeover" class="sub-btn">AI 메이크오버 더 보기 ›</RouterLink>
-          <button class="sub-btn">♡ 결과 저장하기</button>
+          <RouterLink to="/products" class="main-btn">
+            맞춤 화장품 추천 보기 ›
+          </RouterLink>
+
+          <button class="sub-btn" @click="saveResult">
+            ♡ 결과 저장하기
+          </button>
         </section>
 
-        <p class="notice">🛡️ 진단 결과는 마이페이지에서 언제든 다시 확인할 수 있어요.</p>
+        <p class="notice">
+          🛡️ 진단 결과는 마이페이지에서 언제든 다시 확인할 수 있어요.
+        </p>
       </section>
     </main>
   </div>
 </template>
 
 <script setup>
-import AppHeader from '@/components/AppHeader.vue'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-const keywordColors = ['#ef9eb8', '#e3c0dd', '#c5a5cf', '#b28ab0', '#b9c4d2', '#a8b5c5']
+const router = useRouter()
 
-const metrics = [
-  { name: '명도', desc: '피부의 밝기 정도', value: 65 },
-  { name: '채도', desc: '색의 선명한 정도', value: 30 },
-  { name: '탁도', desc: '색의 탁한 정도', value: 18 },
-  { name: '광택', desc: '피부의 윤기 정도', value: 40 },
-  { name: '대비', desc: '명암 대비 정도', value: 35 },
-  { name: '쿨톤', desc: '피부의 온도감', value: 85 },
-]
+const diagnosisResult = ref({
+  id: 101,
+  user_id: 1,
+  created_at: '2026.06.15',
+  confidence_score: 93,
+
+  skin_l: 65,
+  skin_a: 30,
+  skin_b: 18,
+
+  skin_metrics: [
+    { name: '명도', desc: '피부의 밝기 정도', value: 65 },
+    { name: '채도', desc: '색의 선명한 정도', value: 30 },
+    { name: '탁도', desc: '색의 탁한 정도', value: 18 },
+    { name: '광택', desc: '피부의 윤기 정도', value: 40 },
+    { name: '대비', desc: '명암 대비 정도', value: 35 },
+    { name: '쿨톤', desc: '피부의 온도감', value: 85 },
+  ],
+
+  personal_color: {
+    id: 2,
+    type_name: '여름 쿨 라이트',
+    english_name: 'Summer Cool Light',
+    season: '여름',
+    tone: '쿨 라이트',
+    summary_text: '맑고 부드러운 쿨톤 컬러가 당신의 매력을 가장 빛나게 해요.',
+    keywords: ['맑은 톤', '부드러운 대비', '쿨 핑크 베이스', '저채도'],
+
+    image_features: [
+      { icon: '☀️', title: '맑음', desc: '깨끗하고 투명한 인상' },
+      { icon: '☁️', title: '부드러움', desc: '은은하고 부드러운 톤' },
+      { icon: '💎', title: '세련됨', desc: '차분하고 도시적인 분위기' },
+      { icon: '🌿', title: '우아함', desc: '자연스럽고 우아한 무드' },
+    ],
+
+    best_colors: ['#f19ab6', '#efb4cf', '#dca8cf', '#c6addd', '#a9a0d8'],
+    neutral_colors: ['#d5d2cf', '#c8c7c7', '#b8bec7', '#a9b6c5'],
+    accent_colors: ['#c65b76', '#b45d82', '#7c6094', '#586993'],
+    worst_colors: ['#f0b24c', '#de8c58', '#e3c74c', '#929760'],
+
+    best_makeup: '쿨 핑크, 라벤더, 로즈 계열의 맑은 색감이 잘 어울립니다.',
+    style_guide: '과하게 진한 색보다 투명하고 부드러운 색감을 중심으로 연출하는 것이 좋습니다.',
+  },
+})
+
+const confidenceDegree = computed(() => {
+  return Math.round((diagnosisResult.value.confidence_score / 100) * 360)
+})
 
 const looks = [
   { name: '내추럴', desc: '자연스럽고 깨끗한 룩' },
@@ -252,17 +345,52 @@ const looks = [
   { name: '스모키', desc: '우아한 음영 메이크업' },
 ]
 
-const bestColors = ['#f19ab6', '#efb4cf', '#dca8cf', '#c6addd', '#a9a0d8']
-const neutralColors = ['#d5d2cf', '#c8c7c7', '#b8bec7', '#a9b6c5']
-const accentColors = ['#c65b76', '#b45d82', '#7c6094', '#586993']
-const worstColors = ['#f0b24c', '#de8c58', '#e3c74c', '#929760']
-
-const products = [
-  { category: '베이스', tone: '라이트 베이지 계열', brand: '에스쁘아', name: '비 글로우 쿠션 A00', reason: '화사한 피부 표현에 적합해요.' },
-  { category: '립', tone: '쿨 핑크 MLBB', brand: '롬앤', name: '쥬시 래스팅 틴트', reason: '맑은 입술 톤을 연출해요.' },
-  { category: '치크', tone: '라벤더 핑크', brand: '릴리바이레드', name: '러브빔 치크', reason: '은은한 생기를 더해줘요.' },
-  { category: '아이', tone: '쿨 라벤더', brand: '클리오', name: '프로 아이 팔레트', reason: '세련된 쿨톤 무드에 좋아요.' },
+const recommendedProducts = [
+  {
+    optionId: 101,
+    category: '베이스',
+    tone: '라이트 베이지 계열',
+    brand: '에스쁘아',
+    name: '비 글로우 쿠션',
+    optionName: 'A00 포슬린',
+    reason: '화사한 피부 표현에 적합해요.',
+  },
+  {
+    optionId: 102,
+    category: '립',
+    tone: '쿨 핑크 MLBB',
+    brand: '롬앤',
+    name: '쥬시 래스팅 틴트',
+    optionName: '25호 베어 그레이프',
+    reason: '맑은 입술 톤을 연출해요.',
+  },
+  {
+    optionId: 103,
+    category: '치크',
+    tone: '라벤더 핑크',
+    brand: '릴리바이레드',
+    name: '러브빔 치크',
+    optionName: '03 라벤더 빔',
+    reason: '은은한 생기를 더해줘요.',
+  },
+  {
+    optionId: 104,
+    category: '아이',
+    tone: '쿨 라벤더',
+    brand: '클리오',
+    name: '프로 아이 팔레트',
+    optionName: '04 핑크 페어링',
+    reason: '세련된 쿨톤 무드에 좋아요.',
+  },
 ]
+
+const goToProductDetail = (optionId) => {
+  router.push(`/product-detail/${optionId}`)
+}
+
+const saveResult = () => {
+  alert('진단 결과가 저장되었습니다.')
+}
 </script>
 
 <style scoped>
@@ -330,8 +458,7 @@ const products = [
   font-weight: 700;
 }
 
-.step-labels span,
-.active-text {
+.step-labels .active-text {
   color: #c65367;
 }
 
@@ -406,7 +533,6 @@ const products = [
   width: 168px;
   height: 168px;
   border-radius: 50%;
-  background: conic-gradient(#c65367 0deg 335deg, #f1dddd 335deg 360deg);
   padding: 10px;
   box-shadow: 0 10px 24px rgba(198, 83, 103, 0.18);
 }
@@ -652,12 +778,37 @@ const products = [
   font-weight: 800;
 }
 
-.top { top: 0; left: 50%; transform: translateX(-50%); }
-.right { right: 0; top: 35%; }
-.bottom-right { right: 18px; bottom: 46px; }
-.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
-.bottom-left { left: 18px; bottom: 46px; }
-.left { left: 0; top: 35%; }
+.top {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.right {
+  right: 0;
+  top: 35%;
+}
+
+.bottom-right {
+  right: 18px;
+  bottom: 46px;
+}
+
+.bottom {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bottom-left {
+  left: 18px;
+  bottom: 46px;
+}
+
+.left {
+  left: 0;
+  top: 35%;
+}
 
 .legend {
   text-align: center;
@@ -702,25 +853,19 @@ const products = [
   gap: 8px;
 }
 
-.tabs button,
-.more-btn {
+.tabs button {
   border: none;
   background: #f8eeee;
   color: #5e5653;
   padding: 10px 24px;
   border-radius: 8px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .tabs .active {
   background: #c65367;
   color: white;
-}
-
-.more-btn {
-  color: #c65367;
-  background: white;
-  border: 1px solid #eaded8;
 }
 
 .makeover-list {
@@ -817,6 +962,12 @@ const products = [
   font-weight: 700;
 }
 
+.option-name {
+  color: #c65367;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .product-info p,
 .product-info small {
   color: #666;
@@ -830,12 +981,13 @@ const products = [
   background: white;
   border-radius: 8px;
   padding: 8px 16px;
+  cursor: pointer;
 }
 
 .bottom-buttons {
   margin-top: 30px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 28px;
 }
 
@@ -859,6 +1011,7 @@ const products = [
   background: white;
   border: 1px solid #d98c99;
   color: #c65367;
+  cursor: pointer;
 }
 
 .notice {
