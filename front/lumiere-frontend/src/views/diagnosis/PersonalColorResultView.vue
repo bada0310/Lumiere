@@ -20,7 +20,6 @@
           <div class="main-result">
             <p class="eyebrow">나의 퍼스널컬러는</p>
 
-            <!-- PersonalColor 데이터 -->
             <h1>{{ diagnosisResult.personal_color.type_name }}</h1>
             <p class="eng">{{ diagnosisResult.personal_color.english_name }}</p>
 
@@ -29,13 +28,15 @@
             </p>
 
             <div class="tags">
-              <span v-for="tag in diagnosisResult.personal_color.keywords" :key="tag">
+              <span
+                v-for="tag in diagnosisResult.personal_color.keywords"
+                :key="tag"
+              >
                 {{ tag }}
               </span>
             </div>
           </div>
 
-          <!-- Diagnosis 데이터 -->
           <div class="confidence-area">
             <div
               class="circle"
@@ -59,6 +60,7 @@
           <div class="profile-box">
             <p>Gen AI로 완성한<br />나의 프로필 이미지</p>
             <div class="profile-img"></div>
+
             <div class="dots">
               <span class="active-dot"></span>
               <span></span>
@@ -67,7 +69,6 @@
             </div>
           </div>
 
-          <!-- PersonalColor 데이터 -->
           <aside class="feature-box">
             <h3>전체 이미지 특징</h3>
 
@@ -85,6 +86,7 @@
 
             <div class="keyword-colors">
               <p>대표 컬러 키워드</p>
+
               <div class="color-chips">
                 <span
                   v-for="color in diagnosisResult.personal_color.best_colors"
@@ -97,10 +99,10 @@
         </div>
 
         <div class="analysis-grid">
-          <!-- Diagnosis 데이터 -->
           <section class="analysis-box">
             <div class="box-title">
               <h3>피부톤 상세 분석</h3>
+
               <div class="level">
                 <span>낮음</span>
                 <span>보통</span>
@@ -108,26 +110,33 @@
               </div>
             </div>
 
-            <div class="metric" v-for="metric in diagnosisResult.skin_metrics" :key="metric.name">
+            <div
+              class="metric"
+              v-for="metric in diagnosisResult.skin_metrics"
+              :key="metric.name"
+            >
               <div class="metric-info">
                 <strong>{{ metric.name }}</strong>
                 <small>{{ metric.desc }}</small>
               </div>
 
               <div class="bar">
-                <div class="fill" :style="{ width: metric.value + '%' }"></div>
+                <div
+                  class="fill"
+                  :style="{ width: metric.value + '%' }"
+                ></div>
               </div>
 
               <span class="score">{{ metric.value }}</span>
             </div>
           </section>
 
-          <!-- Diagnosis 데이터 시각화 -->
           <section class="analysis-box">
             <h3>피부 특성 밸런스</h3>
 
             <div class="radar">
               <div class="radar-shape"></div>
+
               <span class="radar-label top">명도</span>
               <span class="radar-label right">채도</span>
               <span class="radar-label bottom-right">탁도</span>
@@ -143,7 +152,6 @@
           </section>
         </div>
 
-        <!-- PersonalColor 기반 메이크오버 -->
         <section class="makeover-section">
           <div class="section-head">
             <div>
@@ -158,10 +166,6 @@
               <button>로맨틱</button>
               <button>스모키</button>
             </div>
-
-            <button class="more-btn" @click="goToMakeover">
-              더 많은 스타일 보기 ›
-            </button>
           </div>
 
           <div class="makeover-list">
@@ -178,11 +182,11 @@
           </div>
         </section>
 
-        <!-- PersonalColor 데이터 -->
         <section class="palette-section">
           <div class="palette-box">
             <h3>BEST 컬러</h3>
             <p>당신을 가장 빛나게 하는 컬러</p>
+
             <div class="palette">
               <span
                 v-for="color in diagnosisResult.personal_color.best_colors"
@@ -195,6 +199,7 @@
           <div class="palette-box">
             <h3>NEUTRAL 컬러</h3>
             <p>자연스럽고 안정적인 컬러</p>
+
             <div class="palette">
               <span
                 v-for="color in diagnosisResult.personal_color.neutral_colors"
@@ -207,6 +212,7 @@
           <div class="palette-box">
             <h3>ACCENT 컬러</h3>
             <p>포인트로 좋은 컬러</p>
+
             <div class="palette">
               <span
                 v-for="color in diagnosisResult.personal_color.accent_colors"
@@ -219,6 +225,7 @@
           <div class="palette-box">
             <h3>WORST 컬러</h3>
             <p>피하는 것이 좋은 컬러</p>
+
             <div class="palette">
               <span
                 v-for="color in diagnosisResult.personal_color.worst_colors"
@@ -229,7 +236,6 @@
           </div>
         </section>
 
-        <!-- ProductOption 추천 데이터 -->
         <section class="recommend-section">
           <h3>맞춤 메이크업 추천</h3>
           <p>당신의 퍼스널컬러와 조화로운 메이크업 제품 옵션을 추천드려요.</p>
@@ -249,6 +255,7 @@
                 <p>{{ product.name }}</p>
                 <p class="option-name">{{ product.optionName }}</p>
                 <small>{{ product.reason }}</small>
+
                 <button @click="goToProductDetail(product.optionId)">
                   제품 보기 ›
                 </button>
@@ -260,10 +267,6 @@
         <section class="bottom-buttons">
           <RouterLink to="/products" class="main-btn">
             맞춤 화장품 추천 보기 ›
-          </RouterLink>
-
-          <RouterLink to="/makeover" class="sub-btn">
-            AI 메이크오버 더 보기 ›
           </RouterLink>
 
           <button class="sub-btn" @click="saveResult">
@@ -285,14 +288,12 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// Diagnosis + PersonalColor를 합쳐서 받은 결과라고 생각하면 됨
 const diagnosisResult = ref({
   id: 101,
   user_id: 1,
   created_at: '2026.06.15',
   confidence_score: 93,
 
-  // Diagnosis 데이터
   skin_l: 65,
   skin_a: 30,
   skin_b: 18,
@@ -306,7 +307,6 @@ const diagnosisResult = ref({
     { name: '쿨톤', desc: '피부의 온도감', value: 85 },
   ],
 
-  // PersonalColor 기준표 데이터
   personal_color: {
     id: 2,
     type_name: '여름 쿨 라이트',
@@ -345,7 +345,6 @@ const looks = [
   { name: '스모키', desc: '우아한 음영 메이크업' },
 ]
 
-// 실제 추천 대상은 Product가 아니라 ProductOption
 const recommendedProducts = [
   {
     optionId: 101,
@@ -387,10 +386,6 @@ const recommendedProducts = [
 
 const goToProductDetail = (optionId) => {
   router.push(`/product-detail/${optionId}`)
-}
-
-const goToMakeover = () => {
-  router.push('/makeover')
 }
 
 const saveResult = () => {
@@ -858,8 +853,7 @@ const saveResult = () => {
   gap: 8px;
 }
 
-.tabs button,
-.more-btn {
+.tabs button {
   border: none;
   background: #f8eeee;
   color: #5e5653;
@@ -872,12 +866,6 @@ const saveResult = () => {
 .tabs .active {
   background: #c65367;
   color: white;
-}
-
-.more-btn {
-  color: #c65367;
-  background: white;
-  border: 1px solid #eaded8;
 }
 
 .makeover-list {
@@ -999,7 +987,7 @@ const saveResult = () => {
 .bottom-buttons {
   margin-top: 30px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 28px;
 }
 

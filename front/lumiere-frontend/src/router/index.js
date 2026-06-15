@@ -8,7 +8,6 @@ import MyPageView from '@/views/accounts/MyPageView.vue'
 import UploadView from '@/views/diagnosis/UploadView.vue'
 import LoadingView from '@/views/diagnosis/LoadingView.vue'
 import PersonalColorResultView from '@/views/diagnosis/PersonalColorResultView.vue'
-import MakeoverView from '@/views/diagnosis/MakeoverView.vue'
 
 import ProductRecommendView from '@/views/products/ProductRecommendView.vue'
 import ProductDetailView from '@/views/products/ProductDetailView.vue'
@@ -52,22 +51,15 @@ const router = createRouter({
     },
 
     // 진단 결과 화면
-    // /result      → 방금 진단한 결과
-    // /result/101  → 마이페이지에서 과거 진단 다시보기
+    // /result       → 방금 진단한 결과
+    // /result/101   → 마이페이지에서 과거 진단 다시보기
     {
       path: '/result/:id?',
       name: 'result',
       component: PersonalColorResultView,
     },
 
-    // AI 메이크오버
-    {
-      path: '/makeover',
-      name: 'makeover',
-      component: MakeoverView,
-    },
-
-    // 추천 제품
+    // 추천 제품 목록
     {
       path: '/products',
       name: 'products',
