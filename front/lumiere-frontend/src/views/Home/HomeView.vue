@@ -36,7 +36,11 @@
           <p class="eng">Summer Cool Light</p>
 
           <div class="chips">
-            <span></span><span></span><span></span><span></span><span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
 
           <p class="summary-desc">
@@ -44,7 +48,9 @@
             은은한 핑크, 라벤더, 라이트 블루 계열이 가장 잘 어울립니다.
           </p>
 
-          <button>상세 결과 보기</button>
+          <button @click="$router.push('/result')">
+            상세 결과 보기
+          </button>
         </div>
       </div>
     </section>
@@ -57,45 +63,61 @@
           <div class="icon">☺</div>
           <h3>AI 퍼스널컬러 진단</h3>
           <p>AI가 분석한 당신의 피부톤과 이미지로 퍼스널컬러를 찾아드려요.</p>
-          <RouterLink to="/upload" class="nav-item">바로 진단하기 →</RouterLink>
+          <RouterLink to="/upload" class="feature-link">
+            바로 진단하기 →
+          </RouterLink>
         </div>
 
         <div class="feature-card">
           <div class="icon">💄</div>
           <h3>맞춤 화장품 추천</h3>
           <p>당신의 퍼스널컬러에 맞는 화장품을 카테고리별로 추천해드려요.</p>
-          <RouterLink to="/products" class="nav-item">추천 제품 보기 →</RouterLink>
+          <RouterLink to="/products" class="feature-link">
+            추천 제품 보기 →
+          </RouterLink>
         </div>
 
         <div class="feature-card">
           <div class="icon">🔍</div>
           <h3>제품 색상/호수 분석</h3>
           <p>올리브영 URL을 입력하면 가장 잘 어울리는 호수를 찾아드려요.</p>
-          <a>제품 분석하기 →</a>
+          <RouterLink to="/product-analysis" class="feature-link">
+            제품 분석하기 →
+          </RouterLink>
         </div>
 
         <div class="feature-card">
           <div class="icon">📋</div>
           <h3>진단 기록 관리</h3>
           <p>이전 진단 결과를 확인하고 변화를 비교해보세요.</p>
-          <a>마이페이지 가기 →</a>
+          <RouterLink to="/mypage" class="feature-link">
+            마이페이지 가기 →
+          </RouterLink>
         </div>
       </div>
     </section>
 
     <section class="products">
       <div class="section-head">
-        <h2>오늘의 인기 추천 제품</h2>
-        <a>전체 보기 →</a>
+        <h2>오늘의 인기 제품 미리보기</h2>
+        <RouterLink to="/products" class="section-link">
+          전체 보기 →
+        </RouterLink>
       </div>
 
       <div class="product-list">
-        <div class="product-card" v-for="product in products" :key="product.name">
+        <RouterLink
+          v-for="product in products"
+          :key="product.id"
+          :to="`/product-detail/${product.id}`"
+          class="product-card"
+        >
           <div class="product-img"></div>
           <p class="brand">{{ product.brand }}</p>
           <h4>{{ product.name }}</h4>
+          <p class="option">{{ product.optionName }}</p>
           <p class="score">추천도 {{ product.score }}%</p>
-        </div>
+        </RouterLink>
       </div>
     </section>
   </main>
@@ -103,11 +125,41 @@
 
 <script setup>
 const products = [
-  { brand: '롬앤', name: '쥬시 래스팅 틴트', score: 96 },
-  { brand: '클리오', name: '프로 아이 팔레트', score: 92 },
-  { brand: '에스쁘아', name: '비 글로우 쿠션', score: 94 },
-  { brand: '휘', name: '블러셔 멜로우', score: 90 },
-  { brand: '데이지크', name: '섀도우 팔레트', score: 89 },
+  {
+    id: 1,
+    brand: '롬앤',
+    name: '쥬시 래스팅 틴트',
+    optionName: '25호 베어 그레이프',
+    score: 96,
+  },
+  {
+    id: 2,
+    brand: '클리오',
+    name: '프로 아이 팔레트',
+    optionName: '뮤트 라이브러리',
+    score: 92,
+  },
+  {
+    id: 3,
+    brand: '에스쁘아',
+    name: '비 글로우 쿠션',
+    optionName: '21호 아이보리',
+    score: 94,
+  },
+  {
+    id: 4,
+    brand: '휘',
+    name: '블러셔 멜로우',
+    optionName: '로지 핑크',
+    score: 90,
+  },
+  {
+    id: 5,
+    brand: '데이지크',
+    name: '섀도우 팔레트',
+    optionName: '쿨 블렌딩',
+    score: 89,
+  },
 ]
 </script>
 
@@ -116,55 +168,6 @@ const products = [
   min-height: 100vh;
   background: #fffaf7;
   color: #2b2523;
-}
-
-.header {
-  height: 72px;
-  padding: 0 40px;
-  background: rgba(255, 250, 247, 0.9);
-  border-bottom: 1px solid #eaded8;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-family: Georgia, serif;
-  font-size: 30px;
-  color: #b94d61;
-  font-weight: 700;
-}
-
-.nav {
-  display: flex;
-  gap: 52px;
-  font-size: 15px;
-}
-
-.nav a {
-  cursor: pointer;
-}
-
-.header-right {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.header-right input {
-  width: 280px;
-  padding: 13px 18px;
-  border: 1px solid #eaded8;
-  border-radius: 10px;
-  background: white;
-}
-
-.login-btn {
-  background: #c65367;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 13px 24px;
 }
 
 .hero {
@@ -182,7 +185,7 @@ const products = [
   font-weight: 700;
 }
 
-.hero-text span {
+.point-color {
   color: #c65367;
 }
 
@@ -285,10 +288,21 @@ const products = [
   background: #efc7cf;
 }
 
-.chips span:nth-child(2) { background: #e7c9d8; }
-.chips span:nth-child(3) { background: #d6c5e3; }
-.chips span:nth-child(4) { background: #c7c5df; }
-.chips span:nth-child(5) { background: #d6e1e8; }
+.chips span:nth-child(2) {
+  background: #e7c9d8;
+}
+
+.chips span:nth-child(3) {
+  background: #d6c5e3;
+}
+
+.chips span:nth-child(4) {
+  background: #c7c5df;
+}
+
+.chips span:nth-child(5) {
+  background: #d6e1e8;
+}
 
 .summary-desc {
   color: #6b5f5b;
@@ -303,6 +317,7 @@ const products = [
   background: white;
   color: #c65367;
   border-radius: 8px;
+  cursor: pointer;
 }
 
 .features {
@@ -352,11 +367,12 @@ const products = [
   font-size: 14px;
 }
 
-.feature-card a {
+.feature-link {
   display: inline-block;
   margin-top: 18px;
   color: #c65367;
   font-weight: 700;
+  text-decoration: none;
 }
 
 .products {
@@ -373,8 +389,10 @@ const products = [
   margin-bottom: 22px;
 }
 
-.section-head a {
+.section-link {
   color: #c65367;
+  text-decoration: none;
+  font-weight: 700;
 }
 
 .product-list {
@@ -384,9 +402,18 @@ const products = [
 }
 
 .product-card {
+  display: block;
   border: 1px solid #eaded8;
   border-radius: 12px;
   padding: 18px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+  transition: 0.2s;
+  box-shadow: 0 8px 18px rgba(90, 50, 40, 0.08);
 }
 
 .product-img {
@@ -402,7 +429,13 @@ const products = [
 }
 
 .product-card h4 {
-  margin: 6px 0 14px;
+  margin: 6px 0 8px;
+}
+
+.option {
+  color: #756a66;
+  font-size: 13px;
+  margin-bottom: 12px;
 }
 
 .score {
