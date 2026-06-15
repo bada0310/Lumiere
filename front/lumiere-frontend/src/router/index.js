@@ -6,7 +6,7 @@ import LoadingView from '@/views/diagnosis/LoadingView.vue'
 import PersonalColorResultView from '@/views/diagnosis/PersonalColorResultView.vue'
 
 import ProductDetailView from '@/views/products/ProductDetailView.vue'
-import ProductRecommendView from '@/views/diagnosis/ProductRecommendView.vue'
+import ProductRecommendView from '@/views/products/ProductRecommendView.vue'
 import AnalysisView from '@/views/Analysis/AnalysisView.vue'
 import CommunityView from '@/views/community/CommunityView.vue'
 
@@ -51,11 +51,11 @@ const router = createRouter({
       name: 'products',
       component: ProductRecommendView,
     },
-    {
-      path: '/product-detail',
-      name: 'product-detail',
-      component: ProductDetailView,
-    },
+    // {
+    //   path: '/product-detail',      아래거랑 중복 
+    //   name: 'product-detail',
+    //   component: ProductDetailView,
+    // },
 
     // 3. 제품 검색 / URL 분석 라인
     {
