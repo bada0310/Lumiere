@@ -71,14 +71,15 @@
           <div class="icon">🔍</div>
           <h3>제품 색상/호수 분석</h3>
           <p>올리브영 URL을 입력하면 가장 잘 어울리는 호수를 찾아드려요.</p>
-          <a>제품 분석하기 →</a>
+          <RouterLink to="/product-analysis" class="nav-item">제품 분석하기 →</RouterLink>
+          
         </div>
 
         <div class="feature-card">
           <div class="icon">📋</div>
           <h3>진단 기록 관리</h3>
           <p>이전 진단 결과를 확인하고 변화를 비교해보세요.</p>
-          <a>마이페이지 가기 →</a>
+          <RouterLink to="/mypage" class="nav-item">마이페이지 가기 →</RouterLink>
         </div>
       </div>
     </section>
@@ -86,15 +87,31 @@
     <section class="products">
       <div class="section-head">
         <h2>오늘의 인기 추천 제품</h2>
-        <a>전체 보기 →</a>
+        <RouterLink to="/products" class="view-all">전체 보기 →</RouterLink>
       </div>
 
-      <div class="product-list">
-        <div class="product-card" v-for="product in products" :key="product.name">
-          <div class="product-img"></div>
-          <p class="brand">{{ product.brand }}</p>
-          <h4>{{ product.name }}</h4>
-          <p class="score">추천도 {{ product.score }}%</p>
+      <div class="carousel-container">
+        <div class="product-list">
+          <div class="flip-card" v-for="product in products" :key="product.name">
+            <div class="flip-card-inner">
+          
+              <div class="flip-card-front">
+                <div class="product-img"></div>
+                <p class="brand">{{ product.brand }}</p>
+                <h4>{{ product.name }}</h4>
+                <p class="score">추천도 {{ product.score }}%</p>
+              </div>
+
+              <div class="flip-card-back">
+                <div class="ai-badge">✨ AI's Pick</div>
+                <h4>{{ product.name }}</h4>
+                <p class="reason">{{ product.reason }}</p>
+                <button class="detail-btn" @click="$router.push(`/product-detail`)">상세보기</button>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -103,11 +120,14 @@
 
 <script setup>
 const products = [
-  { brand: '롬앤', name: '쥬시 래스팅 틴트', score: 96 },
-  { brand: '클리오', name: '프로 아이 팔레트', score: 92 },
-  { brand: '에스쁘아', name: '비 글로우 쿠션', score: 94 },
-  { brand: '휘', name: '블러셔 멜로우', score: 90 },
-  { brand: '데이지크', name: '섀도우 팔레트', score: 89 },
+  { brand: '롬앤', name: '쥬시 래스팅 틴트', score: 96, reason: '입술에 맑게 차오르는 쿨톤 광택이 예술이에요!' },
+  { brand: '클리오', name: '프로 아이 팔레트', score: 92, reason: '버릴 색상 하나 없는 데일리 음영의 정석입니다.' },
+  { brand: '에스쁘아', name: '비 글로우 쿠션', score: 94, reason: 'AI 분석 결과, 고객님의 피부결에 완벽 밀착됩니다.' },
+  { brand: '퓌', name: '블러셔 멜로우', score: 90, reason: '수채화처럼 맑게 발색되어 생기를 더해줘요.' },
+  { brand: '데이지크', name: '섀도우 팔레트', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
+  { brand: '데이지크', name: '섀도우 팔레트', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
+  { brand: '데이지크', name: '섀도우 팔레트', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
+  // 원하신다면 여기에 6번째, 7번째 제품을 계속 추가해 보세요! 스크롤이 생깁니다.
 ]
 </script>
 
@@ -359,55 +379,139 @@ const products = [
   font-weight: 700;
 }
 
+/* --- 제품 추천 섹션 레이아웃 --- */
 .products {
   margin: 20px 76px 50px;
-  padding: 24px;
+  padding: 30px 0 30px 30px; /* 오른쪽 패딩을 없애서 카드 끝이 잘린 느낌(스크롤 암시)을 줍니다 */
   background: white;
   border: 1px solid #eaded8;
   border-radius: 16px;
+  overflow: hidden; /* 영역 밖으로 나가는 건 일단 숨김 */
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
   margin-bottom: 22px;
+  padding-right: 30px; /* 머리부분은 오른쪽 여백 유지 */
 }
 
-.section-head a {
+.view-all {
   color: #c65367;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- 가로 스크롤 (캐러셀) --- */
+.carousel-container {
+  overflow-x: auto; /* 가로 스크롤 허용 */
+  padding-bottom: 20px; /* 스크롤바와 카드 사이의 여유 공간 */
+  /* 스크롤바 숨기기 (선택사항, 깔끔하게 보이려면 유지) */
+  scrollbar-width: none; 
+}
+.carousel-container::-webkit-scrollbar {
+  display: none; 
 }
 
 .product-list {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
   gap: 18px;
+  width: max-content; /* 내부 아이템 개수만큼 가로 길이 무한 확장 */
+  padding-right: 30px;
 }
 
-.product-card {
-  border: 1px solid #eaded8;
+/* --- 3D 플립 카드 애니메이션 --- */
+.flip-card {
+  width: 200px;
+  height: 270px;
+  perspective: 1000px; /* 3D 공간의 원근감 부여 */
+  flex-shrink: 0; /* 카드가 찌그러지지 않고 원래 크기 유지 */
+  cursor: pointer;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); /* 쫀득한 뒤집기 속도 */
+  transform-style: preserve-3d; /* 3D 효과 유지 */
+}
+
+/* 마우스를 올렸을 때 Y축으로 180도 회전 */
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* 앞면과 뒷면의 공통 설정 */
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden; /* 뒷통수는 안 보이게 처리 */
   border-radius: 12px;
+  border: 1px solid #eaded8;
   padding: 18px;
 }
 
+/* --- 앞면 디자인 --- */
+.flip-card-front {
+  background: white;
+}
+
 .product-img {
-  height: 110px;
+  height: 120px;
   border-radius: 10px;
   background: linear-gradient(135deg, #f3c1c8, #fff1ec);
   margin-bottom: 14px;
 }
 
-.brand {
-  color: #777;
-  font-size: 14px;
+.brand { color: #777; font-size: 13px; }
+.flip-card-front h4 { margin: 6px 0 14px; font-size: 15px; }
+.score { color: #c65367; font-weight: 700; font-size: 16px; }
+
+/* --- 뒷면 디자인 --- */
+.flip-card-back {
+  background: linear-gradient(135deg, #fffaf7, #fdf1ed);
+  transform: rotateY(180deg); /* 기본적으로 뒤집혀 있도록 설정 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
-.product-card h4 {
-  margin: 6px 0 14px;
-}
-
-.score {
-  color: #c65367;
+.ai-badge {
+  background: #c65367;
+  color: white;
+  font-size: 12px;
   font-weight: 700;
-  font-size: 18px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.flip-card-back h4 { font-size: 15px; margin-bottom: 10px; color: #2b2523; }
+
+.reason {
+  font-size: 13px;
+  color: #6b5f5b;
+  line-height: 1.5;
+  margin-bottom: auto; /* 버튼을 아래로 밀어냄 */
+}
+
+.detail-btn {
+  margin-top: 15px;
+  padding: 8px 16px;
+  border: 1px solid #d98c99;
+  background: white;
+  color: #c65367;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.detail-btn:hover {
+  background: #fdf1ed;
 }
 </style>
