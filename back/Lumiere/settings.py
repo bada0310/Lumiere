@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     'accounts', # user app 
     'diagnosis', # 퍼스널 컬러 진단 app
     'products',  # 제품 app 
-    'engagements' # 참여 활동 app (wishlist 관리하는 app)
+    'engagements', # 참여 활동 app (wishlist 관리하는 app)
+    'rest_framework',
+    'corsheaders',
     
     
     'django.contrib.admin',
@@ -46,6 +48,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -126,3 +129,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
