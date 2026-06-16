@@ -84,6 +84,7 @@
       </div>
     </section>
 
+
     <section class="products">
       <div class="section-head">
         <h2>오늘의 인기 추천 제품</h2>
