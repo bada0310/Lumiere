@@ -101,7 +101,41 @@
   </div>
 </template>
 
+<!--테스트를 위한 임시 script setup-script-->
 <script setup>
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+const products = ref([])
+
+onMounted(async () => {
+  try {
+    const response = await axios.get('http://127.0.0.1:8000/api/products/')
+
+    products.value = response.data.map((item, index) => {
+      return {
+        rank: index + 1,
+        brand: item.brand,
+        name: item.name,
+        option: item.category,
+        score: item.match_score,
+        liked: false,
+        imageClass: `lip${(index % 5) + 1}`,
+        colors: ['#c45b75', '#de91a2', '#e8b4c0', '#c9b0c9'],
+        desc: `${item.category} 카테고리의 추천 상품입니다.`,
+        tags: [item.category, '추천', '쿨톤'],
+      }
+    })
+
+    console.log('백엔드에서 받은 상품 데이터:', products.value)
+  } catch (error) {
+    console.error('상품 데이터 불러오기 실패:', error)
+  }
+})
+</script>
+
+
+<!-- <script setup>
 
 const products = [
   {
@@ -225,7 +259,7 @@ const products = [
     tags: ['저채도', '모브', '데일리'],
   },
 ]
-</script>
+</script> -->
 
 <style scoped>
 * {
