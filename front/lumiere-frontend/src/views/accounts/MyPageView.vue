@@ -141,7 +141,16 @@
           </li>
         </ul>
       </section>
-    </div>
+    </div> <ProfileEditModal 
+      :isOpen="isEditModalOpen"
+      :username="userInfo.username"
+      :initialEmail="userInfo.email"
+      :initialNickname="userInfo.nickname"
+      :initialImage="userInfo.profileImage"
+      @close="closeEditModal"
+      @save="handleSaveProfile"
+      @delete="handleDeleteAccount"
+    />
   </div>
 </template>
 
@@ -149,15 +158,18 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ProfileEditModal from '@/components/accounts/ProfileEditModal.vue'
 const router = useRouter()
 
 // User 데이터
 const userInfo = ref({
   id: 1,
+  username: 'subina123', // 고유 아이디 추가
   nickname: 'Subina',
   email: 'subina@example.com',
   profileImage: '',
 })
+
 
 // Diagnosis 1:N 데이터
 const diagnosisList = ref([
@@ -234,8 +246,36 @@ const communityList = ref([
   },
 ])
 
+//profileEditModal.vue
+
+//모달창 On/Off 스위치 만들기
+const isEditModalOpen = ref(false) 
+
+// 알람 대신 스위치
 const editProfile = () => {
-  alert('정보 수정 기능은 추후 연결 예정입니다.')
+  isEditModalOpen.value = true
+}
+//모달창 닫기, 저장, 탈퇴 처리를 위한 함수 추가
+const closeEditModal = () => {
+  isEditModalOpen.value = false
+}
+
+const handleSaveProfile = (formData) => {
+  console.log("모달에서 넘어온 수정 데이터:", formData)
+  
+  // 1. 화면에 변경된 정보 즉시 반영하기 (프론트 단독 테스트용)
+  userInfo.value.nickname = formData.nickname
+  userInfo.value.email = formData.email
+  if (formData.profileImage) {
+    // 선택한 이미지 파일을 브라우저 임시 주소로 만들어서 바로 보여줍니다.
+    userInfo.value.profileImage = URL.createObjectURL(formData.profileImage)
+  }
+  
+  // 2. 성공 알림
+  alert('정보가 성공적으로 수정되었습니다!')
+  
+  // ★ 3. 여기서 반드시 모달 스위치를 꺼주어야 창이 닫힙니다! ★
+  isEditModalOpen.value = false 
 }
 
 // 마이페이지 → 재진단
@@ -257,6 +297,7 @@ const goToProductDetail = (productOptionId) => {
 const goToAnalysisResult = (id) => {
   router.push(`/analysis/result/${id}`)
 }
+
 </script>
 
 <style scoped>

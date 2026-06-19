@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -134,3 +134,29 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 1. JWT 인증 (토큰이 헤더에 있으면 이걸로 확인)
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        
+        # 2. 세션 인증 (쿠키에 세션 ID가 있으면 이걸로 확인)
+        'rest_framework.authentication.SessionAuthentication', 
+    ],
+}
+# 중요: 프론트엔드와 쿠키(세션)를 주고받는 것을 허용합니다.
+CORS_ALLOW_CREDENTIALS = True
+
+# 중요: 프론트엔드에서 오는 POST 요청을 믿을 수 있도록 CSRF 예외 처리
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+AUTH_USER_MODEL = 'accounts.User'

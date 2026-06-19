@@ -9,14 +9,22 @@
     </div>
 
     <div class="right-form-area">
-      <div class="tab-header">
+      <div class="tab-header" v-if="currentTab !== 'findPassword'">
         <button :class="{ active: currentTab === 'login' }" @click="currentTab = 'login'">로그인</button>
         <button :class="{ active: currentTab === 'signup' }" @click="currentTab = 'signup'">회원가입</button>
       </div>
       
+      <div class="find-password-header" v-else>
+        <h2>비밀번호 찾기</h2>
+        <p>가입하신 이메일로 임시 비밀번호를 보내드립니다.</p>
+      </div>
+      
       <div class="tab-content">
-        <LoginForm v-if="currentTab === 'login'" />
-        <SignupForm v-else />
+        <LoginForm v-if="currentTab === 'login'" @go-to-find-password="currentTab = 'findPassword'" />
+        
+        <SignupForm v-else-if="currentTab === 'signup'" />
+        
+        <FindPasswordForm v-else-if="currentTab === 'findPassword'" @go-back="currentTab = 'login'" />
       </div>
     </div>
   </div>
@@ -26,8 +34,10 @@
 import { ref } from 'vue'
 import LoginForm from '@/components/accounts/LoginForm.vue'
 import SignupForm from '@/components/accounts/SignupForm.vue'
+import FindPasswordForm from '@/components/accounts/FindPasswordForm.vue' 
 
-const currentTab = ref('login') // 'login' 또는 'signup'
+// 현재 화면 상태 관리 ('login', 'signup', 'findPassword' 3가지)
+const currentTab = ref('login') 
 </script>
 
 <style scoped>
@@ -37,7 +47,7 @@ const currentTab = ref('login') // 'login' 또는 'signup'
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #fdf8f5; /* 부드러운 배경색 */
+  background-color: #fdf8f5;
   padding: 40px;
   gap: 60px;
 }
@@ -95,6 +105,21 @@ const currentTab = ref('login') // 'login' 또는 'signup'
 .tab-header button.active {
   color: #8b3a4a;
   border-bottom: 2px solid #8b3a4a;
-  margin-bottom: -2px; /* 보더 겹치기 정렬 */
+  margin-bottom: -2px;
+}
+
+/* 비밀번호 찾기 전용 헤더 스타일 */
+.find-password-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+.find-password-header h2 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+.find-password-header p {
+  font-size: 0.9rem;
+  color: #777;
 }
 </style>
