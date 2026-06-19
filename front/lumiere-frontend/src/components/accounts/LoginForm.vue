@@ -2,28 +2,57 @@
   <form @submit.prevent="handleLogin" class="login-form">
     <div class="input-group">
       <label>이메일</label>
-      <input type="email" v-model="email" placeholder="이메일을 입력해주세요" required />
+      <input type="email" v-model.trim="email" placeholder="이메일을 입력해주세요" required />
     </div>
 
     <div class="input-group">
       <label>비밀번호</label>
-      <input type="password" v-model="password" placeholder="비밀번호를 입력해주세요" required />
+      <input type="password" v-model.trim="password" placeholder="비밀번호를 입력해주세요" required />
     </div>
 
     <button type="submit" class="login-btn">로그인</button>
 
-    </form>
+    <div class="login-options">
+      <span class="find-password-text" @click="goToFindPassword">비밀번호를 잊으셨나요?</span>
+    </div>
+  </form>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import axios from 'axios'
+
+// ★ 부모(LoginView)에게 신호를 보내기 위한 설정
+const emit = defineEmits(['goToFindPassword'])
 
 const email = ref('')
 const password = ref('')
 
-const handleLogin = () => {
-  // 여기에 백엔드 API(예: FastAPI 또는 Django)로 로그인 요청을 보내는 로직을 작성합니다.
-  console.log('로그인 시도:', email.value, password.value)
+const handleLogin = async () => { 
+  const loginData = {
+    username: email.value, // 장고의 규칙을 위해 username으로 포장
+    password: password.value
+  }
+
+  try {
+    const response = await axios.post('http://127.0.0.1:8000/accounts/jwt-login/', loginData)
+    
+    localStorage.setItem('access_token', response.data.access)
+    localStorage.setItem('refresh_token', response.data.refresh)
+    
+    alert('로그인에 성공했습니다!')
+    
+    window.location.href = '/' // 강제 새로고침하며 메인으로 이동
+
+  } catch (error) {
+    console.error("로그인 실패:", error.response?.data)
+    alert('이메일 또는 비밀번호가 올바르지 않습니다.')
+  }
+}
+
+// 텍스트 클릭 시 부모에게 이벤트 발송
+const goToFindPassword = () => {
+  emit('goToFindPassword')
 }
 </script>
 
@@ -31,7 +60,7 @@ const handleLogin = () => {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* 입력창과 버튼 사이 간격 */
+  gap: 20px;
 }
 
 .input-group {
@@ -54,17 +83,35 @@ const handleLogin = () => {
 }
 
 .input-group input:focus {
-  border-color: #8b3a4a; /* 포커스 시 이미지의 포인트 컬러 */
+  border-color: #8b3a4a;
 }
 
 .login-btn {
   padding: 15px;
-  background-color: #8b3a4a; /* 이미지의 로그인 버튼 색상 */
+  background-color: #8b3a4a;
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
   margin-top: 10px;
+}
+
+/* ★ 비밀번호 찾기 텍스트 스타일 */
+.login-options {
+  text-align: center;
+  margin-top: -5px;
+}
+
+.find-password-text {
+  font-size: 0.85rem;
+  color: #888;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease-in-out;
+}
+
+.find-password-text:hover {
+  color: #8b3a4a;
 }
 </style>
