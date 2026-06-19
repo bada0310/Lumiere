@@ -32,17 +32,46 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue' // onMounted 추가
+import axios from 'axios' // 서버랑 통신해야 하니 axios 추가
 
-// 💡 테스트용 임시 로그인 상태 변수입니다.
-// 이 값을 true 로 바꾸고 저장하시면 화면이 로그인된 상태로 즉시 변합니다!
+
 const isLoggedIn = ref(false) 
-const userName = ref('박성은') // 유저 이름 데이터
+const userName = ref('') // 추후 서버에서 닉네임을 받아오면 교체됩니다.
 
-// 임시 로그아웃 함수
+//  화면이 새로고침되어 처음 렌더링될 때 무조건 실행되는 부분
+onMounted(async () => {
+  const token = localStorage.getItem('access_token')
+  
+  if (token) {
+    isLoggedIn.value = true
+    
+    try {
+      // 토큰을 'Authorization' 헤더에 담아서 내 정보(nickname)를 요청합니다.
+      const response = await axios.get('http://127.0.0.1:8000/accounts/user/', {
+        headers: {
+          Authorization: `Bearer ${token}` // JWT 토큰을 보낼 때의 필수 규칙입니다.
+        }
+      })
+      
+      // 장고가 보내준 nickname을 userName 변수에 쏙 넣어줍니다!
+      userName.value = response.data.nickname 
+      
+    } catch (error) {
+      console.error("유저 정보를 가져오는데 실패했습니다.", error)
+      // 토큰이 만료되었거나 이상하면 강제 로그아웃 처리
+      logout() 
+    }
+  }
+})
+
+// 로그아웃 함수도 진짜로 창고를 비우도록 수정
 const logout = () => {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
   isLoggedIn.value = false
   alert('로그아웃 되었습니다.')
+  window.location.href = '/' // 로그아웃 후 화면 갱신
 }
 </script>
 
