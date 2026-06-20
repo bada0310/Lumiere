@@ -1,0 +1,131 @@
+from rest_framework import serializers
+
+from products.models import Product
+from products.serializers import ProductSerializer
+
+from .models import Comment, CommentLike, Post, PostLike
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author_id = serializers.IntegerField(source='author.id', read_only=True)
+    author_username = serializers.CharField(source='author.username', read_only=True)
+    author_nickname = serializers.CharField(source='author.nickname', read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id',
+            'post',
+            'author_id',
+            'author_username',
+            'author_nickname',
+            'content',
+            'like_count',
+            'is_liked',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'author_id',
+            'author_username',
+            'author_nickname',
+            'like_count',
+            'is_liked',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
+
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class PostSerializer(serializers.ModelSerializer):
+    author_id = serializers.IntegerField(source='author.id', read_only=True)
+    author_username = serializers.CharField(source='author.username', read_only=True)
+    author_nickname = serializers.CharField(source='author.nickname', read_only=True)
+    product_ids = serializers.PrimaryKeyRelatedField(
+        source='products',
+        queryset=Product.objects.all(),
+        many=True,
+        required=False,
+        write_only=True,
+    )
+    products = ProductSerializer(many=True, read_only=True)
+    comment_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = [
+            'id',
+            'author_id',
+            'author_username',
+            'author_nickname',
+            'title',
+            'content',
+            'category',
+            'product_ids',
+            'products',
+            'image_url',
+            'view_count',
+            'comment_count',
+            'like_count',
+            'is_liked',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'author_id',
+            'author_username',
+            'author_nickname',
+            'view_count',
+            'comment_count',
+            'like_count',
+            'is_liked',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
+
+    def create(self, validated_data):
+        products = validated_data.pop('products', [])
+        validated_data['author'] = self.context['request'].user
+        post = super().create(validated_data)
+        post.products.set(products)
+        return post
+
+    def update(self, instance, validated_data):
+        products = validated_data.pop('products', None)
+        post = super().update(instance, validated_data)
+        if products is not None:
+            post.products.set(products)
+        return post
+
+
+class PostLikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostLike
+        fields = ['id', 'post', 'user', 'created_at']
+        read_only_fields = ['user', 'created_at']
+
+
+class CommentLikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommentLike
+        fields = ['id', 'comment', 'user', 'created_at']
+        read_only_fields = ['user', 'created_at']
