@@ -1,0 +1,1982 @@
+[
+    {
+        "model":  "accounts.user",
+        "pk":  9001,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_01",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_01@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트01",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9002,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_02",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_02@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트02",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9003,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_03",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_03@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트03",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9004,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_04",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_04@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트04",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9005,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_05",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_05@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트05",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9006,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_06",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_06@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트06",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9007,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_07",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_07@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트07",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9008,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_08",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_08@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트08",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9009,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_09",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_09@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트09",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "accounts.user",
+        "pk":  9010,
+        "fields":  {
+                       "password":  "pbkdf2_sha256$1000000$dummy$7Y6ggo6qC9hms9JrY0bYtuZYm8kdN0aYc4mTStbGYw4=",
+                       "last_login":  null,
+                       "is_superuser":  false,
+                       "username":  "tone_user_10",
+                       "first_name":  "",
+                       "last_name":  "",
+                       "email":  "tone_user_10@example.com",
+                       "is_staff":  false,
+                       "is_active":  true,
+                       "date_joined":  "2026-06-20T00:00:00+09:00",
+                       "nickname":  "톤메이트10",
+                       "social_id":  null,
+                       "social_provider":  null,
+                       "role":  "USER",
+                       "profile_image":  "",
+                       "deleted_at":  null,
+                       "groups":  [
+
+                                  ],
+                       "user_permissions":  [
+
+                                            ]
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10001,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[001] 요즘 매일 쓰는 인생템 조합",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  37,
+                       "created_at":  "2026-06-01T12:00:00+09:00",
+                       "updated_at":  "2026-06-01T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10002,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[002] 실내외 발색 차이 후기",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  54,
+                       "created_at":  "2026-06-01T15:00:00+09:00",
+                       "updated_at":  "2026-06-01T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10003,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[003] 이 조합 톤에 맞을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  71,
+                       "created_at":  "2026-06-01T18:00:00+09:00",
+                       "updated_at":  "2026-06-01T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10004,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[004] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  88,
+                       "created_at":  "2026-06-01T21:00:00+09:00",
+                       "updated_at":  "2026-06-01T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10005,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[005] 주말 약속 전 빠른 수정 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  105,
+                       "created_at":  "2026-06-02T00:00:00+09:00",
+                       "updated_at":  "2026-06-02T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10006,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[006] 라운지에서 같이 얘기해요",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  122,
+                       "created_at":  "2026-06-02T03:00:00+09:00",
+                       "updated_at":  "2026-06-02T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10007,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[007] 파우치에서 절대 안 빼는 제품",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  139,
+                       "created_at":  "2026-06-02T06:00:00+09:00",
+                       "updated_at":  "2026-06-02T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10008,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[008] 쿨톤 립 발색 비교",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  156,
+                       "created_at":  "2026-06-02T09:00:00+09:00",
+                       "updated_at":  "2026-06-02T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10009,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[009] 베이스가 자꾸 뜨는데 조언 부탁해요",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  173,
+                       "created_at":  "2026-06-02T12:00:00+09:00",
+                       "updated_at":  "2026-06-02T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10010,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[010] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  190,
+                       "created_at":  "2026-06-02T15:00:00+09:00",
+                       "updated_at":  "2026-06-02T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10011,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[011] 마스크 묻어남 줄이는 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  207,
+                       "created_at":  "2026-06-02T18:00:00+09:00",
+                       "updated_at":  "2026-06-02T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10012,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[012] 톤 진단 후 달라진 점",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  224,
+                       "created_at":  "2026-06-02T21:00:00+09:00",
+                       "updated_at":  "2026-06-02T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10013,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[013] 출근 메이크업 고정템 공유",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  241,
+                       "created_at":  "2026-06-03T00:00:00+09:00",
+                       "updated_at":  "2026-06-03T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10014,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[014] 팔레트 음영 컬러 발색",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  258,
+                       "created_at":  "2026-06-03T03:00:00+09:00",
+                       "updated_at":  "2026-06-03T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10015,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[015] 첫 섀도우 팔레트 추천 받을 수 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  275,
+                       "created_at":  "2026-06-03T06:00:00+09:00",
+                       "updated_at":  "2026-06-03T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10016,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[016] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  292,
+                       "created_at":  "2026-06-03T09:00:00+09:00",
+                       "updated_at":  "2026-06-03T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10017,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[017] 피부 표현 중심 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  309,
+                       "created_at":  "2026-06-03T12:00:00+09:00",
+                       "updated_at":  "2026-06-03T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10018,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[018] 요즘 관심 있는 컬러",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  326,
+                       "created_at":  "2026-06-03T15:00:00+09:00",
+                       "updated_at":  "2026-06-03T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10019,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[019] 재구매한 데일리 아이템",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  343,
+                       "created_at":  "2026-06-03T18:00:00+09:00",
+                       "updated_at":  "2026-06-03T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10020,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[020] 블러셔 발색이 생각보다 맑아요",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  360,
+                       "created_at":  "2026-06-03T21:00:00+09:00",
+                       "updated_at":  "2026-06-03T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10021,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[021] 립 컬러가 너무 진할 때 방법 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  377,
+                       "created_at":  "2026-06-04T00:00:00+09:00",
+                       "updated_at":  "2026-06-04T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10022,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[022] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  394,
+                       "created_at":  "2026-06-04T03:00:00+09:00",
+                       "updated_at":  "2026-06-04T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10023,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[023] 5분 출근 메이크업 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  411,
+                       "created_at":  "2026-06-04T06:00:00+09:00",
+                       "updated_at":  "2026-06-04T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10024,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[024] 오늘 산 제품 이야기",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  428,
+                       "created_at":  "2026-06-04T09:00:00+09:00",
+                       "updated_at":  "2026-06-04T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10025,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[025] 요즘 매일 쓰는 인생템 조합",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  445,
+                       "created_at":  "2026-06-04T12:00:00+09:00",
+                       "updated_at":  "2026-06-04T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10026,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[026] 실내외 발색 차이 후기",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  462,
+                       "created_at":  "2026-06-04T15:00:00+09:00",
+                       "updated_at":  "2026-06-04T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10027,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[027] 이 조합 톤에 맞을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  479,
+                       "created_at":  "2026-06-04T18:00:00+09:00",
+                       "updated_at":  "2026-06-04T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10028,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[028] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  496,
+                       "created_at":  "2026-06-04T21:00:00+09:00",
+                       "updated_at":  "2026-06-04T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10029,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[029] 주말 약속 전 빠른 수정 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  33,
+                       "created_at":  "2026-06-05T00:00:00+09:00",
+                       "updated_at":  "2026-06-05T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10030,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[030] 라운지에서 같이 얘기해요",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  50,
+                       "created_at":  "2026-06-05T03:00:00+09:00",
+                       "updated_at":  "2026-06-05T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10031,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[031] 파우치에서 절대 안 빼는 제품",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  67,
+                       "created_at":  "2026-06-05T06:00:00+09:00",
+                       "updated_at":  "2026-06-05T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10032,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[032] 쿨톤 립 발색 비교",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  84,
+                       "created_at":  "2026-06-05T09:00:00+09:00",
+                       "updated_at":  "2026-06-05T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10033,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[033] 베이스가 자꾸 뜨는데 조언 부탁해요",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  101,
+                       "created_at":  "2026-06-05T12:00:00+09:00",
+                       "updated_at":  "2026-06-05T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10034,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[034] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  118,
+                       "created_at":  "2026-06-05T15:00:00+09:00",
+                       "updated_at":  "2026-06-05T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10035,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[035] 마스크 묻어남 줄이는 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  135,
+                       "created_at":  "2026-06-05T18:00:00+09:00",
+                       "updated_at":  "2026-06-05T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10036,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[036] 톤 진단 후 달라진 점",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  152,
+                       "created_at":  "2026-06-05T21:00:00+09:00",
+                       "updated_at":  "2026-06-05T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10037,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[037] 출근 메이크업 고정템 공유",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  169,
+                       "created_at":  "2026-06-06T00:00:00+09:00",
+                       "updated_at":  "2026-06-06T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10038,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[038] 팔레트 음영 컬러 발색",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  186,
+                       "created_at":  "2026-06-06T03:00:00+09:00",
+                       "updated_at":  "2026-06-06T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10039,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[039] 첫 섀도우 팔레트 추천 받을 수 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  203,
+                       "created_at":  "2026-06-06T06:00:00+09:00",
+                       "updated_at":  "2026-06-06T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10040,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[040] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  220,
+                       "created_at":  "2026-06-06T09:00:00+09:00",
+                       "updated_at":  "2026-06-06T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10041,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[041] 피부 표현 중심 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  237,
+                       "created_at":  "2026-06-06T12:00:00+09:00",
+                       "updated_at":  "2026-06-06T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10042,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[042] 요즘 관심 있는 컬러",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  254,
+                       "created_at":  "2026-06-06T15:00:00+09:00",
+                       "updated_at":  "2026-06-06T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10043,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[043] 재구매한 데일리 아이템",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  271,
+                       "created_at":  "2026-06-06T18:00:00+09:00",
+                       "updated_at":  "2026-06-06T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10044,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[044] 블러셔 발색이 생각보다 맑아요",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  288,
+                       "created_at":  "2026-06-06T21:00:00+09:00",
+                       "updated_at":  "2026-06-06T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10045,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[045] 립 컬러가 너무 진할 때 방법 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  305,
+                       "created_at":  "2026-06-07T00:00:00+09:00",
+                       "updated_at":  "2026-06-07T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10046,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[046] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  322,
+                       "created_at":  "2026-06-07T03:00:00+09:00",
+                       "updated_at":  "2026-06-07T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10047,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[047] 5분 출근 메이크업 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  339,
+                       "created_at":  "2026-06-07T06:00:00+09:00",
+                       "updated_at":  "2026-06-07T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10048,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[048] 오늘 산 제품 이야기",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  356,
+                       "created_at":  "2026-06-07T09:00:00+09:00",
+                       "updated_at":  "2026-06-07T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10049,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[049] 요즘 매일 쓰는 인생템 조합",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  373,
+                       "created_at":  "2026-06-07T12:00:00+09:00",
+                       "updated_at":  "2026-06-07T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10050,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[050] 실내외 발색 차이 후기",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  390,
+                       "created_at":  "2026-06-07T15:00:00+09:00",
+                       "updated_at":  "2026-06-07T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10051,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[051] 이 조합 톤에 맞을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  407,
+                       "created_at":  "2026-06-07T18:00:00+09:00",
+                       "updated_at":  "2026-06-07T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10052,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[052] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  424,
+                       "created_at":  "2026-06-07T21:00:00+09:00",
+                       "updated_at":  "2026-06-07T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10053,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[053] 주말 약속 전 빠른 수정 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  441,
+                       "created_at":  "2026-06-08T00:00:00+09:00",
+                       "updated_at":  "2026-06-08T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10054,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[054] 라운지에서 같이 얘기해요",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  458,
+                       "created_at":  "2026-06-08T03:00:00+09:00",
+                       "updated_at":  "2026-06-08T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10055,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[055] 파우치에서 절대 안 빼는 제품",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  475,
+                       "created_at":  "2026-06-08T06:00:00+09:00",
+                       "updated_at":  "2026-06-08T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10056,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[056] 쿨톤 립 발색 비교",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  492,
+                       "created_at":  "2026-06-08T09:00:00+09:00",
+                       "updated_at":  "2026-06-08T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10057,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[057] 베이스가 자꾸 뜨는데 조언 부탁해요",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  29,
+                       "created_at":  "2026-06-08T12:00:00+09:00",
+                       "updated_at":  "2026-06-08T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10058,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[058] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  46,
+                       "created_at":  "2026-06-08T15:00:00+09:00",
+                       "updated_at":  "2026-06-08T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10059,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[059] 마스크 묻어남 줄이는 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  63,
+                       "created_at":  "2026-06-08T18:00:00+09:00",
+                       "updated_at":  "2026-06-08T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10060,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[060] 톤 진단 후 달라진 점",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  80,
+                       "created_at":  "2026-06-08T21:00:00+09:00",
+                       "updated_at":  "2026-06-08T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10061,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[061] 출근 메이크업 고정템 공유",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  97,
+                       "created_at":  "2026-06-09T00:00:00+09:00",
+                       "updated_at":  "2026-06-09T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10062,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[062] 팔레트 음영 컬러 발색",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  114,
+                       "created_at":  "2026-06-09T03:00:00+09:00",
+                       "updated_at":  "2026-06-09T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10063,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[063] 첫 섀도우 팔레트 추천 받을 수 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  131,
+                       "created_at":  "2026-06-09T06:00:00+09:00",
+                       "updated_at":  "2026-06-09T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10064,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[064] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  148,
+                       "created_at":  "2026-06-09T09:00:00+09:00",
+                       "updated_at":  "2026-06-09T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10065,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[065] 피부 표현 중심 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  165,
+                       "created_at":  "2026-06-09T12:00:00+09:00",
+                       "updated_at":  "2026-06-09T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10066,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[066] 요즘 관심 있는 컬러",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  182,
+                       "created_at":  "2026-06-09T15:00:00+09:00",
+                       "updated_at":  "2026-06-09T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10067,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[067] 재구매한 데일리 아이템",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  199,
+                       "created_at":  "2026-06-09T18:00:00+09:00",
+                       "updated_at":  "2026-06-09T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10068,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[068] 블러셔 발색이 생각보다 맑아요",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  216,
+                       "created_at":  "2026-06-09T21:00:00+09:00",
+                       "updated_at":  "2026-06-09T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10069,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[069] 립 컬러가 너무 진할 때 방법 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  233,
+                       "created_at":  "2026-06-10T00:00:00+09:00",
+                       "updated_at":  "2026-06-10T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10070,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[070] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  250,
+                       "created_at":  "2026-06-10T03:00:00+09:00",
+                       "updated_at":  "2026-06-10T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10071,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[071] 5분 출근 메이크업 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  267,
+                       "created_at":  "2026-06-10T06:00:00+09:00",
+                       "updated_at":  "2026-06-10T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10072,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[072] 오늘 산 제품 이야기",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  284,
+                       "created_at":  "2026-06-10T09:00:00+09:00",
+                       "updated_at":  "2026-06-10T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10073,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[073] 요즘 매일 쓰는 인생템 조합",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  301,
+                       "created_at":  "2026-06-10T12:00:00+09:00",
+                       "updated_at":  "2026-06-10T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10074,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[074] 실내외 발색 차이 후기",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  318,
+                       "created_at":  "2026-06-10T15:00:00+09:00",
+                       "updated_at":  "2026-06-10T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10075,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[075] 이 조합 톤에 맞을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  335,
+                       "created_at":  "2026-06-10T18:00:00+09:00",
+                       "updated_at":  "2026-06-10T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10076,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[076] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  352,
+                       "created_at":  "2026-06-10T21:00:00+09:00",
+                       "updated_at":  "2026-06-10T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10077,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[077] 주말 약속 전 빠른 수정 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  369,
+                       "created_at":  "2026-06-11T00:00:00+09:00",
+                       "updated_at":  "2026-06-11T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10078,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[078] 라운지에서 같이 얘기해요",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  386,
+                       "created_at":  "2026-06-11T03:00:00+09:00",
+                       "updated_at":  "2026-06-11T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10079,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[079] 파우치에서 절대 안 빼는 제품",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  403,
+                       "created_at":  "2026-06-11T06:00:00+09:00",
+                       "updated_at":  "2026-06-11T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10080,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[080] 쿨톤 립 발색 비교",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  420,
+                       "created_at":  "2026-06-11T09:00:00+09:00",
+                       "updated_at":  "2026-06-11T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10081,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[081] 베이스가 자꾸 뜨는데 조언 부탁해요",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  437,
+                       "created_at":  "2026-06-11T12:00:00+09:00",
+                       "updated_at":  "2026-06-11T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10082,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[082] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  454,
+                       "created_at":  "2026-06-11T15:00:00+09:00",
+                       "updated_at":  "2026-06-11T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10083,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[083] 마스크 묻어남 줄이는 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  471,
+                       "created_at":  "2026-06-11T18:00:00+09:00",
+                       "updated_at":  "2026-06-11T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10084,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[084] 톤 진단 후 달라진 점",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  488,
+                       "created_at":  "2026-06-11T21:00:00+09:00",
+                       "updated_at":  "2026-06-11T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10085,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[085] 출근 메이크업 고정템 공유",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  25,
+                       "created_at":  "2026-06-12T00:00:00+09:00",
+                       "updated_at":  "2026-06-12T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10086,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[086] 팔레트 음영 컬러 발색",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  42,
+                       "created_at":  "2026-06-12T03:00:00+09:00",
+                       "updated_at":  "2026-06-12T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10087,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[087] 첫 섀도우 팔레트 추천 받을 수 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  59,
+                       "created_at":  "2026-06-12T06:00:00+09:00",
+                       "updated_at":  "2026-06-12T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10088,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[088] 입문자용 팔레트 추천해요",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  76,
+                       "created_at":  "2026-06-12T09:00:00+09:00",
+                       "updated_at":  "2026-06-12T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10089,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[089] 피부 표현 중심 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  93,
+                       "created_at":  "2026-06-12T12:00:00+09:00",
+                       "updated_at":  "2026-06-12T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10090,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[090] 요즘 관심 있는 컬러",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  110,
+                       "created_at":  "2026-06-12T15:00:00+09:00",
+                       "updated_at":  "2026-06-12T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10091,
+        "fields":  {
+                       "author":  9001,
+                       "title":  "[091] 재구매한 데일리 아이템",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  127,
+                       "created_at":  "2026-06-12T18:00:00+09:00",
+                       "updated_at":  "2026-06-12T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10092,
+        "fields":  {
+                       "author":  9002,
+                       "title":  "[092] 블러셔 발색이 생각보다 맑아요",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  144,
+                       "created_at":  "2026-06-12T21:00:00+09:00",
+                       "updated_at":  "2026-06-12T21:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10093,
+        "fields":  {
+                       "author":  9003,
+                       "title":  "[093] 립 컬러가 너무 진할 때 방법 있을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  161,
+                       "created_at":  "2026-06-13T00:00:00+09:00",
+                       "updated_at":  "2026-06-13T00:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10094,
+        "fields":  {
+                       "author":  9004,
+                       "title":  "[094] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  178,
+                       "created_at":  "2026-06-13T03:00:00+09:00",
+                       "updated_at":  "2026-06-13T03:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10095,
+        "fields":  {
+                       "author":  9005,
+                       "title":  "[095] 5분 출근 메이크업 루틴",
+                       "content":  "스킨케어를 가볍게 하고 얇게 여러 번 쌓는 방식으로 바꿨더니 훨씬 오래갔어요. 단계별로 정리해봤습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "ROUTINE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  195,
+                       "created_at":  "2026-06-13T06:00:00+09:00",
+                       "updated_at":  "2026-06-13T06:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10096,
+        "fields":  {
+                       "author":  9006,
+                       "title":  "[096] 오늘 산 제품 이야기",
+                       "content":  "톤 진단 이후로 고르는 색이 많이 달라졌어요. 비슷한 경험 있으신 분들과 얘기해보고 싶습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "FREE",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700\u0026q=80",
+                       "view_count":  212,
+                       "created_at":  "2026-06-13T09:00:00+09:00",
+                       "updated_at":  "2026-06-13T09:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10097,
+        "fields":  {
+                       "author":  9007,
+                       "title":  "[097] 요즘 매일 쓰는 인생템 조합",
+                       "content":  "며칠 동안 계속 사용해봤는데 지속력과 사용감이 좋아서 공유해요. 과하지 않고 데일리로 쓰기 편했습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "LIFE_ITEM",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=700\u0026q=80",
+                       "view_count":  229,
+                       "created_at":  "2026-06-13T12:00:00+09:00",
+                       "updated_at":  "2026-06-13T12:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10098,
+        "fields":  {
+                       "author":  9008,
+                       "title":  "[098] 실내외 발색 차이 후기",
+                       "content":  "손목 발색과 입술 발색 차이가 있어서 참고용으로 남겨요. 덧바를수록 채도가 올라갑니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "COLOR_REVIEW",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700\u0026q=80",
+                       "view_count":  246,
+                       "created_at":  "2026-06-13T15:00:00+09:00",
+                       "updated_at":  "2026-06-13T15:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10099,
+        "fields":  {
+                       "author":  9009,
+                       "title":  "[099] 이 조합 톤에 맞을까요?",
+                       "content":  "제 톤에 이 컬러가 어울릴지 고민입니다. 비슷한 톤이신 분들 사용해보셨다면 의견 부탁드려요.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "QUESTION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700\u0026q=80",
+                       "view_count":  263,
+                       "created_at":  "2026-06-13T18:00:00+09:00",
+                       "updated_at":  "2026-06-13T18:00:00+09:00"
+                   }
+    },
+    {
+        "model":  "community.post",
+        "pk":  10100,
+        "fields":  {
+                       "author":  9010,
+                       "title":  "[100] 여쿨라에게 추천하는 립",
+                       "content":  "가격대와 접근성을 생각해서 추천해요. 초보자도 실패 확률이 낮은 조합이라고 느꼈습니다.\n\n사용해본 느낌을 기준으로 적었고, 톤이나 피부 상태에 따라 다르게 느껴질 수 있어요. 댓글로 다른 조합도 추천해주세요.",
+                       "category":  "PRODUCT_RECOMMENDATION",
+                       "products":  [
+
+                                    ],
+                       "image_url":  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700\u0026q=80",
+                       "view_count":  280,
+                       "created_at":  "2026-06-13T21:00:00+09:00",
+                       "updated_at":  "2026-06-13T21:00:00+09:00"
+                   }
+    }
+]

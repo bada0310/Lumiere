@@ -21,6 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('api/products/', include('products.urls')),
+    path('api/community/', include('community.urls')),
     # path('', include('personal_color.urls')),
     # path('', include('product.urls')),
 ]

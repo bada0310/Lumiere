@@ -18,4 +18,6 @@ urlpatterns = [
     path('signup/', views.signup_view, name='signup'), # 회원가입 
     path('user/', views.user_info_view, name='user_info'), # 내 정보 가져오기
     path('check-username/', views.check_username_view, name='check_username'), # 중복 확인 전용 주소 추가
+    path('find-password/', views.find_password_view, name='find_password'), #  비밀번호 찾기 API 주소 추가
+
 ]

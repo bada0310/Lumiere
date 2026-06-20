@@ -7,12 +7,10 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
+const emit = defineEmits(['write']);
 
 const navigateToWrite = () => {
-  router.push('/community/write');
+  emit('write');
 };
 </script>
 
@@ -38,8 +36,9 @@ const navigateToWrite = () => {
   border: none;
   padding: 14px 24px;
   border-radius: 30px;
-  font-size: 1rem;
-  font-weight: bold;
+  font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
   box-shadow: 0 4px 16px rgba(139, 58, 74, 0.3);
   cursor: pointer;
   transition: transform 0.2s, background-color 0.2s;

@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'accounts', # user app 
     'diagnosis', # 퍼스널 컬러 진단 app
     'products',  # 제품 app 
+    'community', # 커뮤니티 app
     'engagements', # 참여 활동 app (wishlist 관리하는 app)
     'rest_framework',
     'corsheaders',
@@ -160,3 +161,14 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = 'accounts.User'
+
+# --- Email Settings (SMTP) ---
+# 장고가 내장하고 있는 메일 발송 엔진을 사용합니다.
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com' # 구글 우체국 주소
+EMAIL_PORT = 587 # 구글이 열어둔 보안 포트
+EMAIL_USE_TLS = True # 보안 터널 사용 여부 (필수)
+
+# ★ 수정 필요: 수빈님의 실제 정보로 바꿔주세요!
+EMAIL_HOST_USER = '수빈님의구글이메일@gmail.com' 
+EMAIL_HOST_PASSWORD = '여기에_16자리_앱비밀번호_띄어쓰기없이_입력'
