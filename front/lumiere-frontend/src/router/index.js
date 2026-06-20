@@ -14,6 +14,8 @@ import ProductDetailView from '@/views/products/ProductDetailView.vue'
 
 import AnalysisView from '@/views/Analysis/AnalysisView.vue'
 import CommunityView from '@/views/community/CommunityView.vue'
+import CommunityCreateView from '@/views/community/CommunityCreateView.vue'
+import CommunityDetailView from '@/views/community/CommunityDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +94,21 @@ const router = createRouter({
     {
       path: '/community',
       name: 'community',
+      component: CommunityView,
+    },
+    {
+      path: '/community/posts/new',
+      name: 'community-create',
+      component: CommunityCreateView,
+    },
+    {
+      path: '/community/posts/:id',
+      name: 'community-detail',
+      component: CommunityDetailView,
+    },
+    {
+      path: '/community/lounge/:loungeKey',
+      name: 'community-lounge',
       component: CommunityView,
     },
   ],
