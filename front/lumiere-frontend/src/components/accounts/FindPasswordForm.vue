@@ -15,15 +15,33 @@
 
 <script setup>
 import { ref } from 'vue'
+import axios from 'axios'
 
 const emit = defineEmits(['goBack'])
 const email = ref('')
 
 // 비밀번호 찾기 처리 (백엔드 연결 전 임시 로직)
-const handleFindPassword = () => {
-  if (!email.value) return
-  alert(`${email.value}로 임시 비밀번호를 발송했습니다! (현재는 UI 테스트 중입니다)`)
-  emit('goBack') // 발송 후 깔끔하게 로그인 화면으로 돌려보내기
+const handleFindPassword = async () => {
+  if (!email.value) {
+    alert("이메일을 입력해주세요.")
+    return
+  }
+
+  try {
+    // 장고로 이메일을 담아 POST 요청을 보냅니다.
+    const response = await axios.post('http://127.0.0.1:8000/accounts/find-password/', {
+      email: email.value
+    })
+    
+    // 성공 시 장고가 보내준 메시지 띄우기
+    alert(response.data.message)
+    emit('goBack') // 성공했으니 다시 로그인 화면으로!
+
+  } catch (error) {
+    console.error("비밀번호 찾기 에러:", error.response?.data)
+    // 에러 발생 시 (가입되지 않은 이메일 등) 장고가 보내준 에러 메시지 띄우기
+    alert(error.response?.data?.error || "메일 발송에 실패했습니다.")
+  }
 }
 
 // 돌아가기 버튼 클릭 시 부모에게 신호 보내기
