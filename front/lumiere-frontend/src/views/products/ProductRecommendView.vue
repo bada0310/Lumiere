@@ -45,7 +45,7 @@
             {{ filter.label }}
           </button>
 
-          <button type="button" @click="resetSubFilters">
+          <button type="button" class="all-filter-btn" @click="openAllFilter">
             전체 필터 ⚙
           </button>
         </div>
@@ -70,7 +70,7 @@
           class="product-card"
           v-for="(product, index) in filteredProducts"
           :key="product.id"
-          @click="goDetail(product.id)"
+          @click="goDetail(product)"
         >
           <div class="rank" :class="{ top: index + 1 <= 3 }">
             {{ index + 1 }}
@@ -138,6 +138,117 @@
           추천된 아이템 비교하기
         </button>
       </section>
+
+            <!-- 전체 필터 모달 -->
+      <section
+        v-if="isFilterModalOpen"
+        class="filter-modal-backdrop"
+        @click.self="closeAllFilter"
+      >
+        <aside class="filter-modal">
+          <div class="filter-modal-header">
+            <div>
+              <h2>전체 필터</h2>
+              <p>원하는 조건을 선택해서 추천 옵션을 좁혀보세요.</p>
+            </div>
+
+            <button type="button" class="modal-close" @click="closeAllFilter">
+              ×
+            </button>
+          </div>
+
+          <div class="filter-modal-body">
+            <div class="filter-group">
+              <h3>카테고리</h3>
+
+              <div class="filter-chip-grid">
+                <button
+                  v-for="category in categoryTabs"
+                  :key="category.key"
+                  type="button"
+                  :class="{ active: draftCategory === category.key }"
+                  @click="draftCategory = category.key"
+                >
+                  {{ category.icon }} {{ category.label }}
+                </button>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <h3>색감 / 톤</h3>
+
+              <div class="filter-chip-grid">
+                <button
+                  v-for="filter in toneFilters"
+                  :key="filter.key"
+                  type="button"
+                  :class="{ active: draftFilters.includes(filter.key) }"
+                  @click="toggleDraftFilter(filter.key)"
+                >
+                  {{ filter.label }}
+                </button>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <h3>제형</h3>
+
+              <div class="filter-chip-grid">
+                <button
+                  v-for="filter in textureFilters"
+                  :key="filter.key"
+                  type="button"
+                  :class="{ active: draftFilters.includes(filter.key) }"
+                  @click="toggleDraftFilter(filter.key)"
+                >
+                  {{ filter.label }}
+                </button>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <h3>정렬</h3>
+
+              <div class="filter-chip-grid">
+                <button
+                  type="button"
+                  :class="{ active: draftSortOption === 'scoreDesc' }"
+                  @click="draftSortOption = 'scoreDesc'"
+                >
+                  적합도 높은 순
+                </button>
+
+                <button
+                  type="button"
+                  :class="{ active: draftSortOption === 'scoreAsc' }"
+                  @click="draftSortOption = 'scoreAsc'"
+                >
+                  적합도 낮은 순
+                </button>
+
+                <button
+                  type="button"
+                  :class="{ active: draftSortOption === 'popularDesc' }"
+                  @click="draftSortOption = 'popularDesc'"
+                >
+                  인기순
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-modal-footer">
+            <button type="button" class="modal-reset-btn" @click="resetDraftFilters">
+              초기화
+            </button>
+
+            <button type="button" class="modal-apply-btn" @click="applyAllFilter">
+              {{ previewCount }}개 상품 보기
+            </button>
+          </div>
+        </aside>
+      </section>
+      
     </main>
   </div>
 </template>
@@ -154,6 +265,11 @@ const selectedCategory = ref('lip')
 const selectedFilters = ref(['cool'])
 const sortOption = ref('scoreDesc')
 const likedOnly = ref(false)
+const isFilterModalOpen = ref(false)
+const draftCategory = ref('lip')
+const draftFilters = ref([])
+const draftSortOption = ref('scoreDesc')
+
 
 const categoryTabs = [
   {
@@ -197,6 +313,18 @@ const filterOptions = [
   { key: 'lowChroma', label: '저채도', keywords: ['저채도', '차분', '뮤트', 'soft', 'mauve'] },
   { key: 'highBrightness', label: '고명도', keywords: ['고명도', '라이트', '밝음', '맑은', 'light'] },
 ]
+
+const toneFilters = computed(() => {
+  return filterOptions.filter((filter) => {
+    return ['mlbb', 'nude', 'cool', 'lowChroma', 'highBrightness'].includes(filter.key)
+  })
+})
+
+const textureFilters = computed(() => {
+  return filterOptions.filter((filter) => {
+    return ['matte', 'glossy'].includes(filter.key)
+  })
+})
 
 const selectedCategoryLabel = computed(() => {
   return categoryTabs.find((item) => item.key === selectedCategory.value)?.label || '립'
@@ -364,19 +492,31 @@ const normalizeProduct = (item, index) => {
 }
 
 const mockProducts = [
+  // 립
   {
     id: 101,
+    brand: 'rom&nd',
+    name: '쥬시 래스팅 틴트',
+    option_name: '25 베어 그레이프',
+    category: '립틴트',
+    match_score: 92,
+    texture: '글로시 MLBB 저채도 쿨톤',
+    hex_code: '#C45B75',
+    popularity_score: 95,
+  },
+  {
+    id: 102,
     brand: 'rom&nd',
     name: '블러 퍼지 틴트',
     option_name: '23 베어 그레이프',
     category: '립틴트',
-    match_score: 96,
+    match_score: 91,
     texture: '매트 MLBB 저채도 쿨톤',
-    hex_code: '#B4818E',
-    popularity_score: 96,
+    hex_code: '#B95B73',
+    popularity_score: 93,
   },
   {
-    id: 102,
+    id: 103,
     brand: 'peripera',
     name: '잉크 무드 글로이 틴트',
     option_name: '07 쿨베리',
@@ -386,6 +526,63 @@ const mockProducts = [
     hex_code: '#C45D73',
     popularity_score: 89,
   },
+  {
+    id: 104,
+    brand: 'hince',
+    name: '무드 인핸서 워터 리퀴드 글로우',
+    option_name: 'New Allure',
+    category: '립틴트',
+    match_score: 86,
+    texture: '글로시 MLBB 저채도 쿨톤',
+    hex_code: '#BF6477',
+    popularity_score: 91,
+  },
+  {
+    id: 105,
+    brand: 'amuse',
+    name: '듀 틴트',
+    option_name: '13 쿨 로즈',
+    category: '립틴트',
+    match_score: 84,
+    texture: '글로시 쿨톤 고명도',
+    hex_code: '#BB5F73',
+    popularity_score: 87,
+  },
+  {
+    id: 106,
+    brand: 'lilybyred',
+    name: '무드 라이어 벨벳 틴트',
+    option_name: '04 라벤더 핑크',
+    category: '립틴트',
+    match_score: 83,
+    texture: '매트 저채도 쿨톤',
+    hex_code: '#D07186',
+    popularity_score: 84,
+  },
+  {
+    id: 107,
+    brand: 'dasique',
+    name: '크림 드 로즈 틴트',
+    option_name: '12 모브 베리',
+    category: '립틴트',
+    match_score: 82,
+    texture: '누디 MLBB 저채도 쿨톤',
+    hex_code: '#C35D72',
+    popularity_score: 83,
+  },
+  {
+    id: 108,
+    brand: 'clio',
+    name: '쉬폰 블러 틴트',
+    option_name: '08 핑크 문',
+    category: '립틴트',
+    match_score: 81,
+    texture: '매트 저채도 쿨톤',
+    hex_code: '#C85E7A',
+    popularity_score: 82,
+  },
+
+  // 아이
   {
     id: 201,
     brand: 'dasique',
@@ -399,15 +596,50 @@ const mockProducts = [
   },
   {
     id: 202,
+    brand: 'wakemake',
+    name: '소프트 블러링 아이팔레트',
+    option_name: '라벤더 블러링',
+    category: '아이섀도우',
+    match_score: 89,
+    texture: '매트 저채도 쿨톤',
+    hex_code: '#C8B6CA',
+    popularity_score: 90,
+  },
+  {
+    id: 203,
     brand: 'clio',
-    name: '킬래쉬 마스카라',
-    option_name: '롱 컬링 브라운',
-    category: '아이',
-    match_score: 84,
-    texture: '고명도 쿨톤',
-    hex_code: '#8B6F72',
+    name: '프로 아이 팔레트 에어',
+    option_name: '뮤트 라이브러리',
+    category: '아이섀도우',
+    match_score: 87,
+    texture: '매트 저채도 쿨톤',
+    hex_code: '#BBA8BE',
+    popularity_score: 88,
+  },
+  {
+    id: 204,
+    brand: 'rom&nd',
+    name: '베러 댄 팔레트',
+    option_name: '피오니 누드 가든',
+    category: '아이섀도우',
+    match_score: 85,
+    texture: '누디 저채도 쿨톤',
+    hex_code: '#D6BBC8',
     popularity_score: 87,
   },
+  {
+    id: 205,
+    brand: 'etude',
+    name: '룩 앳 마이 아이즈',
+    option_name: '라벤더 문',
+    category: '아이섀도우',
+    match_score: 82,
+    texture: '글로시 고명도 쿨톤',
+    hex_code: '#D8C8EA',
+    popularity_score: 80,
+  },
+
+  // 치크
   {
     id: 301,
     brand: 'rom&nd',
@@ -415,10 +647,56 @@ const mockProducts = [
     option_name: '블루베리칩',
     category: '치크',
     match_score: 90,
-    texture: '저채도 쿨톤',
+    texture: '저채도 쿨톤 고명도',
     hex_code: '#F0A9B7',
     popularity_score: 90,
   },
+  {
+    id: 302,
+    brand: 'dasique',
+    name: '블렌딩 무드 치크',
+    option_name: '쿨 핑크',
+    category: '치크',
+    match_score: 87,
+    texture: '저채도 쿨톤 고명도',
+    hex_code: '#E7A2B0',
+    popularity_score: 86,
+  },
+  {
+    id: 303,
+    brand: 'clio',
+    name: '에어 블러 휩 블러쉬',
+    option_name: '라벤더 핑크',
+    category: '치크',
+    match_score: 85,
+    texture: '저채도 쿨톤',
+    hex_code: '#E4B4C8',
+    popularity_score: 84,
+  },
+  {
+    id: 304,
+    brand: 'peripera',
+    name: '맑게 물든 선샤인 치크',
+    option_name: '쿨한 딸기 우유',
+    category: '치크',
+    match_score: 83,
+    texture: '고명도 쿨톤',
+    hex_code: '#F4C2C9',
+    popularity_score: 82,
+  },
+  {
+    id: 305,
+    brand: 'wakemake',
+    name: '믹스 블러링 볼륨 블러셔',
+    option_name: '소프트 모브',
+    category: '치크',
+    match_score: 81,
+    texture: '저채도 누디 쿨톤',
+    hex_code: '#D9B7C8',
+    popularity_score: 81,
+  },
+
+  // 베이스
   {
     id: 401,
     brand: 'espoir',
@@ -431,15 +709,94 @@ const mockProducts = [
     popularity_score: 94,
   },
   {
+    id: 402,
+    brand: 'clio',
+    name: '킬 커버 메쉬 글로우 쿠션',
+    option_name: '1.5 페어',
+    category: '베이스',
+    match_score: 90,
+    texture: '글로시 고명도 쿨톤',
+    hex_code: '#F5DFD2',
+    popularity_score: 92,
+  },
+  {
+    id: 403,
+    brand: 'laneige',
+    name: '네오 쿠션 글로우',
+    option_name: '13N 아이보리',
+    category: '베이스',
+    match_score: 88,
+    texture: '글로시 고명도 쿨톤',
+    hex_code: '#F2D8CC',
+    popularity_score: 89,
+  },
+  {
+    id: 404,
+    brand: 'hera',
+    name: '블랙 쿠션',
+    option_name: '13N1 포슬린',
+    category: '베이스',
+    match_score: 84,
+    texture: '매트 고명도 쿨톤',
+    hex_code: '#EFD2C4',
+    popularity_score: 88,
+  },
+  {
+    id: 405,
+    brand: 'jungsaemmool',
+    name: '에센셜 스킨 누더 쿠션',
+    option_name: '라이트',
+    category: '베이스',
+    match_score: 82,
+    texture: '글로시 고명도 쿨톤',
+    hex_code: '#F7E0D2',
+    popularity_score: 85,
+  },
+
+  // 렌즈
+  {
     id: 501,
     brand: 'OLENS',
     name: '비비링',
     option_name: '애쉬 그레이',
     category: '렌즈',
     match_score: 89,
-    texture: '저채도 쿨톤',
+    texture: '저채도 쿨톤 자연스러움',
     hex_code: '#9A9AB0',
     popularity_score: 88,
+  },
+  {
+    id: 502,
+    brand: 'Hapa Kristin',
+    name: '원앤온리 크리스틴',
+    option_name: '애쉬 초코',
+    category: '렌즈',
+    match_score: 86,
+    texture: '저채도 쿨톤 자연스러움',
+    hex_code: '#8F8FA8',
+    popularity_score: 85,
+  },
+  {
+    id: 503,
+    brand: 'OLENS',
+    name: '글로이',
+    option_name: '애쉬 그레이',
+    category: '렌즈',
+    match_score: 84,
+    texture: '저채도 쿨톤',
+    hex_code: '#A8A6BD',
+    popularity_score: 84,
+  },
+  {
+    id: 504,
+    brand: 'LENSME',
+    name: '메이크오버',
+    option_name: '그레이 브라운',
+    category: '렌즈',
+    match_score: 82,
+    texture: '저채도 쿨톤 자연스러움',
+    hex_code: '#A19BA8',
+    popularity_score: 81,
   },
 ]
 
@@ -470,6 +827,53 @@ const resetAllFilters = () => {
   likedOnly.value = false
 }
 
+const openAllFilter = () => {
+  draftCategory.value = selectedCategory.value
+  draftFilters.value = [...selectedFilters.value]
+  draftSortOption.value = sortOption.value
+  isFilterModalOpen.value = true
+}
+
+const closeAllFilter = () => {
+  isFilterModalOpen.value = false
+}
+
+const toggleDraftFilter = (filterKey) => {
+  if (draftFilters.value.includes(filterKey)) {
+    draftFilters.value = draftFilters.value.filter((key) => key !== filterKey)
+  } else {
+    draftFilters.value.push(filterKey)
+  }
+}
+
+const resetDraftFilters = () => {
+  draftCategory.value = 'lip'
+  draftFilters.value = []
+  draftSortOption.value = 'scoreDesc'
+}
+
+const applyAllFilter = () => {
+  selectedCategory.value = draftCategory.value
+  selectedFilters.value = [...draftFilters.value]
+  sortOption.value = draftSortOption.value
+  likedOnly.value = false
+  isFilterModalOpen.value = false
+}
+
+const previewCount = computed(() => {
+  let result = [...products.value]
+
+  result = result.filter((product) => product.categoryKey === draftCategory.value)
+
+  if (draftFilters.value.length > 0) {
+    result = result.filter((product) => {
+      return draftFilters.value.every((filterKey) => product.filterKeys.includes(filterKey))
+    })
+  }
+
+  return result.length
+})
+
 const toggleLike = (product) => {
   product.liked = !product.liked
 }
@@ -483,10 +887,14 @@ const compareItems = () => {
   alert('비교 기능은 다음 단계에서 연결하면 됩니다!')
 }
 
-const goDetail = (id) => {
+const goDetail = (product) => {
+  localStorage.setItem('selectedProductOption', JSON.stringify(product))
+
   router.push({
     name: 'product-detail',
-    params: { id },
+    params: {
+      id: product.id,
+    },
   })
 }
 
@@ -498,13 +906,19 @@ onMounted(async () => {
       ? response.data
       : response.data.results || response.data.products || []
 
-    if (data.length > 0) {
-      products.value = data.map((item, index) => normalizeProduct(item, index))
-    } else {
-      products.value = mockProducts.map((item, index) => normalizeProduct(item, index))
-    }
+    const backendProducts = data.map((item, index) => normalizeProduct(item, index))
 
-    console.log('추천 상품 데이터:', products.value)
+    const mockStartIndex = backendProducts.length
+
+    const extraMockProducts = mockProducts.map((item, index) => {
+      return normalizeProduct(item, index + mockStartIndex)
+    })
+
+    products.value = [...backendProducts, ...extraMockProducts]
+
+    console.log('백엔드 상품:', backendProducts)
+    console.log('추가 상품 데이터:', extraMockProducts)
+    console.log('전체 추천 상품:', products.value)
   } catch (error) {
     console.error('상품 데이터 불러오기 실패:', error)
 
@@ -938,4 +1352,129 @@ onMounted(async () => {
   color: white;
   border: none;
 }
+
+.all-filter-btn {
+  border-color: #d98c99 !important;
+  color: #c65367 !important;
+}
+
+.filter-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 37, 36, 0.36);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.filter-modal {
+  width: 430px;
+  height: 100vh;
+  background: #fffaf7;
+  border-left: 1px solid #eaded8;
+  box-shadow: -12px 0 30px rgba(88, 55, 45, 0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-modal-header {
+  padding: 28px 28px 22px;
+  border-bottom: 1px solid #eaded8;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.filter-modal-header h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.filter-modal-header p {
+  margin: 0;
+  color: #6b625f;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: white;
+  border-radius: 50%;
+  font-size: 28px;
+  color: #5f5754;
+  cursor: pointer;
+}
+
+.filter-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px 28px;
+}
+
+.filter-group {
+  margin-bottom: 34px;
+}
+
+.filter-group h3 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+.filter-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-chip-grid button {
+  min-width: 88px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid #eaded8;
+  border-radius: 999px;
+  background: white;
+  color: #4d4441;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.filter-chip-grid button.active {
+  background: #c65367;
+  color: white;
+  border-color: #c65367;
+}
+
+.filter-modal-footer {
+  padding: 18px 28px;
+  border-top: 1px solid #eaded8;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 12px;
+  background: rgba(255, 250, 247, 0.96);
+}
+
+.modal-reset-btn,
+.modal-apply-btn {
+  height: 52px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.modal-reset-btn {
+  background: white;
+  color: #c65367;
+  border: 1px solid #d98c99;
+}
+
+.modal-apply-btn {
+  background: linear-gradient(135deg, #c65367, #d96f82);
+  color: white;
+  border: none;
+}
+
 </style>

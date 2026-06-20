@@ -410,8 +410,54 @@ const loadProducts = async () => {
   isLoading.value = false
 }
 
+const getStoredCategoryLabel = (categoryKey) => {
+  const labelMap = {
+    lip: '립',
+    eye: '아이',
+    cheek: '치크',
+    base: '베이스',
+    lens: '렌즈',
+  }
+
+  return labelMap[categoryKey] || '립'
+}
+
+const normalizeStoredProduct = (item) => {
+  return {
+    id: item.id,
+    brand: item.brand || 'Lumière',
+    name: item.name || '추천 상품',
+    option: item.option || item.option_name || '추천 옵션',
+    categoryKey: item.categoryKey || 'lip',
+    categoryLabel: item.categoryLabel || getStoredCategoryLabel(item.categoryKey),
+    score: item.score || item.match_score || 90,
+    popularityScore: item.popularityScore || item.popularity_score || 0,
+    hex: item.hex || item.hex_code || item.colors?.[0] || '#C45B75',
+    colors: item.colors || [item.hex || item.hex_code || '#C45B75'],
+    imageClass: item.imageClass || `${item.categoryKey || 'lip'}1`,
+    texture: item.texture || '',
+    desc: item.desc || item.match_reason || '선택한 상품 옵션의 상세 분석 결과입니다.',
+  }
+}
+
 const setCurrentProduct = () => {
   const currentId = String(route.params.id || '')
+
+  const storedText = localStorage.getItem('selectedProductOption')
+
+  if (storedText) {
+    try {
+      const storedProduct = JSON.parse(storedText)
+
+      if (String(storedProduct.id) === currentId) {
+        product.value = normalizeStoredProduct(storedProduct)
+        isLiked.value = Boolean(storedProduct.liked)
+        return
+      }
+    } catch (error) {
+      console.error('저장된 상품 정보를 읽는 데 실패했습니다:', error)
+    }
+  }
 
   product.value =
     allProducts.value.find((item) => String(item.id) === currentId) ||
@@ -420,6 +466,7 @@ const setCurrentProduct = () => {
 
   isLiked.value = false
 }
+
 
 const matchMessage = computed(() => {
   if (!product.value) return ''
