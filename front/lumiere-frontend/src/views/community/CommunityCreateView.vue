@@ -2,7 +2,12 @@
   <div class="community-subpage">
     <div class="community-subpage-grid">
       <aside class="left-sidebar">
-        <ToneLounge :lounge="currentLounge" @change-lounge="goCommunity" />
+        <ToneLounge
+          :lounge="currentLounge"
+          :recent-count="recentCount"
+          @change-lounge="goCommunity"
+          @select-menu="openSidebarMenu"
+        />
       </aside>
 
       <main class="main-area">
@@ -19,6 +24,8 @@
         :show-recommendations="false"
         @open-board="openBoard"
         @open-post="openPost"
+        @select-tag="openTagFilter"
+        @open-tag-explorer="openTagExplorer"
       />
     </div>
   </div>
@@ -31,13 +38,16 @@ import { useRoute, useRouter } from 'vue-router'
 import CommunityPostForm from '@/components/community/CommunityPostForm.vue'
 import CommunityRightSidebar from '@/components/community/CommunityRightSidebar.vue'
 import ToneLounge from '@/components/community/ToneLounge.vue'
+import { useRequireLogin } from '@/composables/useRequireLogin'
 import { DEFAULT_COMMUNITY_CATEGORY, getCommunityCategoryByKey } from '@/data/communityCategories'
 import { getLoungeThemeByKey } from '@/data/loungeThemes'
 import { mockCommunityPosts } from '@/data/communitySidebarMock'
-import { createPost, isAuthenticated } from '@/services/communityApi'
+import { createPost } from '@/services/communityApi'
+import { normalizeTagDisplayName } from '@/utils/communityTags'
 
 const route = useRoute()
 const router = useRouter()
+const { requireLogin, handleAuthFailure } = useRequireLogin()
 const errorMessage = ref('')
 
 const initialCategory = computed(() => {
@@ -45,6 +55,14 @@ const initialCategory = computed(() => {
   return category.boardType === 'post-category' ? category.key : DEFAULT_COMMUNITY_CATEGORY
 })
 const currentLounge = computed(() => getLoungeThemeByKey(route.query.lounge || 'summer-cool-light'))
+const recentCount = computed(() => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('community_recent_post_ids') || '[]')
+    return Array.isArray(parsed) ? Math.min(parsed.length, 10) : 0
+  } catch {
+    return 0
+  }
+})
 const weeklyPopularPosts = computed(() =>
   mockCommunityPosts.slice().sort((a, b) => b.like_count - a.like_count).slice(0, 5),
 )
@@ -52,8 +70,12 @@ const weeklyPopularPosts = computed(() =>
 const submitPost = async (payload) => {
   errorMessage.value = ''
 
-  if (!isAuthenticated()) {
-    errorMessage.value = '게시글 등록은 로그인이 필요합니다.'
+  if (
+    !requireLogin({
+      message: '게시글 작성은 로그인 후 이용할 수 있어요.',
+      redirect: router.resolve({ name: 'community-create', query: route.query }).fullPath,
+    })
+  ) {
     return
   }
 
@@ -73,6 +95,7 @@ const submitPost = async (payload) => {
     })
   } catch (error) {
     console.error('게시글 등록 실패:', error.response?.data || error)
+    if (handleAuthFailure(error)) return
     errorMessage.value = '게시글 등록에 실패했습니다. 입력값을 확인해주세요.'
   }
 }
@@ -82,7 +105,43 @@ const goCommunity = () => {
 }
 
 const openBoard = (categoryKey) => {
+  if (categoryKey === 'popular-product-tags') {
+    openTagExplorer()
+    return
+  }
+
   router.push({ name: 'community', query: { category: categoryKey } })
+}
+
+const openTagExplorer = () => {
+  router.push({
+    name: 'community',
+    query: {
+      category: initialCategory.value,
+      mode: 'tags',
+    },
+  })
+}
+
+const openTagFilter = (tag) => {
+  const tagName = normalizeTagDisplayName(tag?.name || tag)
+  router.push({
+    name: 'community',
+    query: {
+      category: initialCategory.value,
+      tag: tagName.replace(/^#/, ''),
+    },
+  })
+}
+
+const openSidebarMenu = (menuKey) => {
+  router.push({
+    name: 'community',
+    query: {
+      category: initialCategory.value,
+      view: menuKey,
+    },
+  })
 }
 
 const openPost = (post) => {
@@ -100,7 +159,7 @@ const openPost = (post) => {
 <style scoped>
 .community-subpage {
   width: 100%;
-  background: #fffafb;
+  background: #fdf8f6;
   font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
