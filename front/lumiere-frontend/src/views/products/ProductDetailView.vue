@@ -1219,7 +1219,7 @@ onMounted(() => {
 }
 
 .detail-page {
-  padding: 28px 64px 52px;
+  padding: 28px 48px 52px;
   background:
     radial-gradient(circle at 50% 0%, rgba(255, 233, 225, 0.9), transparent 38%),
     linear-gradient(180deg, #fffaf7 0%, #fbf4f1 100%);
@@ -1268,7 +1268,7 @@ onMounted(() => {
 .purchase-box,
 .review-box,
 .action-box {
-  max-width: 1240px;
+  max-width: 1280px;
   margin: 0 auto;
   border: 1px solid #eaded8;
   border-radius: 16px;
@@ -1277,11 +1277,12 @@ onMounted(() => {
 }
 
 .top-card {
-  padding: 38px 36px;
+  padding: 38px 32px;
   display: grid;
-  grid-template-columns: 270px minmax(280px, 1fr) 250px 360px;
-  gap: 28px;
+  grid-template-columns: 260px minmax(260px, 1fr) 240px 320px;
+  gap: 24px;
   align-items: center;
+  overflow: hidden;
 }
 
 .product-image {
@@ -1585,9 +1586,13 @@ onMounted(() => {
   background: repeating-linear-gradient(90deg, #777 0 6px, transparent 6px 10px);
 }
 
+.radar-box {
+  min-width: 0;
+}
+
 .radar {
-  width: 280px;
-  height: 240px;
+  width: 250px;
+  height: 228px;
   margin: 0 auto;
   position: relative;
   background:
@@ -1615,7 +1620,7 @@ onMounted(() => {
 
 .label {
   position: absolute;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   color: #5f5754;
 }
@@ -1660,6 +1665,7 @@ onMounted(() => {
   color: #6b625f;
   font-size: 13px;
   line-height: 1.5;
+  max-width: 300px;
 }
 
 .color-chart-card {
@@ -2204,6 +2210,18 @@ onMounted(() => {
   height: 100%;
   object-fit: contain;
   background: white;
+}
+
+@media (max-width: 1360px) {
+  .top-card {
+    grid-template-columns: 250px minmax(260px, 1fr) 240px;
+  }
+
+  .radar-box {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(620px, 100%);
+  }
 }
 
 </style>

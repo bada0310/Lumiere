@@ -93,8 +93,6 @@ const submitSearch = () => {
       keyword: searchKeyword.value,
     },
   })
-
-  isSearchOpen.value = false
 }
 
 const logout = () => {

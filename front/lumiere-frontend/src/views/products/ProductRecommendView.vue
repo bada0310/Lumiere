@@ -4,7 +4,7 @@
       <section class="hero">
         <div>
           <h1>색상 기준으로 추천 제품을 골라보세요</h1>
-          <p>{{ selectedCategoryLabel }} 카테고리에서 여름 쿨 라이트 기준에 가까운 옵션을 먼저 보여드려요.</p>
+          <p>{{ heroDescription }}</p>
         </div>
 
         <div class="my-tone-card">
@@ -19,7 +19,7 @@
 
       <section class="category-tabs">
         <button
-          v-for="category in categoryTabs"
+          v-for="category in visibleCategoryTabs"
           :key="category.key"
           type="button"
           :class="{ active: selectedCategory === category.key }"
@@ -60,7 +60,7 @@
 
       <section class="info-row">
         <p>
-          <span v-if="keyword">"{{ keyword }}" 검색 결과 </span>
+          <span v-if="keyword">"{{ keyword }}" {{ selectedCategoryLabel }} 검색 결과 </span>
           총 {{ filteredProducts.length }}개의 추천 옵션
         </p>
         <p>ⓘ 피부 분석 전에는 기준 톤과 상품 대표색의 유사도를 먼저 보여줘요.</p>
@@ -277,7 +277,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -295,6 +295,14 @@ const draftFilters = ref([])
 const draftSortOption = ref('scoreDesc')
 const isLoading = ref(false)
 const keyword = computed(() => String(route.query.keyword || '').trim())
+
+const allCategoryTab = {
+  key: 'all',
+  serverKey: '',
+  label: '전체',
+  icon: '✨',
+  keywords: [],
+}
 
 const categoryTabs = [
   {
@@ -325,13 +333,6 @@ const categoryTabs = [
     icon: '🧴',
     keywords: ['베이스', '쿠션', '파운데이션', '컨실러', 'base', 'foundation', 'cushion'],
   },
-  {
-    key: 'lens',
-    serverKey: 'LENS',
-    label: '렌즈',
-    icon: '👀',
-    keywords: ['렌즈', '컬러렌즈', 'lens'],
-  },
 ]
 
 const filterOptions = [
@@ -358,13 +359,31 @@ const textureFilters = computed(() => {
 })
 
 const selectedCategoryLabel = computed(() => {
+  if (selectedCategory.value === 'all') {
+    return '전체'
+  }
+
   return categoryTabs.find((item) => item.key === selectedCategory.value)?.label || '립'
+})
+
+const visibleCategoryTabs = computed(() => {
+  return keyword.value ? [allCategoryTab, ...categoryTabs] : categoryTabs
+})
+
+const heroDescription = computed(() => {
+  if (keyword.value) {
+    return selectedCategory.value === 'all'
+      ? `"${keyword.value}"와 관련된 전체 추천 옵션을 보여드려요.`
+      : `"${keyword.value}" 검색 결과 중 ${selectedCategoryLabel.value} 카테고리 옵션을 보여드려요.`
+  }
+
+  return `${selectedCategoryLabel.value} 카테고리에서 여름 쿨 라이트 기준에 가까운 옵션을 먼저 보여드려요.`
 })
 
 const filteredProducts = computed(() => {
   let result = [...products.value]
 
-  if (!keyword.value) {
+  if (!keyword.value || selectedCategory.value !== 'all') {
     result = result.filter((product) => product.categoryKey === selectedCategory.value)
   }
 
@@ -461,7 +480,6 @@ const getDefaultColors = (categoryKey) => {
     eye: ['#c5a3b8', '#d8bfd8', '#b8a2c8', '#e8d7e8'],
     cheek: ['#f0a9b7', '#f4c2c9', '#e7a2b0', '#d9b7c8'],
     base: ['#f1d4c6', '#f5dfd2', '#ead0c3', '#f7e7dc'],
-    lens: ['#8f8fa8', '#a8a6bd', '#c1bfcc', '#d8d6df'],
   }
 
   return colorMap[categoryKey] || colorMap.lip
@@ -723,7 +741,7 @@ const toggleFilter = (filterKey) => {
 }
 
 const resetAllFilters = () => {
-  selectedCategory.value = 'lip'
+  selectedCategory.value = keyword.value ? 'all' : 'lip'
   selectedFilters.value = []
   sortOption.value = 'scoreDesc'
   likedOnly.value = false
@@ -765,7 +783,9 @@ const applyAllFilter = () => {
 const previewCount = computed(() => {
   let result = [...products.value]
 
-  result = result.filter((product) => product.categoryKey === draftCategory.value)
+  if (draftCategory.value !== 'all') {
+    result = result.filter((product) => product.categoryKey === draftCategory.value)
+  }
 
   if (draftFilters.value.length > 0) {
     result = result.filter((product) => {
@@ -801,8 +821,22 @@ const goDetail = (product) => {
 }
 
 onMounted(() => {
+  if (keyword.value) {
+    selectedCategory.value = 'all'
+  }
+
   fetchProducts()
 })
+
+watch(
+  () => route.query.keyword,
+  (value) => {
+    if (value) {
+      selectedCategory.value = 'all'
+      likedOnly.value = false
+    }
+  },
+)
 </script>
 
 <style scoped>
@@ -883,7 +917,7 @@ onMounted(() => {
 
 .category-tabs {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   border: 1px solid #eaded8;
   border-radius: 10px;
   overflow: hidden;
