@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="기본 프로필 이미지">
+  <rect width="160" height="160" rx="80" fill="#F5DCD6"/>
+  <circle cx="80" cy="61" r="29" fill="#C65367" opacity="0.88"/>
+  <path d="M34 136c8-30 25-45 46-45s38 15 46 45" fill="#C65367" opacity="0.88"/>
+  <circle cx="59" cy="55" r="5" fill="#FDF8F6" opacity="0.82"/>
+  <circle cx="93" cy="55" r="5" fill="#FDF8F6" opacity="0.82"/>
+</svg>
