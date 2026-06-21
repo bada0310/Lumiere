@@ -59,7 +59,10 @@
       </section>
 
       <section class="info-row">
-        <p>총 {{ filteredProducts.length }}개의 추천 옵션</p>
+        <p>
+          <span v-if="keyword">"{{ keyword }}" 검색 결과 </span>
+          총 {{ filteredProducts.length }}개의 추천 옵션
+        </p>
         <p>ⓘ 피부 분석 전에는 기준 톤과 상품 대표색의 유사도를 먼저 보여줘요.</p>
       </section>
 
@@ -275,10 +278,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
+const route = useRoute()
 
 const products = ref([])
 const selectedCategory = ref('lip')
@@ -290,6 +294,7 @@ const draftCategory = ref('lip')
 const draftFilters = ref([])
 const draftSortOption = ref('scoreDesc')
 const isLoading = ref(false)
+const keyword = computed(() => String(route.query.keyword || '').trim())
 
 const categoryTabs = [
   {
@@ -359,10 +364,27 @@ const selectedCategoryLabel = computed(() => {
 const filteredProducts = computed(() => {
   let result = [...products.value]
 
-  result = result.filter((product) => product.categoryKey === selectedCategory.value)
+  if (!keyword.value) {
+    result = result.filter((product) => product.categoryKey === selectedCategory.value)
+  }
 
   if (likedOnly.value) {
     result = result.filter((product) => product.liked)
+  }
+
+  if (keyword.value) {
+    const searchText = normalizeText(keyword.value)
+
+    result = result.filter((product) => {
+      return normalizeText(`
+        ${product.brand}
+        ${product.name}
+        ${product.option}
+        ${product.categoryLabel}
+        ${product.colorFamily}
+        ${product.tags.join(' ')}
+      `).includes(searchText)
+    })
   }
 
   if (selectedFilters.value.length > 0) {

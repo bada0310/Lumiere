@@ -54,17 +54,38 @@
           <div class="match-score">
             <div class="score-head">
               <p>{{ scoreTitle }}</p>
-              <span>{{ scoreBasisLabel }}</span>
+              <button
+                v-if="!hasSkinProfile"
+                class="tone-change-btn"
+                type="button"
+                @click="toggleTonePanel"
+              >
+                기준 변경
+              </button>
+
+              <span v-else>{{ scoreBasisLabel }}</span>
             </div>
 
-            <div class="score-ring" :style="{ '--score-degree': `${product.score * 3.6}deg` }">
-              <strong>{{ product.score }}<span>%</span></strong>
+            <div v-if="isTonePanelOpen && !hasSkinProfile" class="tone-panel">
+              <button
+                v-for="tone in referenceToneOptions"
+                :key="tone.key"
+                type="button"
+                :class="{ active: selectedReferenceTone === tone.key }"
+                @click="selectReferenceTone(tone.key)"
+              >
+                {{ tone.label }}
+              </button>
+            </div>
+
+            <div class="score-ring" :style="{ '--score-degree': `${displayScore * 3.6}deg` }">
+              <strong>{{ displayScore }}<span>%</span></strong>
             </div>
 
             <h4>{{ matchMessage }}</h4>
 
             <div class="score-meter">
-              <div :style="{ width: product.score + '%' }"></div>
+              <div :style="{ width: displayScore + '%' }"></div>
             </div>
 
             <p>{{ scoreDescription }}</p>
@@ -338,14 +359,88 @@ const product = ref(null)
 const allProducts = ref([])
 const isLiked = ref(false)
 
-const DEFAULT_REFERENCE_METRICS = {
-  brightness: 65,
-  saturation: 30,
-  coolness: 85,
-  warmth: 15,
-  softness: 18,
-  contrast: 35,
+const REFERENCE_TONE_METRICS = {
+  SPRING_LIGHT: {
+    label: '봄 웜 라이트',
+    brightness: 78,
+    saturation: 45,
+    coolness: 20,
+    warmth: 80,
+    softness: 24,
+    contrast: 28,
+  },
+  SPRING_BRIGHT: {
+    label: '봄 웜 브라이트',
+    brightness: 70,
+    saturation: 72,
+    coolness: 18,
+    warmth: 82,
+    softness: 14,
+    contrast: 48,
+  },
+  SUMMER_LIGHT: {
+    label: '여름 쿨 라이트',
+    brightness: 74,
+    saturation: 34,
+    coolness: 82,
+    warmth: 18,
+    softness: 28,
+    contrast: 30,
+  },
+  SUMMER_MUTE: {
+    label: '여름 쿨 뮤트',
+    brightness: 62,
+    saturation: 28,
+    coolness: 76,
+    warmth: 24,
+    softness: 58,
+    contrast: 24,
+  },
+  AUTUMN_MUTE: {
+    label: '가을 웜 뮤트',
+    brightness: 52,
+    saturation: 34,
+    coolness: 22,
+    warmth: 78,
+    softness: 62,
+    contrast: 34,
+  },
+  AUTUMN_DEEP: {
+    label: '가을 웜 딥',
+    brightness: 36,
+    saturation: 46,
+    coolness: 20,
+    warmth: 80,
+    softness: 44,
+    contrast: 62,
+  },
+  WINTER_BRIGHT: {
+    label: '겨울 쿨 브라이트',
+    brightness: 58,
+    saturation: 78,
+    coolness: 86,
+    warmth: 14,
+    softness: 12,
+    contrast: 72,
+  },
+  WINTER_DEEP: {
+    label: '겨울 쿨 딥',
+    brightness: 32,
+    saturation: 58,
+    coolness: 82,
+    warmth: 18,
+    softness: 28,
+    contrast: 80,
+  },
 }
+
+const DEFAULT_REFERENCE_TONE = 'SUMMER_LIGHT'
+const referenceToneOptions = Object.entries(REFERENCE_TONE_METRICS).map(([key, tone]) => ({
+  key,
+  label: tone.label,
+}))
+const selectedReferenceTone = ref(localStorage.getItem('selectedReferenceTone') || DEFAULT_REFERENCE_TONE)
+const isTonePanelOpen = ref(false)
 
 const getStoredSkinMetrics = () => {
   const candidates = ['skinColorMetrics', 'userColorMetrics', 'personalColorMetrics']
@@ -357,14 +452,15 @@ const getStoredSkinMetrics = () => {
 
     try {
       const parsed = JSON.parse(storedText)
+      const fallback = REFERENCE_TONE_METRICS[DEFAULT_REFERENCE_TONE]
 
       return {
-        brightness: clampScore(parsed.brightness, DEFAULT_REFERENCE_METRICS.brightness),
-        saturation: clampScore(parsed.saturation, DEFAULT_REFERENCE_METRICS.saturation),
-        coolness: clampScore(parsed.coolness, DEFAULT_REFERENCE_METRICS.coolness),
-        warmth: clampScore(parsed.warmth, DEFAULT_REFERENCE_METRICS.warmth),
-        softness: clampScore(parsed.softness, DEFAULT_REFERENCE_METRICS.softness),
-        contrast: clampScore(parsed.contrast, DEFAULT_REFERENCE_METRICS.contrast),
+        brightness: clampScore(parsed.brightness, fallback.brightness),
+        saturation: clampScore(parsed.saturation, fallback.saturation),
+        coolness: clampScore(parsed.coolness, fallback.coolness),
+        warmth: clampScore(parsed.warmth, fallback.warmth),
+        softness: clampScore(parsed.softness, fallback.softness),
+        contrast: clampScore(parsed.contrast, fallback.contrast),
       }
     } catch (error) {
       console.error('피부 분석 데이터를 읽는 데 실패했습니다:', error)
@@ -564,6 +660,20 @@ const formatDiff = (diff) => {
   return diff > 0 ? `+${diff}` : String(diff)
 }
 
+const calculateMatchScore = (item, reference) => {
+  if (!item || !reference) return 0
+
+  const distance =
+    Math.abs(item.brightness - reference.brightness) * 0.22 +
+    Math.abs(item.saturation - reference.saturation) * 0.18 +
+    Math.abs(item.coolness - reference.coolness) * 0.18 +
+    Math.abs(item.warmth - reference.warmth) * 0.18 +
+    Math.abs(item.softness - reference.softness) * 0.14 +
+    Math.abs(item.contrast - reference.contrast) * 0.10
+
+  return clampScore(100 - distance, 0)
+}
+
 const normalizeProduct = (item, index = 0) => {
   const categoryKey = findCategoryKey(item)
   const defaultColors = getDefaultColors(categoryKey)
@@ -702,9 +812,9 @@ const setCurrentProduct = () => {
 const matchMessage = computed(() => {
   if (!product.value) return ''
 
-  if (product.value.score >= 90) return '무난하게 어울려요!'
-  if (product.value.score >= 80) return '추천 후보로 좋아요!'
-  if (product.value.score >= 70) return '부분적으로 어울려요!'
+  if (displayScore.value >= 90) return '무난하게 어울려요!'
+  if (displayScore.value >= 80) return '추천 후보로 좋아요!'
+  if (displayScore.value >= 70) return '부분적으로 어울려요!'
   return '참고용으로 추천드려요!'
 })
 
@@ -712,8 +822,12 @@ const hasSkinProfile = computed(() => {
   return Boolean(userSkinMetrics.value)
 })
 
+const selectedReferenceToneLabel = computed(() => {
+  return REFERENCE_TONE_METRICS[selectedReferenceTone.value]?.label || REFERENCE_TONE_METRICS[DEFAULT_REFERENCE_TONE].label
+})
+
 const comparisonMetrics = computed(() => {
-  return userSkinMetrics.value || DEFAULT_REFERENCE_METRICS
+  return userSkinMetrics.value || REFERENCE_TONE_METRICS[selectedReferenceTone.value] || REFERENCE_TONE_METRICS[DEFAULT_REFERENCE_TONE]
 })
 
 const comparisonMetricsWithAxis = computed(() => {
@@ -726,8 +840,13 @@ const comparisonMetricsWithAxis = computed(() => {
   }
 })
 
+const displayScore = computed(() => {
+  if (!product.value) return 0
+  return calculateMatchScore(product.value, comparisonMetrics.value)
+})
+
 const comparisonSubjectLabel = computed(() => {
-  return hasSkinProfile.value ? '나의 피부 데이터' : '여름 쿨 라이트 기준'
+  return hasSkinProfile.value ? '나의 피부 데이터' : `${selectedReferenceToneLabel.value} 기준`
 })
 
 const comparisonColumnLabel = computed(() => {
@@ -737,7 +856,7 @@ const comparisonColumnLabel = computed(() => {
 const pageSubtitle = computed(() => {
   return hasSkinProfile.value
     ? '내 피부 데이터와 제품 색상을 비교하여 상세 분석 결과를 보여드려요.'
-    : '아직 피부 분석 전이라 여름 쿨 라이트 기준으로 제품 색상을 먼저 보여드려요.'
+    : `아직 피부 분석 전이라 선택한 ${selectedReferenceToneLabel.value} 기준으로 제품 색상을 먼저 보여드려요.`
 })
 
 const scoreTitle = computed(() => {
@@ -771,7 +890,7 @@ const guideTitle = computed(() => {
 const compareSubtitle = computed(() => {
   return hasSkinProfile.value
     ? '내 피부 데이터와 제품 대표색의 차이를 항목별로 비교했어요.'
-    : '피부 분석 전에는 여름 쿨 라이트 기준값과 제품 대표색을 비교해요.'
+    : `피부 분석 전에는 선택한 ${selectedReferenceToneLabel.value} 기준값과 제품 대표색을 비교해요.`
 })
 
 const compareNote = computed(() => {
@@ -929,7 +1048,7 @@ const personalColorGuide = computed(() => {
     return `${brightnessText}이고 ${chromaText}, ${temperatureText} 내 피부 데이터와의 차이를 아래 표에서 확인할 수 있어요.`
   }
 
-  return `${brightnessText}이고 ${chromaText}, ${temperatureText} 피부 분석 전에는 여름 쿨 라이트 기준과 먼저 비교해볼 수 있어요.`
+  return `${brightnessText}이고 ${chromaText}, ${temperatureText} 피부 분석 전에는 선택한 ${selectedReferenceToneLabel.value} 기준과 먼저 비교해볼 수 있어요.`
 })
 
 const compareItems = computed(() => {
@@ -1063,6 +1182,16 @@ const openProductUrl = () => {
   alert('상품 구매 링크가 아직 등록되지 않았어요.')
 }
 
+const toggleTonePanel = () => {
+  isTonePanelOpen.value = !isTonePanelOpen.value
+}
+
+const selectReferenceTone = (toneKey) => {
+  selectedReferenceTone.value = toneKey
+  localStorage.setItem('selectedReferenceTone', toneKey)
+  isTonePanelOpen.value = false
+}
+
 watch(
   () => route.params.id,
   () => {
@@ -1148,10 +1277,10 @@ onMounted(() => {
 }
 
 .top-card {
-  padding: 42px 36px;
+  padding: 38px 36px;
   display: grid;
-  grid-template-columns: 270px 250px 220px 1fr;
-  gap: 34px;
+  grid-template-columns: 270px minmax(280px, 1fr) 250px 360px;
+  gap: 28px;
   align-items: center;
 }
 
@@ -1299,8 +1428,18 @@ onMounted(() => {
 }
 
 .match-score {
-  border-left: 1px solid #eaded8;
-  padding-left: 34px;
+  min-height: 320px;
+  padding: 24px;
+  border: 1px solid #eaded8;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 235, 238, 0.8), transparent 42%),
+    #fff8f6;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .score-head {
@@ -1308,7 +1447,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .score-head p {
@@ -1325,9 +1464,56 @@ onMounted(() => {
   font-weight: 900;
 }
 
+.tone-change-btn {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tone-panel {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 58px;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #eaded8;
+  border-radius: 12px;
+  background: #fff8f6;
+  box-shadow: 0 14px 30px rgba(88, 55, 45, 0.12);
+}
+
+.tone-panel button {
+  min-height: 34px;
+  padding: 8px 10px;
+  border: 1px solid #eaded8;
+  border-radius: 999px;
+  background: white;
+  color: #5f5754;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tone-panel button.active {
+  border-color: #c65367;
+  background: #c65367;
+  color: white;
+}
+
 .score-ring {
-  width: 132px;
-  height: 132px;
+  width: 138px;
+  height: 138px;
   border-radius: 50%;
   background:
     radial-gradient(circle, white 0 57%, transparent 58%),
@@ -1335,7 +1521,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin: 10px auto 14px;
+  box-shadow: 0 12px 26px rgba(198, 83, 103, 0.12);
 }
 
 .match-score strong {
@@ -1350,12 +1537,15 @@ onMounted(() => {
 
 .match-score h4 {
   color: #c65367;
-  font-size: 18px;
+  font-size: 19px;
+  text-align: center;
+  margin: 0;
 }
 
 .match-score p {
   color: #5f5754;
   line-height: 1.6;
+  margin: 0;
 }
 
 .score-meter {
@@ -1363,7 +1553,7 @@ onMounted(() => {
   border-radius: 999px;
   background: #efe4e0;
   overflow: hidden;
-  margin: 12px 0;
+  margin: 10px 0 14px;
 }
 
 .score-meter div {
