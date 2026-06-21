@@ -865,6 +865,7 @@ watch(
 }
 
 .hero h1 {
+  font-family: var(--font-title-serif) !important;
   font-size: 30px;
   margin-bottom: 16px;
   letter-spacing: -0.5px;

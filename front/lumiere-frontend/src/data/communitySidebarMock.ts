@@ -1,13 +1,26 @@
 import { LOUNGE_THEMES } from '@/data/loungeThemes'
 
 export const popularProductTags = [
-  { id: 1, name: '#롬앤 틴트', image: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=80&q=80' },
-  { id: 2, name: '#3CE 섀도우', image: 'https://images.unsplash.com/photo-1596462502278-27bf85033e5a?w=80&q=80' },
-  { id: 3, name: '#데이지크 팔레트', image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=80&q=80' },
-  { id: 4, name: '#베리베리 블러셔', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=80&q=80' },
-  { id: 5, name: '#여쿨립', image: 'https://images.unsplash.com/photo-1631214540242-3cd8c4f8bbdd?w=80&q=80' },
-  { id: 6, name: '#톤업크림', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=80&q=80' },
-  { id: 7, name: '#여쿨라 메이크업', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=80&q=80' },
+  { id: 'summer-cool-lip', name: '#여쿨립', category: 'TREND', status: 'HOT', postCount: 128, trendScore: 96, growthRate: 42 },
+  { id: 'clear-tint', name: '#맑은틴트', category: 'TREND', status: 'HOT', postCount: 112, trendScore: 91, growthRate: 36 },
+  { id: '3ce-shadow', name: '#3CE새도우', category: 'BRAND', status: 'NORMAL', postCount: 83, trendScore: 54 },
+  { id: 'dasique-palette', name: '#데이지크팔레트', category: 'BRAND', status: 'NORMAL', postCount: 76, trendScore: 50 },
+  { id: 'berry-blusher', name: '#비리비리블러셔', category: 'MAKEUP', status: 'NORMAL', postCount: 72, trendScore: 46 },
+  { id: 'watery-lip', name: '#물먹립', category: 'TREND', status: 'NEW', postCount: 69, trendScore: 74, growthRate: 24 },
+  { id: 'tone-up-cream', name: '#톤업크림', category: 'CONCERN', status: 'NORMAL', postCount: 64, trendScore: 44 },
+  { id: 'summer-cool-makeup', name: '#여쿨라메이크업', category: 'MAKEUP', status: 'NORMAL', postCount: 61, trendScore: 42 },
+  { id: 'moist-mask', name: '#수분마스크팩', category: 'CONCERN', status: 'NORMAL', postCount: 58, trendScore: 40 },
+  { id: 'low-saturation-makeup', name: '#저채도메이크업', category: 'TREND', status: 'NEW', postCount: 56, trendScore: 68, growthRate: 20 },
+  { id: 'espoir', name: '#에스쁘아', category: 'BRAND', status: 'NORMAL', postCount: 51, trendScore: 35 },
+  { id: 'romand', name: '#롬앤', category: 'BRAND', status: 'NORMAL', postCount: 49, trendScore: 34 },
+  { id: 'peripera', name: '#페리페라', category: 'BRAND', status: 'NORMAL', postCount: 45, trendScore: 31 },
+  { id: 'highlighter', name: '#하이라이터', category: 'MAKEUP', status: 'NORMAL', postCount: 42, trendScore: 30 },
+  { id: 'nude-lip', name: '#누드립', category: 'MAKEUP', status: 'NORMAL', postCount: 39, trendScore: 27 },
+  { id: 'mood-blusher', name: '#무드블러셔', category: 'MAKEUP', status: 'NORMAL', postCount: 36, trendScore: 25 },
+  { id: 'lip-balm', name: '#립밤', category: 'PRODUCT', status: 'NORMAL', postCount: 33, trendScore: 24 },
+  { id: 'summer-cool-shadow', name: '#여쿨섀도우', category: 'MAKEUP', status: 'NORMAL', postCount: 30, trendScore: 21 },
+  { id: 'lip-combo', name: '#립조합', category: 'TREND', status: 'NORMAL', postCount: 28, trendScore: 19 },
+  { id: 'blusher-recommend', name: '#블러셔추천', category: 'MAKEUP', status: 'NORMAL', postCount: 26, trendScore: 18 },
 ]
 
 export const loungeNotices = [
@@ -38,8 +51,9 @@ export const mockCommunityPosts = [
       { id: 1, brand: 'rom&nd', name: '베어 그레이프' },
       { id: 2, brand: 'dasique', name: '모브 베리' },
     ],
+    hashtags: ['#여쿨립', '#롬앤', '#데이지크팔레트', '#립조합'],
     image_url: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=240&q=80',
-    userAvatar: 'https://i.pravatar.cc/100?img=1',
+    userAvatar: null,
   },
   {
     id: 'mock-2',
@@ -53,8 +67,9 @@ export const mockCommunityPosts = [
     comment_count: 18,
     is_liked: false,
     products: [{ id: 3, brand: 'CLIO', name: '라일락 핑크' }],
+    hashtags: ['#맑은틴트', '#여쿨섀도우', '#저채도메이크업'],
     image_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=240&q=80',
-    userAvatar: 'https://i.pravatar.cc/100?img=5',
+    userAvatar: null,
   },
   {
     id: 'mock-3',
@@ -68,8 +83,9 @@ export const mockCommunityPosts = [
     comment_count: 24,
     is_liked: false,
     products: [],
+    hashtags: ['#여쿨섀도우', '#데이지크팔레트', '#블러셔추천'],
     image_url: '',
-    userAvatar: 'https://i.pravatar.cc/100?img=9',
+    userAvatar: null,
   },
   {
     id: 'mock-4',
@@ -83,8 +99,9 @@ export const mockCommunityPosts = [
     comment_count: 11,
     is_liked: false,
     products: [{ id: 4, brand: 'espoir', name: '톤업 베이스' }],
+    hashtags: ['#톤업크림', '#에스쁘아', '#무드블러셔'],
     image_url: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=240&q=80',
-    userAvatar: 'https://i.pravatar.cc/100?img=12',
+    userAvatar: null,
   },
   {
     id: 'mock-5',
@@ -98,7 +115,8 @@ export const mockCommunityPosts = [
     comment_count: 8,
     is_liked: false,
     products: [],
+    hashtags: ['#수분마스크팩', '#립밤'],
     image_url: '',
-    userAvatar: 'https://i.pravatar.cc/100?img=16',
+    userAvatar: null,
   },
 ]

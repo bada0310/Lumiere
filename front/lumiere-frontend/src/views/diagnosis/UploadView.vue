@@ -152,7 +152,7 @@
 }
 
 .title-section h1 {
-  font-family: Georgia, serif;
+  font-family: var(--font-title-serif) !important;
   font-size: 30px;
   margin-bottom: 8px;
 }

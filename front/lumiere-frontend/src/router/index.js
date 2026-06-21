@@ -16,6 +16,7 @@ import AnalysisView from '@/views/Analysis/AnalysisView.vue'
 import CommunityView from '@/views/community/CommunityView.vue'
 import CommunityCreateView from '@/views/community/CommunityCreateView.vue'
 import CommunityDetailView from '@/views/community/CommunityDetailView.vue'
+import { isAuthenticated } from '@/utils/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,6 +39,10 @@ const router = createRouter({
       path: '/mypage',
       name: 'mypage',
       component: MyPageView,
+      meta: {
+        requiresAuth: true,
+        authMessage: '마이페이지는 로그인 후 이용할 수 있어요.',
+      },
     },
 
     // AI 퍼스널컬러 진단 흐름
@@ -58,6 +63,21 @@ const router = createRouter({
     {
       path: '/result/:id?',
       name: 'result',
+      component: PersonalColorResultView,
+    },
+    {
+      path: '/diagnosis/result',
+      name: 'diagnosis-result-mock',
+      component: PersonalColorResultView,
+    },
+    {
+      path: '/diagnosis/results/demo',
+      name: 'diagnosis-result-demo',
+      component: PersonalColorResultView,
+    },
+    {
+      path: '/diagnosis/results/:diagnosisId',
+      name: 'diagnosis-result-detail',
       component: PersonalColorResultView,
     },
 
@@ -100,6 +120,10 @@ const router = createRouter({
       path: '/community/posts/new',
       name: 'community-create',
       component: CommunityCreateView,
+      meta: {
+        requiresAuth: true,
+        authMessage: '게시글 작성은 로그인 후 이용할 수 있어요.',
+      },
     },
     {
       path: '/community/posts/:id',
@@ -112,6 +136,21 @@ const router = createRouter({
       component: CommunityView,
     },
   ],
+})
+
+router.beforeEach((to) => {
+  if (!to.meta.requiresAuth || isAuthenticated()) return true
+
+  if (to.meta.authMessage) {
+    alert(to.meta.authMessage)
+  }
+
+  return {
+    name: 'login',
+    query: {
+      redirect: to.fullPath,
+    },
+  }
 })
 
 export default router

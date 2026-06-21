@@ -10,85 +10,119 @@
 
     <div class="community-container">
       <aside class="left-sidebar">
-        <ToneLounge :lounge="currentLounge" @change-lounge="openLoungeSelector" />
+        <ToneLounge
+          :lounge="currentLounge"
+          :active-menu="activeMenu"
+          :recent-count="recentPostIds.length"
+          @change-lounge="openLoungeSelector"
+          @select-menu="selectSidebarMenu"
+        />
       </aside>
 
       <main class="main-feed-area">
-        <CategoryBar
-          v-model="activeCategoryKey"
-          :total-count="boardCount"
-          :sort="filters.sortBy"
-          @filter="onFilterChange"
-          @search="onSearch"
+        <FullTagExplorer
+          v-if="tagExploreMode"
+          :tags="popularProductTags"
+          :initial-selected-tags="appliedTagFilters"
+          @back="closeTagExplorer"
+          @apply="applyTagExplorerSelection"
         />
 
-        <section class="feed-panel">
-          <div v-if="isLoading" class="state-box">게시글을 불러오는 중입니다.</div>
-          <div v-else-if="errorMessage" class="state-box error">{{ errorMessage }}</div>
+        <template v-else>
+          <CategoryBar
+            v-model="activeCategoryKey"
+            :total-count="boardCount"
+            :sort="filters.sortBy"
+            @filter="onFilterChange"
+            @search="onSearch"
+          />
 
-          <div v-else-if="activeCategory.boardType === 'notices'" class="special-board">
-            <article v-for="notice in loungeNotices" :key="notice.id" class="special-card">
-              <strong>{{ notice.title }}</strong>
-              <span>{{ notice.date }}</span>
-              <p>라운지 운영과 커뮤니티 이용에 필요한 공지사항입니다.</p>
-            </article>
-          </div>
+          <SelectedTagBar
+            :tags="appliedTagFilters"
+            @remove="removeTagFilter"
+            @clear="clearTagFilters"
+            @explore="openTagExplorer"
+          />
 
-          <div v-else-if="activeCategory.boardType === 'recommended-lounges'" class="special-board">
-            <button
-              v-for="lounge in recommendedLounges"
-              :key="lounge.key"
-              type="button"
-              class="lounge-board-card"
-              @click="selectLounge(lounge)"
-            >
-              <span class="lounge-color" :style="{ backgroundColor: lounge.color }"></span>
-              <strong>{{ lounge.koreanName }}</strong>
-              <small>{{ lounge.members.toLocaleString() }}명 활동 중</small>
-            </button>
-          </div>
+          <section class="feed-panel">
+            <div v-if="isLoading" class="state-box">게시글을 불러오는 중입니다.</div>
+            <div v-else-if="errorMessage" class="state-box error">{{ errorMessage }}</div>
 
-          <div v-else-if="paginatedPosts.length === 0" class="empty-state">
-            <strong>아직 등록된 게시글이 없습니다.</strong>
-            <p>첫 번째 글을 작성해보세요.</p>
-            <button v-if="canWriteInActiveCategory" type="button" @click="openCreatePage">글쓰기</button>
-          </div>
+            <div v-else-if="activeCategory.boardType === 'notices'" class="special-board">
+              <article v-for="notice in loungeNotices" :key="notice.id" class="special-card">
+                <strong>{{ notice.title }}</strong>
+                <span>{{ notice.date }}</span>
+                <p>라운지 운영과 커뮤니티 이용에 필요한 공지사항입니다.</p>
+              </article>
+            </div>
 
-          <div v-else class="feed-list">
-            <PostItem
-              v-for="post in paginatedPosts"
-              :key="post.id"
-              :post="post"
-              @like="toggleLike"
-              @edit="editPost"
-              @delete="deletePost"
-            />
-          </div>
+            <div v-else-if="activeCategory.boardType === 'recommended-lounges'" class="special-board">
+              <button
+                v-for="lounge in recommendedLounges"
+                :key="lounge.key"
+                type="button"
+                class="lounge-board-card"
+                @click="selectLounge(lounge)"
+              >
+                <span class="lounge-color" :style="{ backgroundColor: lounge.color }"></span>
+                <strong>{{ lounge.koreanName }}</strong>
+                <small>{{ lounge.members.toLocaleString() }}명 활동 중</small>
+              </button>
+            </div>
 
-          <div v-if="totalPages > 1 && !isSpecialStaticBoard" class="pagination">
-            <button type="button" :disabled="currentPage === 1" @click="currentPage -= 1">이전</button>
-            <button
-              v-for="page in totalPages"
-              :key="page"
-              type="button"
-              :class="{ active: page === currentPage }"
-              @click="currentPage = page"
-            >
-              {{ page }}
-            </button>
-            <button type="button" :disabled="currentPage === totalPages" @click="currentPage += 1">다음</button>
-          </div>
-        </section>
+            <div v-else-if="paginatedPosts.length === 0" class="empty-state">
+              <strong>{{ emptyStateTitle }}</strong>
+              <p>{{ emptyStateDescription }}</p>
+              <div class="empty-actions">
+                <button v-if="appliedTagFilters.length" type="button" @click="clearTagFilters">
+                  필터 초기화
+                </button>
+                <button v-if="appliedTagFilters.length" type="button" @click="openTagExplorer">
+                  전체 태그 다시 탐색
+                </button>
+                <button v-if="canWriteInActiveCategory" type="button" @click="openCreatePage">글쓰기</button>
+              </div>
+            </div>
+
+            <div v-else class="feed-list">
+              <PostItem
+                v-for="post in paginatedPosts"
+                :key="post.id"
+                :post="post"
+                @like="toggleLike"
+                @edit="editPost"
+                @delete="deletePost"
+              />
+            </div>
+
+            <div v-if="totalPages > 1 && !isSpecialStaticBoard" class="pagination">
+              <button type="button" :disabled="currentPage === 1" @click="currentPage -= 1">이전</button>
+              <button
+                v-for="page in totalPages"
+                :key="page"
+                type="button"
+                :class="{ active: page === currentPage }"
+                @click="currentPage = page"
+              >
+                {{ page }}
+              </button>
+              <button type="button" :disabled="currentPage === totalPages" @click="currentPage += 1">다음</button>
+            </div>
+          </section>
+        </template>
       </main>
 
       <CommunityRightSidebar
         :weekly-popular-posts="weeklyPopularPosts"
+        :selected-tags="appliedTagFilters"
         @select-lounge="selectLounge"
         @open-board="openBoard"
         @open-post="openPost"
+        @select-tag="toggleSidebarTag"
+        @open-tag-explorer="openTagExplorer"
       />
 
-      <WriteButton v-if="canWriteInActiveCategory" @write="openCreatePage" />
+      <WriteButton v-if="canWriteInActiveCategory && !tagExploreMode" @write="openCreatePage" />
     </div>
 
     <LoungeSelectorModal
@@ -106,10 +140,13 @@ import { useRoute, useRouter } from 'vue-router'
 
 import CategoryBar from '@/components/community/CategoryBar.vue'
 import CommunityRightSidebar from '@/components/community/CommunityRightSidebar.vue'
+import FullTagExplorer from '@/components/community/FullTagExplorer.vue'
 import LoungeSelectorModal from '@/components/community/LoungeSelectorModal.vue'
 import PostItem from '@/components/community/PostItem.vue'
+import SelectedTagBar from '@/components/community/SelectedTagBar.vue'
 import ToneLounge from '@/components/community/ToneLounge.vue'
 import WriteButton from '@/components/community/WriteButton.vue'
+import { useRequireLogin } from '@/composables/useRequireLogin'
 import {
   DEFAULT_COMMUNITY_CATEGORY,
   getCommunityCategoryByKey,
@@ -121,21 +158,30 @@ import {
 import {
   loungeNotices,
   mockCommunityPosts,
+  popularProductTags,
   recommendedLounges,
 } from '@/data/communitySidebarMock'
 import {
   deletePostById,
   getCurrentUserId,
   getPosts,
-  isAuthenticated,
   togglePostLike,
   updatePost,
 } from '@/services/communityApi'
+import {
+  dedupeTagNames,
+  getTagSearchKey,
+  matchesPostByTags,
+  normalizeTagDisplayName,
+  parseQueryTags,
+  serializeTagsForQuery,
+} from '@/utils/communityTags'
 
 const PAGE_SIZE = 5
 
 const route = useRoute()
 const router = useRouter()
+const { requireLogin, handleAuthFailure } = useRequireLogin()
 
 const userPersonalColor = ref({
   season: 'summer',
@@ -155,6 +201,8 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 const currentPage = ref(1)
 const isLoungeSelectorOpen = ref(false)
+const activeMenu = ref(String(route.query.view || 'all'))
+const recentPostIds = ref([])
 
 const defaultLounge = computed(() => getLoungeThemeFromPersonalColor(userPersonalColor.value))
 const currentLounge = computed(() =>
@@ -165,6 +213,22 @@ const canWriteInActiveCategory = computed(() => activeCategory.value.boardType =
 const currentUserId = computed(() => getCurrentUserId())
 const isSpecialStaticBoard = computed(() =>
   ['notices', 'recommended-lounges'].includes(activeCategory.value.boardType),
+)
+const tagExploreMode = computed(() => route.query.mode === 'tags')
+const singleTagFilter = computed(() => parseQueryTags(route.query.tag))
+const multiTagFilters = computed(() => parseQueryTags(route.query.tags))
+const appliedTagFilters = computed(() =>
+  dedupeTagNames([...singleTagFilter.value, ...multiTagFilters.value]),
+)
+const emptyStateTitle = computed(() =>
+  appliedTagFilters.value.length
+    ? '선택한 태그가 포함된 게시글이 아직 없어요.'
+    : '아직 등록된 게시글이 없습니다.',
+)
+const emptyStateDescription = computed(() =>
+  appliedTagFilters.value.length
+    ? '다른 인기 태그를 선택해보세요.'
+    : '첫 번째 글을 작성해보세요.',
 )
 
 const normalizePost = (post) => ({
@@ -180,7 +244,7 @@ const normalizePost = (post) => ({
   comment_count: post.comment_count ?? 0,
   is_liked: post.is_liked || false,
   canEdit: currentUserId.value && post.author_id === currentUserId.value,
-  userAvatar: post.userAvatar || `https://i.pravatar.cc/100?u=${post.author_username || post.id}`,
+  userAvatar: post.author_profile_image_url || post.userAvatar || null,
 })
 
 const formatDate = (value) => {
@@ -197,8 +261,9 @@ const formatDate = (value) => {
 
 const filteredPosts = computed(() => {
   const keyword = filters.q.toLowerCase()
+  const tagFilters = appliedTagFilters.value
   const boardType = activeCategory.value.boardType
-  const pool =
+  let pool =
     boardType === 'post-category'
       ? posts.value.filter((post) => post.category === activeCategory.value.apiValue)
       : boardType === 'popular-posts'
@@ -206,14 +271,29 @@ const filteredPosts = computed(() => {
         : boardType === 'popular-tags'
           ? posts.value.filter((post) => post.products?.length)
           : []
-  const fallbackPool = boardType === 'popular-tags' && pool.length === 0 ? posts.value : pool
+
+  if (activeMenu.value === 'liked') {
+    pool = posts.value.filter((post) => post.is_liked)
+  }
+
+  if (activeMenu.value === 'recent') {
+    pool = recentPostIds.value
+      .map((postId) => posts.value.find((post) => String(post.id) === String(postId)))
+      .filter(Boolean)
+  }
+
+  const fallbackPool =
+    activeMenu.value === 'all' && boardType === 'popular-tags' && pool.length === 0
+      ? posts.value
+      : pool
 
   return fallbackPool.filter((post) => {
-    return (
+    const matchesKeyword =
       !keyword ||
       post.title.toLowerCase().includes(keyword) ||
       post.content.toLowerCase().includes(keyword)
-    )
+
+    return matchesKeyword && matchesPostByTags(post, tagFilters, 'or')
   })
 })
 
@@ -239,15 +319,41 @@ const weeklyPopularPosts = computed(() =>
   [...posts.value].sort((a, b) => b.like_count - a.like_count).slice(0, 5),
 )
 
-const syncRoute = () => {
-  router.replace({
+const cleanQuery = (query) => {
+  const nextQuery = { ...query }
+  Object.keys(nextQuery).forEach((key) => {
+    if (nextQuery[key] === undefined || nextQuery[key] === null || nextQuery[key] === '') {
+      delete nextQuery[key]
+    }
+  })
+  return nextQuery
+}
+
+const replaceCommunityQuery = (updates = {}, method = 'replace') => {
+  router[method]({
     name: route.name || 'community',
     params: route.params,
-    query: {
+    query: cleanQuery({
       ...route.query,
-      category: activeCategoryKey.value,
-    },
+      ...updates,
+    }),
   })
+}
+
+const syncRoute = () => {
+  replaceCommunityQuery({
+    category: activeCategoryKey.value,
+    view: activeMenu.value,
+  })
+}
+
+const loadRecentPostIds = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('community_recent_post_ids') || '[]')
+    recentPostIds.value = Array.isArray(parsed) ? parsed.slice(0, 10) : []
+  } catch {
+    recentPostIds.value = []
+  }
 }
 
 const fetchPosts = async () => {
@@ -268,6 +374,7 @@ const fetchPosts = async () => {
 
 const onFilterChange = (filterData) => {
   activeCategoryKey.value = filterData.category
+  activeMenu.value = 'all'
   filters.sortBy = filterData.sortBy
   currentPage.value = 1
   syncRoute()
@@ -296,9 +403,90 @@ const selectLounge = (lounge) => {
 }
 
 const openBoard = (categoryKey) => {
+  if (categoryKey === 'popular-product-tags') {
+    openTagExplorer()
+    return
+  }
+
   activeCategoryKey.value = getCommunityCategoryByKey(categoryKey).key
+  activeMenu.value = 'all'
   currentPage.value = 1
-  syncRoute()
+  replaceCommunityQuery({
+    category: activeCategoryKey.value,
+    view: activeMenu.value,
+    mode: undefined,
+  })
+}
+
+const openTagExplorer = () => {
+  currentPage.value = 1
+  replaceCommunityQuery({ mode: 'tags' }, 'push')
+}
+
+const closeTagExplorer = () => {
+  replaceCommunityQuery({ mode: undefined })
+}
+
+const toggleSidebarTag = (tag) => {
+  const tagName = normalizeTagDisplayName(tag?.name || tag)
+  if (!tagName) return
+
+  const tagKey = getTagSearchKey(tagName)
+  const isOnlyActiveTag =
+    appliedTagFilters.value.length === 1 && getTagSearchKey(appliedTagFilters.value[0]) === tagKey
+
+  currentPage.value = 1
+  replaceCommunityQuery({
+    tag: isOnlyActiveTag ? undefined : tagName.replace(/^#/, ''),
+    tags: undefined,
+    mode: undefined,
+  })
+}
+
+const applyTagExplorerSelection = (tags) => {
+  currentPage.value = 1
+  const serializedTags = serializeTagsForQuery(tags)
+  replaceCommunityQuery({
+    tag: undefined,
+    tags: serializedTags || undefined,
+    mode: undefined,
+  })
+}
+
+const removeTagFilter = (tag) => {
+  const targetKey = getTagSearchKey(tag)
+  const nextSingleTags = singleTagFilter.value.filter((item) => getTagSearchKey(item) !== targetKey)
+  const nextMultiTags = multiTagFilters.value.filter((item) => getTagSearchKey(item) !== targetKey)
+
+  currentPage.value = 1
+  replaceCommunityQuery({
+    tag: nextSingleTags[0] ? nextSingleTags[0].replace(/^#/, '') : undefined,
+    tags: serializeTagsForQuery(nextMultiTags) || undefined,
+  })
+}
+
+const clearTagFilters = () => {
+  currentPage.value = 1
+  replaceCommunityQuery({
+    tag: undefined,
+    tags: undefined,
+  })
+}
+
+const selectSidebarMenu = (menuKey) => {
+  activeMenu.value = menuKey
+  if (activeCategory.value.boardType !== 'post-category') {
+    activeCategoryKey.value = DEFAULT_COMMUNITY_CATEGORY
+  }
+  if (menuKey === 'recent') {
+    loadRecentPostIds()
+  }
+  currentPage.value = 1
+  replaceCommunityQuery({
+    category: activeCategoryKey.value,
+    view: activeMenu.value,
+    mode: undefined,
+  })
 }
 
 const openPost = (post) => {
@@ -313,10 +501,7 @@ const openPost = (post) => {
 }
 
 const toggleLike = async (post) => {
-  if (!isAuthenticated()) {
-    alert('로그인이 필요합니다.')
-    return
-  }
+  if (!requireLogin({ message: '좋아요는 로그인 후 이용할 수 있어요.' })) return
 
   if (String(post.id).startsWith('mock-')) {
     post.is_liked = !post.is_liked
@@ -330,6 +515,7 @@ const toggleLike = async (post) => {
     post.like_count += response.is_liked ? 1 : -1
   } catch (error) {
     console.error('좋아요 처리 실패:', error)
+    if (handleAuthFailure(error)) return
     alert('좋아요 처리에 실패했습니다.')
   }
 }
@@ -337,20 +523,28 @@ const toggleLike = async (post) => {
 const openCreatePage = () => {
   if (!canWriteInActiveCategory.value) return
 
-  router.push({
+  const targetRoute = {
     name: 'community-create',
     query: {
       category: activeCategoryKey.value,
       lounge: currentLounge.value.key,
     },
-  })
+  }
+
+  if (
+    !requireLogin({
+      message: '게시글 작성은 로그인 후 이용할 수 있어요.',
+      redirect: router.resolve(targetRoute).fullPath,
+    })
+  ) {
+    return
+  }
+
+  router.push(targetRoute)
 }
 
 const editPost = async (post) => {
-  if (!isAuthenticated()) {
-    alert('로그인이 필요합니다.')
-    return
-  }
+  if (!requireLogin()) return
 
   const title = window.prompt('수정할 제목을 입력해주세요.', post.title)
   if (title === null) return
@@ -368,6 +562,7 @@ const editPost = async (post) => {
     Object.assign(post, normalizePost(updatedPost))
   } catch (error) {
     console.error('게시글 수정 실패:', error)
+    if (handleAuthFailure(error)) return
     alert('게시글 수정에 실패했습니다.')
   }
 }
@@ -385,6 +580,7 @@ const deletePost = async (post) => {
     posts.value = posts.value.filter((item) => item.id !== post.id)
   } catch (error) {
     console.error('게시글 삭제 실패:', error)
+    if (handleAuthFailure(error)) return
     alert('게시글 삭제에 실패했습니다.')
   }
 }
@@ -397,11 +593,30 @@ watch(
   },
 )
 
+watch(
+  () => route.query.view,
+  (view) => {
+    activeMenu.value = ['all', 'liked', 'recent'].includes(view) ? view : 'all'
+    if (activeMenu.value === 'recent') {
+      loadRecentPostIds()
+    }
+    currentPage.value = 1
+  },
+)
+
+watch(
+  () => [route.query.tag, route.query.tags, route.query.mode],
+  () => {
+    currentPage.value = 1
+  },
+)
+
 watch(filteredPosts, () => {
   if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
 })
 
 onMounted(() => {
+  loadRecentPostIds()
   if (!route.query.category) syncRoute()
   fetchPosts()
 })
@@ -410,7 +625,7 @@ onMounted(() => {
 <style scoped>
 .community-page {
   width: 100%;
-  background: #fffafb;
+  background: #fdf8f6;
   font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: 0;
   color: #2d2524;
@@ -514,6 +729,13 @@ onMounted(() => {
 .empty-state p {
   color: #7c706c;
   margin-bottom: 18px;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
 .empty-state button {

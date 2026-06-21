@@ -1,42 +1,83 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap");
 
-/* src/assets/main.css */
-
-* {
-  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+:root {
+  --font-ui: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  --font-logo: "Bodoni Moda", Georgia, "Times New Roman", serif;
+  --font-title-serif: "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo", "Malgun Gothic", serif;
 }
 
-/* 1. 브라우저 기본 여백 없애기 */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: var(--font-ui);
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
-/* 2. 전체 배경색 및 기본 폰트 설정 */
-html, body {
+html,
+body {
   width: 100%;
   min-height: 100vh;
-  /* 루미에르 목업 느낌의 아주 연한 핑크/화이트 톤 배경 */
-  background-color: #fffafb; 
-  color: #333;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-  overflow-x: hidden; /* 가로 스크롤 방지 */
+  background-color: #fdf8f6;
+  color: #333333;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* 3. Vue 앱이 마운트되는 최상위 컨테이너 제한 풀기 */
-#app {
-  width: 100%;
-  /* 기존에 있던 max-width: 1280px; 와 padding: 2rem; 이 삭제됨 */
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-ui);
 }
 
-/* 4. 링크 밑줄 제거 */
 a {
   text-decoration: none;
   color: inherit;
+  cursor: pointer;
 }
 
-/* 5. 리스트(ul, li) 기본 스타일 제거 */
-ul, li {
+ul,
+li {
   list-style: none;
+}
+
+.logo,
+.logo *,
+.brand-logo {
+  font-family: var(--font-logo) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.5px;
+}
+
+h1,
+h2,
+h3,
+.serif-title,
+.hero-title,
+.section-title {
+  font-family: var(--font-title-serif) !important;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.lumiere-card {
+  background-color: #ffffff;
+  border: 1px solid #f0e6e1;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(185, 77, 97, 0.04);
+  padding: 32px;
 }

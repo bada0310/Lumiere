@@ -1,7 +1,11 @@
 <template>
   <div class="comments">
     <article v-for="comment in sortedComments" :key="comment.id" class="comment-item">
-      <img :src="avatarUrl(comment)" alt="" />
+      <UserAvatar
+        :src="comment.author_profile_image_url"
+        :alt="`${comment.author_nickname || comment.author_username || '익명'} 프로필 이미지`"
+        size="sm"
+      />
       <div class="comment-body">
         <div class="comment-meta">
           <strong>{{ comment.author_nickname || comment.author_username || '익명' }}</strong>
@@ -17,18 +21,40 @@
           >
             {{ comment.is_liked ? '♥' : '♡' }} {{ comment.like_count || 0 }}
           </button>
-          <button type="button" class="reply-btn" disabled>답글</button>
+          <button type="button" class="reply-btn" @click="toggleReply(comment.id)">
+            답글
+          </button>
         </div>
+
+        <form v-if="activeReplyId === comment.id" class="reply-form" @submit.prevent="submitReply(comment)">
+          <input v-model.trim="replyContent" placeholder="답글을 입력해주세요..." />
+          <button type="submit" :disabled="!replyContent">등록</button>
+          <button type="button" class="cancel-btn" @click="closeReply">취소</button>
+        </form>
 
         <div v-if="comment.replies?.length" class="replies">
           <article v-for="reply in comment.replies" :key="reply.id" class="comment-item reply">
-            <img :src="avatarUrl(reply)" alt="" />
-            <div>
+            <UserAvatar
+              :src="reply.author_profile_image_url"
+              :alt="`${reply.author_nickname || reply.author_username || '익명'} 프로필 이미지`"
+              size="sm"
+            />
+            <div class="comment-body">
               <div class="comment-meta">
                 <strong>{{ reply.author_nickname || reply.author_username || '익명' }}</strong>
                 <span>{{ formatDate(reply.created_at) }}</span>
               </div>
               <p>{{ reply.content }}</p>
+              <div class="comment-actions">
+                <button
+                  type="button"
+                  class="comment-like"
+                  :class="{ liked: reply.is_liked }"
+                  @click="$emit('like-comment', reply)"
+                >
+                  {{ reply.is_liked ? '♥' : '♡' }} {{ reply.like_count || 0 }}
+                </button>
+              </div>
             </div>
           </article>
         </div>
@@ -38,7 +64,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 
 const props = defineProps({
   comments: {
@@ -51,12 +78,31 @@ const props = defineProps({
   },
 })
 
-defineEmits(['like-comment'])
+const emit = defineEmits(['like-comment', 'submit-reply'])
+
+const activeReplyId = ref(null)
+const replyContent = ref('')
 
 const sortedComments = computed(() => {
   const copied = [...props.comments]
   return props.sort === 'latest' ? copied.reverse() : copied
 })
+
+const toggleReply = (commentId) => {
+  activeReplyId.value = activeReplyId.value === commentId ? null : commentId
+  replyContent.value = ''
+}
+
+const closeReply = () => {
+  activeReplyId.value = null
+  replyContent.value = ''
+}
+
+const submitReply = (comment) => {
+  if (!replyContent.value) return
+  emit('submit-reply', { comment, content: replyContent.value })
+  closeReply()
+}
 
 const formatDate = (value) => {
   if (!value) return ''
@@ -65,7 +111,6 @@ const formatDate = (value) => {
   return date.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-const avatarUrl = (comment) => `https://i.pravatar.cc/100?u=${comment.author_username || comment.id}`
 </script>
 
 <style scoped>
@@ -78,12 +123,6 @@ const avatarUrl = (comment) => `https://i.pravatar.cc/100?u=${comment.author_use
 .comment-item {
   display: flex;
   gap: 12px;
-}
-
-.comment-item img {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
 }
 
 .comment-body {
@@ -124,7 +163,8 @@ const avatarUrl = (comment) => `https://i.pravatar.cc/100?u=${comment.author_use
   font: inherit;
 }
 
-.comment-like {
+.comment-like,
+.reply-btn {
   color: #c65367;
 }
 
@@ -132,13 +172,38 @@ const avatarUrl = (comment) => `https://i.pravatar.cc/100?u=${comment.author_use
   font-weight: 700;
 }
 
-.reply-btn {
-  color: #9d918d;
+.reply-form {
+  display: grid;
+  grid-template-columns: 1fr 70px 60px;
+  gap: 8px;
+  margin: 10px 0 14px;
 }
 
-.reply-btn:disabled {
+.reply-form input {
+  height: 38px;
+  border: 1px solid #eaded8;
+  border-radius: 8px;
+  padding: 0 12px;
+  font: inherit;
+}
+
+.reply-form button {
+  border: none;
+  border-radius: 8px;
+  background: #f3d7dd;
+  color: #c65367;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reply-form button:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
-  opacity: 0.6;
+}
+
+.reply-form .cancel-btn {
+  background: #f8f2f0;
+  color: #6d5f5b;
 }
 
 .replies {
@@ -149,5 +214,11 @@ const avatarUrl = (comment) => `https://i.pravatar.cc/100?u=${comment.author_use
 
 .reply {
   margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .reply-form {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

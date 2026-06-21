@@ -1,7 +1,7 @@
 <template>
   <div class="post-card-wrapper">
     <div class="post-user-info">
-      <img :src="post.userAvatar" class="user-avatar" alt="avatar"/>
+      <UserAvatar :src="post.userAvatar" :alt="`${post.author} 프로필 이미지`" size="md" />
       <div class="user-meta">
         <span class="nickname">{{ post.author }}</span>
         <span class="user-tone-tag">{{ post.userTone }}</span>
@@ -31,7 +31,7 @@
         <button class="action-btn like-btn" @click.stop="toggleLike">
           {{ post.is_liked ? '❤️' : '🤍' }} {{ post.like_count }}
         </button>
-        <button class="action-btn comment-btn">
+        <button class="action-btn comment-btn" @click.stop="goToDetail">
           💬 {{ post.comment_count }}
         </button>
       </div>
@@ -45,6 +45,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
+import UserAvatar from '@/components/user/UserAvatar.vue';
 
 const props = defineProps({
   post: Object
@@ -71,7 +72,6 @@ const toggleLike = () => emit('like', props.post);
 .post-card-wrapper:hover { border-color: #8b3a4a; }
 
 .post-user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.user-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
 .user-meta { display: flex; align-items: center; gap: 8px; flex: 1; }
 .nickname { font-weight: 600; font-size: 0.9rem; color: #333; }
 .user-tone-tag { background: #fff5f6; color: #8b3a4a; font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; font-weight: 500; }

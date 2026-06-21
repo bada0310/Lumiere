@@ -20,6 +20,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 
 // ★ 부모(LoginView)에게 신호를 보내기 위한 설정
@@ -27,6 +28,7 @@ const emit = defineEmits(['goToFindPassword'])
 
 const email = ref('')
 const password = ref('')
+const route = useRoute()
 
 const handleLogin = async () => { 
   const loginData = {
@@ -41,8 +43,11 @@ const handleLogin = async () => {
     localStorage.setItem('refresh_token', response.data.refresh)
     
     alert('로그인에 성공했습니다!')
-    
-    window.location.href = '/' // 강제 새로고침하며 메인으로 이동
+
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
+      ? route.query.redirect
+      : '/'
+    window.location.href = redirect
 
   } catch (error) {
     console.error("로그인 실패:", error.response?.data)

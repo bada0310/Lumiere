@@ -10,7 +10,7 @@
     </div>
 
     <div class="author-row">
-      <img :src="post.userAvatar" alt="" />
+      <UserAvatar :src="post.userAvatar" :alt="`${post.author} 프로필 이미지`" size="md" />
       <strong>{{ post.author }}</strong>
       <span>{{ post.userTone }}</span>
       <small>{{ post.time }}</small>
@@ -54,7 +54,12 @@
       </div>
 
       <CommentForm :disabled="!isLoggedIn" @submit="$emit('submit-comment', $event)" />
-      <CommentThread :comments="comments" :sort="commentSort" @like-comment="$emit('like-comment', $event)" />
+      <CommentThread
+        :comments="comments"
+        :sort="commentSort"
+        @like-comment="$emit('like-comment', $event)"
+        @submit-reply="$emit('submit-reply', $event)"
+      />
     </section>
   </article>
 </template>
@@ -64,6 +69,7 @@ import { computed, ref } from 'vue'
 import CommentForm from '@/components/community/CommentForm.vue'
 import CommentThread from '@/components/community/CommentThread.vue'
 import CommunityImageSlider from '@/components/community/CommunityImageSlider.vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import { getCommunityCategoryByApiValue } from '@/data/communityCategories'
 
 const props = defineProps({
@@ -81,7 +87,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['back', 'like', 'submit-comment', 'like-comment'])
+defineEmits(['back', 'like', 'submit-comment', 'like-comment', 'submit-reply'])
 
 const commentSort = ref('latest')
 
