@@ -4,7 +4,7 @@
       <span class="sub-title">내 톤 라운지</span>
       <h2 class="lounge-name">{{ lounge.koreanName }} <span class="badge">라운지</span></h2>
       <p class="lounge-desc">{{ lounge.description }}</p>
-      <button class="action-btn" @click="$emit('change-lounge')">라운지 설정 변경</button>
+      <button class="action-btn" type="button" @click="$emit('change-lounge')">라운지 설정 변경</button>
     </div>
 
     <div class="activity-card">
@@ -12,17 +12,22 @@
         <strong>{{ lounge.members.toLocaleString() }}</strong>명 활동 중
       </div>
       <div class="avatar-group">
-        <img v-for="n in 5" :key="n" :src="`https://i.pravatar.cc/100?img=${n + 10}`" alt="avatar" />
+        <UserAvatar v-for="n in 5" :key="n" :src="null" alt="라운지 멤버 프로필 이미지" size="sm" />
         <span class="more-avatar">+99</span>
       </div>
     </div>
 
     <ul class="menu-list" aria-label="내 커뮤니티 메뉴">
-      <li class="active">📋 전체 게시글</li>
-      <li>✍️ 내가 쓴 글</li>
-      <li>⭐ 스크랩한 글</li>
-      <li>❤️ 내가 좋아요한 글</li>
-      <li>⏱️ 최근 본 글</li>
+      <li v-for="menu in menus" :key="menu.key">
+        <button
+          type="button"
+          :class="{ active: activeMenu === menu.key }"
+          @click="$emit('select-menu', menu.key)"
+        >
+          <span>{{ menu.icon }}</span>
+          {{ menu.label }}
+        </button>
+      </li>
     </ul>
 
     <div class="guide-card">
@@ -38,12 +43,31 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
+
+const props = defineProps({
   lounge: {
     type: Object,
     required: true,
   },
+  activeMenu: {
+    type: String,
+    default: 'all',
+  },
+  recentCount: {
+    type: Number,
+    default: 0,
+  },
 })
+
+defineEmits(['change-lounge', 'select-menu'])
+
+const menus = computed(() => [
+  { key: 'all', icon: '☰', label: '전체 게시글' },
+  { key: 'liked', icon: '♡', label: '내가 좋아요한 글' },
+  { key: 'recent', icon: '↺', label: `최근 본 글 (${Math.min(props.recentCount, 10)}개)` },
+])
 </script>
 
 <style scoped>
@@ -52,7 +76,7 @@ defineProps({
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: 0;
 }
 
@@ -149,7 +173,6 @@ defineProps({
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 14px;
 }
 
 .avatar-group img {
@@ -170,19 +193,6 @@ defineProps({
   margin-left: 6px;
 }
 
-.guide-card button {
-  background: none;
-  border: 1px solid #eee0dc;
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  color: #6d5f5b;
-  font-size: 0.84rem;
-  font-family: inherit;
-  font-weight: 400;
-  cursor: pointer;
-}
-
 .menu-list {
   list-style: none;
   padding: 8px;
@@ -191,15 +201,30 @@ defineProps({
   border: 1px solid #f0e5e0;
 }
 
-.menu-list li {
+.menu-list li + li {
+  margin-top: 2px;
+}
+
+.menu-list button {
+  width: 100%;
+  border: none;
+  background: transparent;
   padding: 11px 13px;
   font-size: 0.88rem;
   color: #555;
   cursor: pointer;
   border-radius: 8px;
+  text-align: left;
+  font: inherit;
 }
 
-.menu-list li.active {
+.menu-list button span {
+  display: inline-block;
+  width: 18px;
+  color: #8b3a4a;
+}
+
+.menu-list button.active {
   background-color: #fff5f6;
   color: #8b3a4a;
   font-weight: 600;
@@ -243,6 +268,19 @@ defineProps({
   height: 4px;
   border-radius: 50%;
   background: #8b3a4a;
+}
+
+.guide-card button {
+  background: none;
+  border: 1px solid #eee0dc;
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  color: #6d5f5b;
+  font-size: 0.84rem;
+  font-family: inherit;
+  font-weight: 400;
+  cursor: pointer;
 }
 
 @media (max-width: 1120px) {

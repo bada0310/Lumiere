@@ -2,7 +2,12 @@
   <div class="community-subpage">
     <div class="community-subpage-grid">
       <aside class="left-sidebar">
-        <ToneLounge :lounge="currentLounge" @change-lounge="goCommunity" />
+        <ToneLounge
+          :lounge="currentLounge"
+          :recent-count="recentCount"
+          @change-lounge="goCommunity"
+          @select-menu="openSidebarMenu"
+        />
       </aside>
 
       <main class="main-area">
@@ -18,6 +23,7 @@
           @like="toggleLike"
           @submit-comment="submitComment"
           @like-comment="toggleCommentLike"
+          @submit-reply="submitReply"
         />
       </main>
 
@@ -26,18 +32,21 @@
         :show-recommendations="false"
         @open-board="openBoard"
         @open-post="openPost"
+        @select-tag="openTagFilter"
+        @open-tag-explorer="openTagExplorer"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import CommunityDetailContent from '@/components/community/CommunityDetailContent.vue'
 import CommunityRightSidebar from '@/components/community/CommunityRightSidebar.vue'
 import ToneLounge from '@/components/community/ToneLounge.vue'
+import { useRequireLogin } from '@/composables/useRequireLogin'
 import { getLoungeThemeByKey } from '@/data/loungeThemes'
 import { mockCommunityPosts } from '@/data/communitySidebarMock'
 import {
@@ -48,9 +57,11 @@ import {
   toggleCommentLikeById,
   togglePostLike,
 } from '@/services/communityApi'
+import { normalizeTagDisplayName } from '@/utils/communityTags'
 
 const route = useRoute()
 const router = useRouter()
+const { requireLogin, handleAuthFailure } = useRequireLogin()
 
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -59,6 +70,14 @@ const comments = ref([])
 
 const isLoggedIn = computed(() => isAuthenticated())
 const currentLounge = computed(() => getLoungeThemeByKey(route.query.lounge || 'summer-cool-light'))
+const recentCount = computed(() => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('community_recent_post_ids') || '[]')
+    return Array.isArray(parsed) ? Math.min(parsed.length, 10) : 0
+  } catch {
+    return 0
+  }
+})
 const weeklyPopularPosts = computed(() =>
   mockCommunityPosts.slice().sort((a, b) => b.like_count - a.like_count).slice(0, 5),
 )
@@ -73,7 +92,7 @@ const normalizePost = (data) => ({
   like_count: data.like_count ?? 0,
   comment_count: data.comment_count ?? comments.value.length,
   is_liked: data.is_liked || false,
-  userAvatar: data.userAvatar || `https://i.pravatar.cc/100?u=${data.author_username || data.id}`,
+  userAvatar: data.author_profile_image_url || data.userAvatar || null,
 })
 
 const formatDate = (value) => {
@@ -83,6 +102,17 @@ const formatDate = (value) => {
   return date.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+const saveRecentPost = (postId) => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('community_recent_post_ids') || '[]')
+    const recentIds = Array.isArray(stored) ? stored : []
+    const nextIds = [String(postId), ...recentIds.filter((id) => String(id) !== String(postId))].slice(0, 10)
+    localStorage.setItem('community_recent_post_ids', JSON.stringify(nextIds))
+  } catch {
+    localStorage.setItem('community_recent_post_ids', JSON.stringify([String(postId)]))
+  }
+}
+
 const fetchDetail = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -90,6 +120,7 @@ const fetchDetail = async () => {
   try {
     const data = await getPost(route.params.id)
     post.value = normalizePost(data)
+    saveRecentPost(post.value.id)
     comments.value = await getPostComments(route.params.id)
     post.value.comment_count = comments.value.length
   } catch (error) {
@@ -106,6 +137,7 @@ const fetchDetail = async () => {
         created_at: new Date().toISOString(),
       },
     ]
+    saveRecentPost(post.value.id)
     errorMessage.value = ''
     console.error('게시글 상세 조회 실패, mock 데이터를 사용합니다:', error)
   } finally {
@@ -113,15 +145,9 @@ const fetchDetail = async () => {
   }
 }
 
-const requireLogin = () => {
-  if (isAuthenticated()) return true
-  alert('로그인이 필요합니다.')
-  return false
-}
-
 const toggleLike = async () => {
   if (!post.value) return
-  if (!requireLogin()) return
+  if (!requireLogin({ message: '좋아요는 로그인 후 이용할 수 있어요.' })) return
 
   if (String(post.value.id).startsWith('mock-')) {
     post.value.is_liked = !post.value.is_liked
@@ -129,36 +155,79 @@ const toggleLike = async () => {
     return
   }
 
-  const response = await togglePostLike(post.value.id)
-  post.value.is_liked = response.is_liked
-  post.value.like_count += response.is_liked ? 1 : -1
+  try {
+    const response = await togglePostLike(post.value.id)
+    post.value.is_liked = response.is_liked
+    post.value.like_count += response.is_liked ? 1 : -1
+  } catch (error) {
+    console.error('좋아요 처리 실패:', error.response?.data || error)
+    if (handleAuthFailure(error)) return
+    alert('좋아요 처리에 실패했습니다.')
+  }
 }
 
 const submitComment = async (content) => {
   if (!post.value || !content) return
-  if (!requireLogin()) return
+  if (!requireLogin({ message: '댓글 작성은 로그인 후 이용할 수 있어요.' })) return
 
-  if (String(post.value.id).startsWith('mock-')) {
-    comments.value.push({
-      id: `mock-comment-${Date.now()}`,
-      author_username: 'me',
-      author_nickname: 'me',
-      content,
-      like_count: 0,
-      is_liked: false,
-      created_at: new Date().toISOString(),
-    })
+  try {
+    if (String(post.value.id).startsWith('mock-')) {
+      comments.value.push({
+        id: `mock-comment-${Date.now()}`,
+        author_username: 'me',
+        author_nickname: 'me',
+        content,
+        like_count: 0,
+        is_liked: false,
+        created_at: new Date().toISOString(),
+      })
+      post.value.comment_count = comments.value.length
+      return
+    }
+
+    const createdComment = await createComment(post.value.id, content)
+    comments.value.push(createdComment)
     post.value.comment_count = comments.value.length
-    return
+  } catch (error) {
+    console.error('댓글 등록 실패:', error.response?.data || error)
+    if (handleAuthFailure(error)) return
+    alert('댓글 등록에 실패했습니다. 로그인 상태와 입력 내용을 확인해주세요.')
   }
+}
 
-  const createdComment = await createComment(post.value.id, content)
-  comments.value.push(createdComment)
-  post.value.comment_count = comments.value.length
+const submitReply = async ({ comment, content }) => {
+  if (!post.value || !comment || !content) return
+  if (!requireLogin({ message: '댓글 작성은 로그인 후 이용할 수 있어요.' })) return
+
+  try {
+    if (String(post.value.id).startsWith('mock-')) {
+      const reply = {
+        id: `mock-reply-${Date.now()}`,
+        parent: comment.id,
+        author_username: 'me',
+        author_nickname: 'me',
+        content,
+        like_count: 0,
+        is_liked: false,
+        created_at: new Date().toISOString(),
+      }
+      comment.replies = [...(comment.replies || []), reply]
+      post.value.comment_count += 1
+      return
+    }
+
+    const createdReply = await createComment(post.value.id, content, comment.id)
+    comment.replies = [...(comment.replies || []), createdReply]
+    post.value.comment_count += 1
+  } catch (error) {
+    console.error('답글 등록 실패:', error.response?.data || error)
+    if (handleAuthFailure(error)) return
+    alert('답글 등록에 실패했습니다. 로그인 상태와 입력 내용을 확인해주세요.')
+  }
 }
 
 const toggleCommentLike = async (comment) => {
-  if (!requireLogin()) return
+  if (!requireLogin({ message: '좋아요는 로그인 후 이용할 수 있어요.' })) return
 
   if (String(comment.id).startsWith('mock-')) {
     comment.is_liked = !comment.is_liked
@@ -166,9 +235,15 @@ const toggleCommentLike = async (comment) => {
     return
   }
 
-  const response = await toggleCommentLikeById(comment.id)
-  comment.is_liked = response.is_liked
-  comment.like_count = (comment.like_count || 0) + (comment.is_liked ? 1 : -1)
+  try {
+    const response = await toggleCommentLikeById(comment.id)
+    comment.is_liked = response.is_liked
+    comment.like_count = (comment.like_count || 0) + (comment.is_liked ? 1 : -1)
+  } catch (error) {
+    console.error('댓글 좋아요 처리 실패:', error.response?.data || error)
+    if (handleAuthFailure(error)) return
+    alert('좋아요 처리에 실패했습니다.')
+  }
 }
 
 const goCommunity = () => {
@@ -176,7 +251,43 @@ const goCommunity = () => {
 }
 
 const openBoard = (categoryKey) => {
+  if (categoryKey === 'popular-product-tags') {
+    openTagExplorer()
+    return
+  }
+
   router.push({ name: 'community', query: { category: categoryKey } })
+}
+
+const openTagExplorer = () => {
+  router.push({
+    name: 'community',
+    query: {
+      category: route.query.category || 'life-item',
+      mode: 'tags',
+    },
+  })
+}
+
+const openTagFilter = (tag) => {
+  const tagName = normalizeTagDisplayName(tag?.name || tag)
+  router.push({
+    name: 'community',
+    query: {
+      category: route.query.category || 'life-item',
+      tag: tagName.replace(/^#/, ''),
+    },
+  })
+}
+
+const openSidebarMenu = (menuKey) => {
+  router.push({
+    name: 'community',
+    query: {
+      category: route.query.category || 'life-item',
+      view: menuKey,
+    },
+  })
 }
 
 const openPost = (targetPost) => {
@@ -191,12 +302,19 @@ const openPost = (targetPost) => {
 }
 
 onMounted(fetchDetail)
+
+watch(
+  () => route.params.id,
+  () => {
+    fetchDetail()
+  },
+)
 </script>
 
 <style scoped>
 .community-subpage {
   width: 100%;
-  background: #fffafb;
+  background: #fdf8f6;
   font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 

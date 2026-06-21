@@ -2,15 +2,14 @@
   <aside class="right-sidebar">
     <div class="right-widget">
       <h3>인기 제품 태그</h3>
-      <ul class="popular-tags">
-        <li v-for="tag in popularProductTags" :key="tag.id">
-          <img :src="tag.image" alt="" />
-          <span>{{ tag.name }}</span>
-        </li>
-      </ul>
-      <button class="text-link" type="button" @click="$emit('open-board', 'popular-product-tags')">
-        더 많은 태그 보기 >
-      </button>
+      <PopularTagCloud
+        :tags="popularProductTags"
+        :selected-tags="selectedTags"
+        :preview-limit="8"
+        description="태그를 클릭하면 관련 게시글이 필터링돼요."
+        @select-tag="$emit('select-tag', $event)"
+        @open-tag-explorer="$emit('open-tag-explorer')"
+      />
     </div>
 
     <div class="right-widget">
@@ -67,6 +66,7 @@
 </template>
 
 <script setup>
+import PopularTagCloud from '@/components/community/PopularTagCloud.vue'
 import {
   loungeNotices,
   popularProductTags,
@@ -82,9 +82,20 @@ defineProps({
     type: Boolean,
     default: true,
   },
+  selectedTags: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-defineEmits(['select-lounge', 'open-lounge-selector', 'open-board', 'open-post'])
+defineEmits([
+  'select-lounge',
+  'open-lounge-selector',
+  'open-board',
+  'open-post',
+  'select-tag',
+  'open-tag-explorer',
+])
 </script>
 
 <style scoped>
@@ -109,7 +120,6 @@ defineEmits(['select-lounge', 'open-lounge-selector', 'open-board', 'open-post']
   font-weight: 700;
 }
 
-.popular-tags,
 .popular-posts,
 .notice-list,
 .recommended-lounges {
@@ -118,25 +128,10 @@ defineEmits(['select-lounge', 'open-lounge-selector', 'open-board', 'open-post']
   gap: 11px;
 }
 
-.popular-tags li,
 .recommended-lounges li {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.popular-tags img {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  object-fit: cover;
-  background: #f7eeee;
-}
-
-.popular-tags span {
-  color: #5b514e;
-  font-size: 0.84rem;
-  font-weight: 500;
 }
 
 .popular-posts li {

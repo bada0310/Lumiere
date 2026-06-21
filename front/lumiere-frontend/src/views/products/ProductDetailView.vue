@@ -264,7 +264,7 @@ const reviews = [
 }
 
 .title-section h1 {
-  font-family: Georgia, serif;
+  font-family: var(--font-title-serif) !important;
   font-size: 32px;
   margin-bottom: 12px;
 }

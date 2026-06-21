@@ -2,47 +2,45 @@
   <div class="mypage-container">
     <section class="profile-section">
       <div class="profile-card">
-        <div class="profile-image-wrapper">
-          <img
-            :src="userInfo.profileImage || 'https://via.placeholder.com/100'"
-            alt="프로필 이미지"
-            class="profile-img"
-          />
-        </div>
+        <UserAvatar
+          :src="resolvedProfileImageUrl"
+          :alt="`${userInfo.nickname} 프로필 이미지`"
+          :name="userInfo.nickname"
+          size="xl"
+          class-name="profile-img"
+        />
 
         <div class="profile-info">
           <div class="profile-header">
             <h2>
               {{ userInfo.nickname }}
-              <span class="email">({{ userInfo.email }})</span>
+              <span class="email">({{ userInfo.email || 'email 없음' }})</span>
             </h2>
 
-            <button @click="editProfile" class="edit-btn">
+            <button type="button" @click="editProfile" class="edit-btn">
               정보 수정
             </button>
           </div>
 
-          <div
-            class="personal-color-summary"
-            :style="{ backgroundColor: latestDiagnosis?.colorThemeBg || '#f8f8f8' }"
-          >
+          <div class="personal-color-summary">
             <div>
               <p>
                 나의 최근 퍼스널 컬러는
                 <span class="color-highlight">
-                  {{ latestDiagnosis?.personalColor || '미진단' }}
+                  {{ latestDiagnosis?.result || '미진단' }}
                 </span>
                 입니다.
               </p>
 
               <small v-if="latestDiagnosis">
-                최근 진단일: {{ latestDiagnosis.date }} /
+                최근 진단일 {{ latestDiagnosis.date }} /
                 신뢰도 {{ latestDiagnosis.confidenceScore }}%
               </small>
+              <small v-else>진단을 완료하면 결과 타입별 기본 프로필 이미지가 적용돼요.</small>
             </div>
 
-            <button @click="goToDiagnosis" class="rediagnosis-btn">
-              재진단하기
+            <button type="button" @click="goToDiagnosis" class="rediagnosis-btn">
+              다시 진단하기
             </button>
           </div>
         </div>
@@ -50,9 +48,8 @@
     </section>
 
     <div class="dashboard-grid">
-      <!-- Diagnosis 목록 -->
       <section class="dashboard-card diagnosis-log">
-        <h3>🎨 진단 기록 리스트</h3>
+        <h3>진단 기록 리스트</h3>
 
         <div v-if="diagnosisList.length === 0" class="empty-msg">
           진단 기록이 없습니다.
@@ -62,22 +59,22 @@
           <li v-for="item in diagnosisList" :key="item.id" class="log-item">
             <div class="item-info">
               <span class="date">{{ item.date }}</span>
-              <span class="result-tag" :class="item.resultClass">
+              <span class="result-tag">
                 {{ item.result }}
               </span>
               <span class="confidence">신뢰도 {{ item.confidenceScore }}%</span>
+              <span v-if="item.isMock" class="mock-tag">mock</span>
             </div>
 
-            <button @click="viewDiagnosisResult(item.id)" class="action-btn">
+            <button type="button" @click="viewDiagnosisResult(item)" class="action-btn">
               결과 다시보기
             </button>
           </li>
         </ul>
       </section>
 
-      <!-- Wishlist 목록 -->
       <section class="dashboard-card wishlist-log">
-        <h3>❤️ 찜한 제품 옵션 목록</h3>
+        <h3>찜한 제품 옵션 목록</h3>
 
         <div v-if="wishlist.length === 0" class="empty-msg">
           찜한 제품이 없습니다.
@@ -101,9 +98,8 @@
         </div>
       </section>
 
-      <!-- ExternalAnalysis 목록 -->
       <section class="dashboard-card analysis-log">
-        <h3>🔗 최근 URL 분석 기록</h3>
+        <h3>최근 URL 분석 기록</h3>
 
         <div v-if="analysisList.length === 0" class="empty-msg">
           분석 기록이 없습니다.
@@ -126,9 +122,8 @@
         </ul>
       </section>
 
-      <!-- Community 목록 -->
       <section class="dashboard-card community-log">
-        <h3>📝 내가 쓴 커뮤니티 글</h3>
+        <h3>내가 쓴 커뮤니티 글</h3>
 
         <div v-if="communityList.length === 0" class="empty-msg">
           작성한 글이 없습니다.
@@ -141,12 +136,15 @@
           </li>
         </ul>
       </section>
-    </div> <ProfileEditModal 
+    </div>
+
+    <ProfileEditModal
       :isOpen="isEditModalOpen"
       :username="userInfo.username"
       :initialEmail="userInfo.email"
       :initialNickname="userInfo.nickname"
-      :initialImage="userInfo.profileImage"
+      :initialImage="currentUser?.profileImageUrl"
+      :isSaving="isSavingProfile"
       @close="closeEditModal"
       @save="handleSaveProfile"
       @delete="handleDeleteAccount"
@@ -155,149 +153,146 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ProfileEditModal from '@/components/accounts/ProfileEditModal.vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
+import { useCurrentUser } from '@/composables/useCurrentUser'
+import { useRequireLogin } from '@/composables/useRequireLogin'
+import { DEFAULT_PROFILE_IMAGE } from '@/constants/images'
+import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { getSavedMockDiagnosisResult } from '@/utils/diagnosisMockStorage'
+import { getDiagnosisProfileImageUrl, normalizeDiagnosisResult } from '@/utils/diagnosisResultTransform'
+
 const router = useRouter()
+const { currentUser, loadCurrentUser, saveCurrentUser } = useCurrentUser()
+const { handleAuthFailure } = useRequireLogin()
 
-// User 데이터
-const userInfo = ref({
-  id: 1,
-  username: 'subina123', // 고유 아이디 추가
-  nickname: 'Subina',
-  email: 'subina@example.com',
-  profileImage: '',
+const isEditModalOpen = ref(false)
+const isSavingProfile = ref(false)
+const latestDiagnosisFromApi = ref(null)
+const savedMockDiagnosis = ref(null)
+
+const userInfo = computed(() => ({
+  id: currentUser.value?.id || null,
+  username: currentUser.value?.username || '',
+  nickname: currentUser.value?.nickname || currentUser.value?.username || '사용자',
+  email: currentUser.value?.email || '',
+}))
+
+const normalizedLatestDiagnosis = computed(() => {
+  const source = latestDiagnosisFromApi.value || savedMockDiagnosis.value
+  return source ? normalizeDiagnosisResult(source) : null
 })
 
-
-// Diagnosis 1:N 데이터
-const diagnosisList = ref([
-  {
-    id: 101,
-    date: '2026-06-01',
-    result: '여름 쿨 라이트',
-    resultClass: 'summer-cool',
-    confidenceScore: 93,
-    colorThemeBg: '#f3f8fc',
-  },
-  {
-    id: 102,
-    date: '2026-03-15',
-    result: '봄 웜 라이트',
-    resultClass: 'spring-warm',
-    confidenceScore: 88,
-    colorThemeBg: '#fff5e8',
-  },
-])
-
-// 최근 Diagnosis 요약
-const latestDiagnosis = computed(() => {
-  return diagnosisList.value.length > 0 ? diagnosisList.value[0] : null
+const resolvedProfileImageUrl = computed(() => {
+  return currentUser.value?.profileImageUrl || getDiagnosisProfileImageUrl(normalizedLatestDiagnosis.value) || DEFAULT_PROFILE_IMAGE
 })
 
-// Wishlist 1:N 데이터
-// id = Wishlist id
-// productOptionId = 실제 상세 페이지로 이동할 ProductOption id
+const diagnosisList = computed(() => {
+  if (!normalizedLatestDiagnosis.value) return []
+
+  const result = normalizedLatestDiagnosis.value
+  return [
+    {
+      id: result.id,
+      date: new Date(result.diagnosed_at || result.created_at).toLocaleDateString('ko-KR'),
+      result: result.korean_name || '진단 결과',
+      toneKey: result.personal_color_code,
+      mockQuery: result.type || result.personal_color_code,
+      confidenceScore: result.confidence_score || result.confidence,
+      isMock: Boolean(result.is_mock),
+    },
+  ]
+})
+
+const latestDiagnosis = computed(() => diagnosisList.value[0] || null)
+
 const wishlist = ref([
   {
     id: 1,
     productOptionId: 101,
-    brand: '롬앤',
+    brand: 'rom&nd',
     name: '쥬시 래스팅 틴트',
-    option: '25호 베어 그레이프',
-    image: 'https://via.placeholder.com/60',
-  },
-  {
-    id: 2,
-    productOptionId: 102,
-    brand: '클리오',
-    name: '프로 아이 팔레트 에어',
-    option: '04 핑크 페어링',
+    option: '25 베어 그레이프',
     image: 'https://via.placeholder.com/60',
   },
 ])
 
-// ExternalAnalysis 1:N 데이터
-const analysisList = ref([
-  {
-    id: 501,
-    title: '데이지크 블러 벨벳 틴트 분석 결과',
-    date: '2026-06-10',
-  },
-  {
-    id: 502,
-    title: '페리페라 올테이크 무드 팔레트 분석 결과',
-    date: '2026-05-28',
-  },
-])
+const analysisList = ref([])
+const communityList = ref([])
 
-// 커뮤니티 데이터
-const communityList = ref([
-  {
-    id: 1,
-    title: '여름 쿨톤 인생 립 추천해주세요!',
-    commentCount: 5,
-  },
-  {
-    id: 2,
-    title: '오늘 올리브영 세일 꿀템 공유합니다',
-    commentCount: 2,
-  },
-])
-
-//profileEditModal.vue
-
-//모달창 On/Off 스위치 만들기
-const isEditModalOpen = ref(false) 
-
-// 알람 대신 스위치
 const editProfile = () => {
   isEditModalOpen.value = true
 }
-//모달창 닫기, 저장, 탈퇴 처리를 위한 함수 추가
+
 const closeEditModal = () => {
   isEditModalOpen.value = false
 }
 
-const handleSaveProfile = (formData) => {
-  console.log("모달에서 넘어온 수정 데이터:", formData)
-  
-  // 1. 화면에 변경된 정보 즉시 반영하기 (프론트 단독 테스트용)
-  userInfo.value.nickname = formData.nickname
-  userInfo.value.email = formData.email
-  if (formData.profileImage) {
-    // 선택한 이미지 파일을 브라우저 임시 주소로 만들어서 바로 보여줍니다.
-    userInfo.value.profileImage = URL.createObjectURL(formData.profileImage)
+const handleSaveProfile = async (formData) => {
+  isSavingProfile.value = true
+
+  try {
+    await saveCurrentUser({
+      email: formData.email,
+      nickname: formData.nickname,
+      profileImage: formData.profileImage,
+    })
+    isEditModalOpen.value = false
+  } catch (error) {
+    console.error('프로필 저장 실패:', error)
+    if (handleAuthFailure(error)) return
+    alert('프로필을 저장하지 못했어요.')
+  } finally {
+    isSavingProfile.value = false
   }
-  
-  // 2. 성공 알림
-  alert('정보가 성공적으로 수정되었습니다!')
-  
-  // ★ 3. 여기서 반드시 모달 스위치를 꺼주어야 창이 닫힙니다! ★
-  isEditModalOpen.value = false 
 }
 
-// 마이페이지 → 재진단
+const handleDeleteAccount = () => {
+  alert('회원 탈퇴 기능은 아직 연결되지 않았어요.')
+}
+
 const goToDiagnosis = () => {
   router.push('/upload')
 }
 
-// 마이페이지 → 과거 진단 결과
-const viewDiagnosisResult = (id) => {
-  router.push(`/result/${id}`)
+const viewDiagnosisResult = (item) => {
+  if (item.isMock) {
+    router.push({
+      path: '/diagnosis/result',
+      query: {
+        mock: String(item.mockQuery || item.toneKey || '').replace(/-/g, '_'),
+      },
+    })
+    return
+  }
+
+  router.push(`/result/${item.id}`)
 }
 
-// 마이페이지 → 찜한 제품 옵션 상세
 const goToProductDetail = (productOptionId) => {
   router.push(`/product-detail/${productOptionId}`)
 }
 
-// 마이페이지 → 최근 URL 분석 결과
 const goToAnalysisResult = (id) => {
   router.push(`/analysis/result/${id}`)
 }
 
+onMounted(async () => {
+  savedMockDiagnosis.value = getSavedMockDiagnosisResult()
+
+  if (!localStorage.getItem('access_token')) return
+
+  try {
+    await loadCurrentUser({ force: true })
+    latestDiagnosisFromApi.value = await getLatestDiagnosis()
+  } catch (error) {
+    if (handleAuthFailure(error)) return
+    console.error('마이페이지 데이터를 가져오지 못했어요.', error)
+  }
+})
 </script>
 
 <style scoped>
@@ -307,6 +302,8 @@ const goToAnalysisResult = (id) => {
   padding: 40px 20px;
   font-family: 'Pretendard', sans-serif;
   color: #333;
+  background: #fdf8f6;
+  min-height: 100vh;
 }
 
 .profile-section {
@@ -323,28 +320,27 @@ const goToAnalysisResult = (id) => {
   align-items: center;
 }
 
-.profile-img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
+:deep(.profile-img) {
   border: 2px solid #eee;
 }
 
 .profile-info {
   flex: 1;
+  min-width: 0;
 }
 
 .profile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   margin-bottom: 15px;
 }
 
 .profile-header h2 {
-  font-size: 1.5rem;
+  min-width: 0;
   margin: 0;
+  font-size: 1.5rem;
 }
 
 .profile-header .email {
@@ -368,6 +364,8 @@ const goToAnalysisResult = (id) => {
   align-items: center;
   padding: 15px 25px;
   border-radius: 12px;
+  gap: 18px;
+  background: #fff0f1;
 }
 
 .personal-color-summary p {
@@ -395,18 +393,13 @@ const goToAnalysisResult = (id) => {
   border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 30px;
-}
-
-@media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .dashboard-card {
@@ -455,7 +448,7 @@ const goToAnalysisResult = (id) => {
 .item-info {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -464,9 +457,18 @@ const goToAnalysisResult = (id) => {
   font-size: 0.9rem;
 }
 
-.confidence {
+.confidence,
+.mock-tag {
   color: #999;
   font-size: 0.8rem;
+}
+
+.mock-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f4f0fa;
+  color: #5f5379;
+  font-weight: 800;
 }
 
 .result-tag {
@@ -474,16 +476,8 @@ const goToAnalysisResult = (id) => {
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: bold;
-}
-
-.summer-cool {
-  background-color: #e3f2fd;
-  color: #1e88e5;
-}
-
-.spring-warm {
-  background-color: #fff3e0;
-  color: #fb8c00;
+  background-color: #fff0f1;
+  color: #8b3a4a;
 }
 
 .action-btn {
@@ -525,6 +519,7 @@ const goToAnalysisResult = (id) => {
 .product-desc {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .product-desc .brand {
@@ -533,8 +528,8 @@ const goToAnalysisResult = (id) => {
 }
 
 .product-desc .name {
-  font-size: 0.85rem;
   margin: 2px 0;
+  font-size: 0.85rem;
   font-weight: bold;
 }
 
@@ -571,5 +566,19 @@ const goToAnalysisResult = (id) => {
   font-size: 0.85rem;
   font-weight: bold;
   margin-left: 5px;
+}
+
+@media (max-width: 768px) {
+  .profile-card,
+  .personal-color-summary,
+  .profile-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-grid,
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

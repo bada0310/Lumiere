@@ -1,10 +1,14 @@
 import axios from 'axios'
+import {
+  getAccessToken as readAccessToken,
+  isAuthenticated as hasAuthToken,
+} from '@/utils/auth'
 
 export const API_BASE_URL = 'http://127.0.0.1:8000'
 
-export const getAccessToken = () => localStorage.getItem('access_token')
+export const getAccessToken = readAccessToken
 
-export const isAuthenticated = () => Boolean(getAccessToken())
+export const isAuthenticated = hasAuthToken
 
 export const authHeaders = () => {
   const token = getAccessToken()
@@ -73,10 +77,10 @@ export const getPostComments = async (postId) => {
   return response.data
 }
 
-export const createComment = async (postId, content) => {
+export const createComment = async (postId, content, parent = null) => {
   const response = await axios.post(
     `${API_BASE_URL}/api/community/posts/${postId}/comments/`,
-    { content },
+    parent ? { content, parent } : { content },
     { headers: authHeaders() },
   )
   return response.data

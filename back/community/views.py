@@ -11,6 +11,8 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
+        if getattr(view, 'action', None) in {'comments', 'like'}:
+            return True
         return obj.author == request.user
 
 
@@ -72,7 +74,12 @@ class PostViewSet(viewsets.ModelViewSet):
 
         if request.method == 'GET':
             serializer = CommentSerializer(
-                post.comments.select_related('author').prefetch_related('likes').annotate(
+                post.comments.filter(parent__isnull=True).select_related('author').prefetch_related(
+                    'likes',
+                    'replies',
+                    'replies__author',
+                    'replies__likes',
+                ).annotate(
                     like_count=Count('likes', distinct=True),
                 ),
                 many=True,
@@ -100,7 +107,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
 
     def get_queryset(self):
-        queryset = Comment.objects.select_related('post', 'author').prefetch_related('likes').annotate(
+        queryset = Comment.objects.select_related('post', 'author', 'parent').prefetch_related('likes').annotate(
             like_count=Count('likes', distinct=True),
         )
         post_id = self.request.query_params.get('post')
