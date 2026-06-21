@@ -3,15 +3,15 @@
     <main class="recommend-page">
       <section class="hero">
         <div>
-          <h1>당신에게 딱 맞는 화장품 옵션을 추천해드려요</h1>
-          <p>{{ selectedCategoryLabel }} 카테고리에서 여름 쿨 라이트 기준에 가까운 옵션만 선별했어요.</p>
+          <h1>색상 기준으로 추천 제품을 골라보세요</h1>
+          <p>{{ selectedCategoryLabel }} 카테고리에서 여름 쿨 라이트 기준에 가까운 옵션을 먼저 보여드려요.</p>
         </div>
 
         <div class="my-tone-card">
           <div>
             <p>나의 퍼스널컬러</p>
-            <strong>여름 쿨 라이트</strong>
-            <RouterLink to="/result">진단 결과 보기 ›</RouterLink>
+            <strong>여름 쿨 라이트 기준</strong>
+            <RouterLink to="/result">피부 분석 후 맞춤 추천 보기 ›</RouterLink>
           </div>
           <div class="profile"></div>
         </div>
@@ -60,7 +60,7 @@
 
       <section class="info-row">
         <p>총 {{ filteredProducts.length }}개의 추천 옵션</p>
-        <p>ⓘ 적합도는 나의 퍼스널컬러와의 유사도를 기반으로 계산됩니다.</p>
+        <p>ⓘ 피부 분석 전에는 기준 톤과 상품 대표색의 유사도를 먼저 보여줘요.</p>
       </section>
 
       <section v-if="isLoading" class="empty-box">
@@ -115,6 +115,12 @@
             ></span>
           </div>
 
+          <div class="metric-summary">
+            <span>{{ product.brightnessLabel }}</span>
+            <span>{{ product.saturationLabel }}</span>
+            <span>{{ product.temperatureLabel }}</span>
+          </div>
+
           <p class="score">
             {{ product.score }}<span>% 적합</span>
           </p>
@@ -139,7 +145,7 @@
           <span>여름 쿨 라이트</span>
           <span>명도: 밝음</span>
           <span>채도: 낮음</span>
-          <span>색온도: 쿨</span>
+          <span>쿨 방향 기준</span>
         </div>
 
         <button class="outline-btn" type="button" @click="resetAllFilters">
@@ -504,6 +510,27 @@ const makeMetricTags = (metrics, item) => {
   return tags
 }
 
+const getBrightnessLabel = (brightness) => {
+  if (brightness >= 72) return '고명도'
+  if (brightness <= 42) return '저명도'
+  return '중명도'
+}
+
+const getSaturationLabel = (saturation) => {
+  if (saturation >= 60) return '고채도'
+  if (saturation <= 40) return '저채도'
+  return '중채도'
+}
+
+const getTemperatureLabel = (coolness, warmth) => {
+  const diff = coolness - warmth
+  const mainScore = Math.max(coolness, warmth)
+
+  if (diff >= 20) return `쿨 ${mainScore}`
+  if (diff <= -20) return `웜 ${mainScore}`
+  return '뉴트럴'
+}
+
 const getFilterKeys = (text) => {
   const searchText = normalizeText(text)
 
@@ -625,6 +652,9 @@ const normalizeProduct = (item, index) => {
     finish: item.finish || '',
     finishLabel: getFinishLabel(item.finish),
     colorFamily: item.color_family || '',
+    brightnessLabel: getBrightnessLabel(metrics.brightness),
+    saturationLabel: getSaturationLabel(metrics.saturation),
+    temperatureLabel: getTemperatureLabel(metrics.coolness, metrics.warmth),
 
     imageClass: `${categoryKey}${(index % 5) + 1}`,
     desc,
@@ -1080,13 +1110,29 @@ onMounted(() => {
 .color-dots {
   display: flex;
   gap: 7px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .color-dots span {
   width: 17px;
   height: 17px;
   border-radius: 50%;
+}
+
+.metric-summary {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.metric-summary span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #6b4b52;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .score {

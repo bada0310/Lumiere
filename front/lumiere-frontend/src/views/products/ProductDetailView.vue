@@ -7,7 +7,7 @@
 
       <section class="title-section">
         <h1>제품 상세 분석 ✨</h1>
-        <p>내 피부톤과 제품 색상을 비교하여 상세 분석 결과를 보여드려요.</p>
+        <p>{{ pageSubtitle }}</p>
       </section>
 
       <section v-if="isLoading" class="loading-box">
@@ -43,43 +43,60 @@
               {{ product.toneLabel || '여름 쿨 라이트' }} 추천
             </p>
 
-            <div class="hex-box">
-              <span :style="{ backgroundColor: product.hex }"></span>
-              <p>
-                색상 HEX<br />
-                <strong>{{ product.hex }}</strong>
-              </p>
+            <div class="summary-chips">
+              <span :style="{ '--chip-color': product.hex }">대표색 {{ product.hex }}</span>
+              <span>{{ product.temperatureLabel }}</span>
+              <span>{{ brightnessLabel }}</span>
+              <span>{{ saturationLabel }}</span>
             </div>
           </div>
 
           <div class="match-score">
-            <p>전체 적합도 ⓘ</p>
-            <strong>{{ product.score }}<span>%</span></strong>
+            <div class="score-head">
+              <p>{{ scoreTitle }}</p>
+              <span>{{ scoreBasisLabel }}</span>
+            </div>
+
+            <div class="score-ring" :style="{ '--score-degree': `${product.score * 3.6}deg` }">
+              <strong>{{ product.score }}<span>%</span></strong>
+            </div>
+
             <h4>{{ matchMessage }}</h4>
-            <p>{{ product.desc }}</p>
+
+            <div class="score-meter">
+              <div :style="{ width: product.score + '%' }"></div>
+            </div>
+
+            <p>{{ scoreDescription }}</p>
           </div>
 
           <div class="radar-box">
             <div class="legend">
-              <span class="my"></span> 나의 피부톤
+              <span class="my"></span> {{ comparisonSubjectLabel }}
               <span class="product-line"></span> 제품 색상
             </div>
 
             <div class="radar">
-              <div class="radar-shape"></div>
+              <div class="radar-shape reference-shape" :style="referenceRadarStyle"></div>
+              <div class="radar-shape product-shape" :style="productRadarStyle"></div>
               <span class="label top">명도 {{ radarScores.brightness }}</span>
               <span class="label right">채도 {{ radarScores.chroma }}</span>
-              <span class="label bottom-right">색온도 {{ product.temperatureLabel }}</span>
+              <span class="label bottom-right">쿨 {{ radarScores.coolness }}</span>
+              <span class="label bottom">웜 {{ radarScores.warmth }}</span>
               <span class="label bottom-left">탁도 {{ radarScores.softness }}</span>
               <span class="label left">대비 {{ radarScores.contrast }}</span>
             </div>
+
+            <p class="profile-notice">
+              {{ profileNotice }}
+            </p>
           </div>
         </section>
 
         <section class="color-chart-card">
           <div class="section-head">
             <h2>색상 프로필</h2>
-            <p>상품 이미지에서 추출한 대표 색상을 기준으로 분석했어요.</p>
+            <p>상품 이미지에서 추출한 대표 색상을 사용자가 이해하기 쉬운 기준으로 정리했어요.</p>
           </div>
 
           <div class="color-profile-layout">
@@ -116,7 +133,7 @@
             </div>
 
             <aside class="tone-guide-box">
-              <h3>나에게 어울리는 이유</h3>
+              <h3>{{ guideTitle }}</h3>
               <p>{{ personalColorGuide }}</p>
 
               <div class="tone-chip-list">
@@ -130,13 +147,16 @@
         </section>
 
         <section class="compare-card">
-          <h2>상세 수치 비교</h2>
+          <div class="section-head compact">
+            <h2>상세 수치 비교</h2>
+            <p>{{ compareSubtitle }}</p>
+          </div>
 
           <div class="compare-layout">
             <div class="compare-table">
               <div class="table-head">
                 <span>항목</span>
-                <span>나</span>
+                <span>{{ comparisonColumnLabel }}</span>
                 <span>제품 색상</span>
                 <span>차이</span>
                 <span>분석</span>
@@ -167,7 +187,7 @@
               </div>
 
               <p class="compare-note">
-                ⓘ 차이 값이 작을수록 내 피부톤과 제품 색상이 자연스럽게 어울립니다.
+                ⓘ {{ compareNote }}
               </p>
             </div>
 
@@ -318,15 +338,43 @@ const product = ref(null)
 const allProducts = ref([])
 const isLiked = ref(false)
 
-const USER_COLOR_METRICS = {
+const DEFAULT_REFERENCE_METRICS = {
   brightness: 65,
   saturation: 30,
   coolness: 85,
   warmth: 15,
-  temperatureAxis: 85,
   softness: 18,
   contrast: 35,
 }
+
+const getStoredSkinMetrics = () => {
+  const candidates = ['skinColorMetrics', 'userColorMetrics', 'personalColorMetrics']
+
+  for (const key of candidates) {
+    const storedText = localStorage.getItem(key)
+
+    if (!storedText) continue
+
+    try {
+      const parsed = JSON.parse(storedText)
+
+      return {
+        brightness: clampScore(parsed.brightness, DEFAULT_REFERENCE_METRICS.brightness),
+        saturation: clampScore(parsed.saturation, DEFAULT_REFERENCE_METRICS.saturation),
+        coolness: clampScore(parsed.coolness, DEFAULT_REFERENCE_METRICS.coolness),
+        warmth: clampScore(parsed.warmth, DEFAULT_REFERENCE_METRICS.warmth),
+        softness: clampScore(parsed.softness, DEFAULT_REFERENCE_METRICS.softness),
+        contrast: clampScore(parsed.contrast, DEFAULT_REFERENCE_METRICS.contrast),
+      }
+    } catch (error) {
+      console.error('피부 분석 데이터를 읽는 데 실패했습니다:', error)
+    }
+  }
+
+  return null
+}
+
+const userSkinMetrics = ref(null)
 
 const categoryTabs = [
   {
@@ -471,6 +519,7 @@ const getMetric = (item, key, fallback) => {
 
 const getMetricAnalysis = (metricName, diff, productValue) => {
   const absDiff = Math.abs(diff)
+  const reference = comparisonMetricsWithAxis.value
 
   if (metricName === '명도') {
     if (absDiff <= 10) return '밝기 차이가 작아 자연스러워요.'
@@ -480,14 +529,20 @@ const getMetricAnalysis = (metricName, diff, productValue) => {
 
   if (metricName === '채도') {
     if (absDiff <= 10) return '채도 차이가 크지 않아 무난해요.'
-    if (productValue > USER_COLOR_METRICS.saturation) return '제품 색상이 더 선명한 편이에요.'
+    if (productValue > reference.saturation) return '제품 색상이 더 선명한 편이에요.'
     return '제품 색상이 더 차분한 편이에요.'
   }
 
-  if (metricName === '색온도') {
-    if (absDiff <= 12) return '색온도 방향이 비슷해서 자연스러워요.'
-    if (productValue > USER_COLOR_METRICS.temperatureAxis) return '제품이 내 기준보다 쿨한 방향이 강해요.'
-    return '제품이 내 기준보다 웜한 방향이 강해요.'
+  if (metricName === '쿨 방향') {
+    if (absDiff <= 12) return '쿨 방향성이 비슷해요.'
+    if (productValue > reference.coolness) return '제품이 더 쿨하게 분류됐어요.'
+    return '제품의 쿨 방향성이 더 낮아요.'
+  }
+
+  if (metricName === '웜 방향') {
+    if (absDiff <= 12) return '웜 방향성이 비슷해요.'
+    if (productValue > reference.warmth) return '제품이 더 웜하게 분류됐어요.'
+    return '제품의 웜 방향성이 더 낮아요.'
   }
 
   if (metricName === '탁도') {
@@ -653,12 +708,85 @@ const matchMessage = computed(() => {
   return '참고용으로 추천드려요!'
 })
 
+const hasSkinProfile = computed(() => {
+  return Boolean(userSkinMetrics.value)
+})
+
+const comparisonMetrics = computed(() => {
+  return userSkinMetrics.value || DEFAULT_REFERENCE_METRICS
+})
+
+const comparisonMetricsWithAxis = computed(() => {
+  return {
+    ...comparisonMetrics.value,
+    temperatureAxis: getTemperatureAxis(
+      comparisonMetrics.value.coolness,
+      comparisonMetrics.value.warmth,
+    ),
+  }
+})
+
+const comparisonSubjectLabel = computed(() => {
+  return hasSkinProfile.value ? '나의 피부 데이터' : '여름 쿨 라이트 기준'
+})
+
+const comparisonColumnLabel = computed(() => {
+  return hasSkinProfile.value ? '내 피부' : '추천 기준'
+})
+
+const pageSubtitle = computed(() => {
+  return hasSkinProfile.value
+    ? '내 피부 데이터와 제품 색상을 비교하여 상세 분석 결과를 보여드려요.'
+    : '아직 피부 분석 전이라 여름 쿨 라이트 기준으로 제품 색상을 먼저 보여드려요.'
+})
+
+const scoreTitle = computed(() => {
+  return hasSkinProfile.value ? '내 피부 적합도' : '추천 기준 적합도'
+})
+
+const scoreBasisLabel = computed(() => {
+  return hasSkinProfile.value ? '피부 분석 기반' : '기준 톤 기반'
+})
+
+const scoreDescription = computed(() => {
+  if (!product.value) return ''
+
+  if (hasSkinProfile.value) {
+    return `${comparisonSubjectLabel.value}와 제품 대표색 ${product.value.hex}의 명도, 채도, 쿨/웜 방향성을 비교했어요.`
+  }
+
+  return `피부 분석 전에는 ${comparisonSubjectLabel.value}과 제품 대표색 ${product.value.hex}를 기준으로 적합도를 보여줘요.`
+})
+
+const profileNotice = computed(() => {
+  return hasSkinProfile.value
+    ? '내 피부 분석값과 제품 색상값을 같은 축으로 비교하고 있어요.'
+    : '피부 사진을 분석하면 이 그래프가 내 피부 데이터 기준으로 바뀌어요.'
+})
+
+const guideTitle = computed(() => {
+  return hasSkinProfile.value ? '나에게 어울리는 이유' : '추천 기준에서 보는 포인트'
+})
+
+const compareSubtitle = computed(() => {
+  return hasSkinProfile.value
+    ? '내 피부 데이터와 제품 대표색의 차이를 항목별로 비교했어요.'
+    : '피부 분석 전에는 여름 쿨 라이트 기준값과 제품 대표색을 비교해요.'
+})
+
+const compareNote = computed(() => {
+  return hasSkinProfile.value
+    ? '차이 값이 작을수록 내 피부톤과 제품 색상이 자연스럽게 어울립니다.'
+    : '피부 분석을 완료하면 추천 기준 대신 내 피부 데이터와 비교됩니다.'
+})
+
 const radarScores = computed(() => {
   if (!product.value) {
     return {
       brightness: 0,
       chroma: 0,
-      cool: 0,
+      coolness: 0,
+      warmth: 0,
       softness: 0,
       contrast: 0,
     }
@@ -667,9 +795,51 @@ const radarScores = computed(() => {
   return {
     brightness: product.value.brightness,
     chroma: product.value.saturation,
-      cool: product.value.temperatureAxis,
+    coolness: product.value.coolness,
+    warmth: product.value.warmth,
     softness: product.value.softness,
     contrast: product.value.contrast,
+  }
+})
+
+const radarPolygon = (metrics) => {
+  const values = [
+    metrics.brightness,
+    metrics.saturation,
+    metrics.coolness,
+    metrics.warmth,
+    metrics.softness,
+    metrics.contrast,
+  ]
+  const angles = [-90, -30, 30, 90, 150, 210]
+
+  return values
+    .map((value, index) => {
+      const radius = clampScore(value, 0) * 0.42
+      const angle = (angles[index] * Math.PI) / 180
+      const x = 50 + Math.cos(angle) * radius
+      const y = 50 + Math.sin(angle) * radius
+
+      return `${x.toFixed(1)}% ${y.toFixed(1)}%`
+    })
+    .join(', ')
+}
+
+const referenceRadarStyle = computed(() => {
+  return {
+    clipPath: `polygon(${radarPolygon(comparisonMetrics.value)})`,
+  }
+})
+
+const productRadarStyle = computed(() => {
+  if (!product.value) {
+    return {
+      clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%)',
+    }
+  }
+
+  return {
+    clipPath: `polygon(${radarPolygon(product.value)})`,
   }
 })
 
@@ -713,11 +883,18 @@ const colorProfileItems = computed(() => {
       description: '값이 높을수록 선명하고 생기 있는 색상이에요.',
     },
     {
-      name: '색온도',
-      value: product.value.temperatureAxis,
-      valueLabel: product.value.temperatureLabel,
-      color: product.value.temperatureAxis >= 50 ? '#8e8fd6' : '#dd8a54',
-      description: '왼쪽은 웜 방향, 오른쪽은 쿨 방향에 가까워요.',
+      name: '쿨 방향',
+      value: product.value.coolness,
+      valueLabel: `${product.value.coolness} / 100`,
+      color: '#8e8fd6',
+      description: '값이 높을수록 핑크, 로즈, 모브 계열에 가까워요.',
+    },
+    {
+      name: '웜 방향',
+      value: product.value.warmth,
+      valueLabel: `${product.value.warmth} / 100`,
+      color: '#dd8a54',
+      description: '값이 높을수록 코랄, 피치, 베이지 계열에 가까워요.',
     },
     {
       name: '탁도',
@@ -745,44 +922,55 @@ const personalColorGuide = computed(() => {
       : '채도가 적당해 무난하고'
 
   const temperatureText = product.value.coolness >= product.value.warmth
-    ? '쿨 방향성이 있어 여름 쿨 라이트 기준과 비교하기 좋아요.'
-    : '웜 방향성이 있어 피부톤과의 온도 차이를 확인해보면 좋아요.'
+    ? '쿨 방향성이 더 강한 편이에요.'
+    : '웜 방향성이 더 강한 편이에요.'
 
-  return `${brightnessText}이고 ${chromaText}, ${temperatureText}`
+  if (hasSkinProfile.value) {
+    return `${brightnessText}이고 ${chromaText}, ${temperatureText} 내 피부 데이터와의 차이를 아래 표에서 확인할 수 있어요.`
+  }
+
+  return `${brightnessText}이고 ${chromaText}, ${temperatureText} 피부 분석 전에는 여름 쿨 라이트 기준과 먼저 비교해볼 수 있어요.`
 })
 
 const compareItems = computed(() => {
   if (!product.value) return []
+  const reference = comparisonMetricsWithAxis.value
 
   const rows = [
     {
       icon: '☀️',
       name: '명도',
-      mine: USER_COLOR_METRICS.brightness,
+      mine: reference.brightness,
       product: product.value.brightness,
     },
     {
       icon: '💧',
       name: '채도',
-      mine: USER_COLOR_METRICS.saturation,
+      mine: reference.saturation,
       product: product.value.saturation,
     },
     {
       icon: '❄️',
-      name: '색온도',
-      mine: USER_COLOR_METRICS.temperatureAxis,
-      product: product.value.temperatureAxis,
+      name: '쿨 방향',
+      mine: reference.coolness,
+      product: product.value.coolness,
+    },
+    {
+      icon: '🔥',
+      name: '웜 방향',
+      mine: reference.warmth,
+      product: product.value.warmth,
     },
     {
       icon: '☁️',
       name: '탁도',
-      mine: USER_COLOR_METRICS.softness,
+      mine: reference.softness,
       product: product.value.softness,
     },
     {
       icon: '◐',
       name: '대비',
-      mine: USER_COLOR_METRICS.contrast,
+      mine: reference.contrast,
       product: product.value.contrast,
     },
   ]
@@ -802,8 +990,8 @@ const recommendReasons = computed(() => {
   if (!product.value) return []
 
   const reasons = [
-    `${product.value.categoryLabel} 카테고리에서 ${product.value.toneLabel || '여름 쿨 라이트'} 기준으로 추천된 옵션이에요.`,
-    `대표 색상은 ${product.value.hex}이고, 명도 ${product.value.brightness}, 채도 ${product.value.saturation}, 색온도는 ${product.value.temperatureLabel} 방향으로 분석됐어요.`,
+    `${product.value.categoryLabel} 카테고리에서 ${product.value.toneLabel || '여름 쿨 라이트'} 기준에 가까운 옵션이에요.`,
+    `대표 색상은 ${product.value.hex}이고, 명도 ${product.value.brightness}, 채도 ${product.value.saturation}, 쿨 ${product.value.coolness}/웜 ${product.value.warmth}로 분석됐어요.`,
     product.value.desc,
   ]
 
@@ -885,6 +1073,7 @@ watch(
 )
 
 onMounted(() => {
+  userSkinMetrics.value = getStoredSkinMetrics()
   loadProducts()
 })
 </script>
@@ -1055,6 +1244,37 @@ onMounted(() => {
   margin: 0 12px;
 }
 
+.summary-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.summary-chips span {
+  min-height: 34px;
+  padding: 8px 12px 8px 30px;
+  border: 1px solid #eaded8;
+  border-radius: 999px;
+  background: #fff8f6;
+  color: #5f5754;
+  font-size: 12px;
+  font-weight: 800;
+  position: relative;
+}
+
+.summary-chips span::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--chip-color, #d35f72);
+  transform: translateY(-50%);
+}
+
 .hex-box {
   margin-top: 32px;
   width: 190px;
@@ -1083,18 +1303,49 @@ onMounted(() => {
   padding-left: 34px;
 }
 
-.match-score > p:first-child {
-  font-weight: 800;
+.score-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.score-head p {
+  margin: 0;
+  font-weight: 900;
+}
+
+.score-head span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.score-ring {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, white 0 57%, transparent 58%),
+    conic-gradient(#c65367 var(--score-degree), #efe4e0 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 .match-score strong {
   color: #c65367;
-  font-size: 72px;
+  font-size: 48px;
   font-family: Georgia, serif;
 }
 
 .match-score strong span {
-  font-size: 34px;
+  font-size: 24px;
 }
 
 .match-score h4 {
@@ -1105,6 +1356,20 @@ onMounted(() => {
 .match-score p {
   color: #5f5754;
   line-height: 1.6;
+}
+
+.score-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: #efe4e0;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.score-meter div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c65367, #df8b9a);
 }
 
 .legend {
@@ -1144,10 +1409,18 @@ onMounted(() => {
 
 .radar-shape {
   position: absolute;
-  inset: 45px 52px;
-  background: rgba(198, 83, 103, 0.22);
-  clip-path: polygon(50% 0%, 88% 28%, 82% 75%, 50% 95%, 18% 75%, 12% 28%);
-  border: 2px solid #c65367;
+  inset: 18px 26px;
+  transition: clip-path 0.25s ease;
+}
+
+.reference-shape {
+  background: rgba(198, 83, 103, 0.18);
+  border: 2px solid rgba(198, 83, 103, 0.55);
+}
+
+.product-shape {
+  background: rgba(95, 87, 84, 0.12);
+  border: 2px dashed rgba(95, 87, 84, 0.75);
 }
 
 .label {
@@ -1173,6 +1446,12 @@ onMounted(() => {
   bottom: 8px;
 }
 
+.bottom {
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
 .bottom-left {
   left: 30px;
   bottom: 8px;
@@ -1181,6 +1460,16 @@ onMounted(() => {
 .left {
   left: 0;
   top: 43%;
+}
+
+.profile-notice {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff8f6;
+  color: #6b625f;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .color-chart-card {
@@ -1457,6 +1746,22 @@ onMounted(() => {
 
 .section-head p {
   color: #7b706c;
+}
+
+.section-head.compact {
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.section-head.compact h2 {
+  margin: 0;
+}
+
+.section-head.compact p {
+  max-width: 560px;
+  margin: 0;
+  text-align: right;
+  line-height: 1.55;
 }
 
 .similar-grid {
