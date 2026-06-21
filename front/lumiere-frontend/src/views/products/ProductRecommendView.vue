@@ -17,7 +17,6 @@
         </div>
       </section>
 
-      <!-- 립 / 아이 / 치크 / 베이스 / 렌즈 버튼 -->
       <section class="category-tabs">
         <button
           v-for="category in categoryTabs"
@@ -30,7 +29,6 @@
         </button>
       </section>
 
-      <!-- 하위 필터 버튼 -->
       <section class="filter-row">
         <div class="filters">
           <button type="button" class="filter-title">필터</button>
@@ -65,7 +63,12 @@
         <p>ⓘ 적합도는 나의 퍼스널컬러와의 유사도를 기반으로 계산됩니다.</p>
       </section>
 
-      <section v-if="filteredProducts.length" class="product-grid">
+      <section v-if="isLoading" class="empty-box">
+        <h3>상품을 불러오는 중이에요.</h3>
+        <p>백엔드에서 추천 상품 데이터를 가져오고 있어요.</p>
+      </section>
+
+      <section v-else-if="filteredProducts.length" class="product-grid">
         <article
           class="product-card"
           v-for="(product, index) in filteredProducts"
@@ -85,11 +88,24 @@
             {{ product.liked ? '♥' : '♡' }}
           </button>
 
-          <div class="product-img" :class="product.imageClass"></div>
+          <div class="product-img">
+            <img
+              v-if="product.imageUrl"
+              :src="product.imageUrl"
+              :alt="product.name"
+              class="real-product-img"
+            />
+
+            <div
+              v-else
+              class="fallback-product-visual"
+              :class="product.imageClass"
+            ></div>
+          </div>
 
           <p class="brand">{{ product.brand }}</p>
           <h3>{{ product.name }}</h3>
-          <p class="option">{{ product.option }}</p>
+          <p v-if="product.option" class="option">{{ product.option }}</p>
 
           <div class="color-dots">
             <span
@@ -123,7 +139,7 @@
           <span>여름 쿨 라이트</span>
           <span>명도: 밝음</span>
           <span>채도: 낮음</span>
-          <span>쿨톤: -65</span>
+          <span>쿨톤</span>
         </div>
 
         <button class="outline-btn" type="button" @click="resetAllFilters">
@@ -139,7 +155,6 @@
         </button>
       </section>
 
-            <!-- 전체 필터 모달 -->
       <section
         v-if="isFilterModalOpen"
         class="filter-modal-backdrop"
@@ -248,7 +263,6 @@
           </div>
         </aside>
       </section>
-      
     </main>
   </div>
 </template>
@@ -262,42 +276,47 @@ const router = useRouter()
 
 const products = ref([])
 const selectedCategory = ref('lip')
-const selectedFilters = ref(['cool'])
+const selectedFilters = ref([])
 const sortOption = ref('scoreDesc')
 const likedOnly = ref(false)
 const isFilterModalOpen = ref(false)
 const draftCategory = ref('lip')
 const draftFilters = ref([])
 const draftSortOption = ref('scoreDesc')
-
+const isLoading = ref(false)
 
 const categoryTabs = [
   {
     key: 'lip',
+    serverKey: 'LIP',
     label: '립',
     icon: '💄',
     keywords: ['립', '립틴트', '틴트', '립스틱', 'lip'],
   },
   {
     key: 'eye',
+    serverKey: 'EYE',
     label: '아이',
     icon: '👁️',
-    keywords: ['아이', '섀도우', '아이섀도우', '마스카라', '아이라이너', 'eye'],
+    keywords: ['아이', '섀도우', '쉐도우', '아이섀도우', '아이팔레트', '마스카라', '아이라이너', 'eye'],
   },
   {
     key: 'cheek',
+    serverKey: 'CHEEK',
     label: '치크',
     icon: '😊',
     keywords: ['치크', '블러셔', '블러쉬', 'cheek', 'blush'],
   },
   {
     key: 'base',
+    serverKey: 'BASE',
     label: '베이스',
     icon: '🧴',
     keywords: ['베이스', '쿠션', '파운데이션', '컨실러', 'base', 'foundation', 'cushion'],
   },
   {
     key: 'lens',
+    serverKey: 'LENS',
     label: '렌즈',
     icon: '👀',
     keywords: ['렌즈', '컬러렌즈', 'lens'],
@@ -309,7 +328,7 @@ const filterOptions = [
   { key: 'nude', label: '누디', keywords: ['누디', 'nude', '베이지'] },
   { key: 'matte', label: '매트', keywords: ['매트', 'matte', '벨벳', '블러'] },
   { key: 'glossy', label: '글로시', keywords: ['글로시', 'glossy', '글로우', '촉촉', '워터'] },
-  { key: 'cool', label: '쿨톤', keywords: ['쿨톤', '쿨', 'cool', '라벤더', '모브', '핑크', '로즈'] },
+  { key: 'cool', label: '쿨톤', keywords: ['쿨톤', '여름쿨', '쿨', 'cool', '라벤더', '모브', '핑크', '로즈'] },
   { key: 'lowChroma', label: '저채도', keywords: ['저채도', '차분', '뮤트', 'soft', 'mauve'] },
   { key: 'highBrightness', label: '고명도', keywords: ['고명도', '라이트', '밝음', '맑은', 'light'] },
 ]
@@ -365,6 +384,16 @@ const normalizeText = (value) => {
 }
 
 const findCategoryKey = (item) => {
+  const serverCategory = String(item.category || '').toUpperCase()
+
+  const matchedByServerKey = categoryTabs.find((category) => {
+    return category.serverKey === serverCategory
+  })
+
+  if (matchedByServerKey) {
+    return matchedByServerKey.key
+  }
+
   const text = normalizeText(`
     ${item.category || ''}
     ${item.category_name || ''}
@@ -372,6 +401,7 @@ const findCategoryKey = (item) => {
     ${item.name || ''}
     ${item.product_name || ''}
     ${item.option_name || ''}
+    ${item.description || ''}
   `)
 
   const matchedCategory = categoryTabs.find((category) => {
@@ -399,16 +429,8 @@ const makeFallbackTags = (categoryKey, index) => {
     tags.push(index % 2 === 0 ? '매트' : '글로시')
   }
 
-  if (categoryKey === 'cheek') {
-    tags.push('맑은')
-  }
-
   if (categoryKey === 'base') {
-    tags.push('글로시')
-  }
-
-  if (categoryKey === 'lens') {
-    tags.push('저채도')
+    tags.push('베이스')
   }
 
   return tags
@@ -436,14 +458,26 @@ const getDefaultColors = (categoryKey) => {
   return colorMap[categoryKey] || colorMap.lip
 }
 
+const clampScore = (value) => {
+  const numberValue = Number(value)
+
+  if (Number.isNaN(numberValue)) {
+    return 90
+  }
+
+  return Math.max(0, Math.min(100, Math.round(numberValue)))
+}
+
 const normalizeProduct = (item, index) => {
   const categoryKey = findCategoryKey(item)
 
-  const brand = item.brand || item.product_brand || 'Lumière'
+  const brand = item.brand || item.product_brand || '브랜드 미상'
   const name = item.name || item.product_name || '추천 상품'
-  const option = item.option_name || item.option || item.color_name || item.category || '추천 옵션'
-  const score = Math.round(Number(item.match_score ?? item.similarity_score ?? item.score ?? 90 - index))
-  const popularityScore = Number(item.popularity_score || item.popularityScore || 0)
+  const option = item.option_name || item.option || item.color_name || ''
+  const score = clampScore(item.match_score ?? item.similarity_score ?? item.score ?? 90 - index)
+  const popularityScore = Number(item.popularity_score || item.popularityScore || item.review_count || 0)
+
+  const imageUrl = item.image_url || item.image || item.thumbnail || item.thumbnail_url || ''
 
   const fallbackTags = makeFallbackTags(categoryKey, index)
   const rawTags = Array.isArray(item.tags) ? item.tags : []
@@ -458,12 +492,16 @@ const normalizeProduct = (item, index) => {
     .filter((tag, tagIndex, arr) => arr.indexOf(tag) === tagIndex)
     .slice(0, 5)
 
+  const desc = item.match_reason || item.reason || item.description || `${selectedCategoryLabel.value} 카테고리의 추천 상품입니다.`
+
   const filterText = `
     ${brand}
     ${name}
     ${option}
     ${item.category || ''}
     ${item.texture || ''}
+    ${item.description || ''}
+    ${desc}
     ${tags.join(' ')}
   `
 
@@ -483,322 +521,38 @@ const normalizeProduct = (item, index) => {
     score,
     popularityScore,
     liked: false,
+    imageUrl,
+    originalImageUrl: item.image_url || '',
+    productUrl: item.product_url || item.link || '',
     imageClass: `${categoryKey}${(index % 5) + 1}`,
     colors: colors.length ? colors : getDefaultColors(categoryKey),
-    desc: item.match_reason || `${item.category || option} 카테고리의 추천 상품입니다.`,
+    desc,
     tags,
     filterKeys: getFilterKeys(filterText),
+    raw: item,
   }
 }
 
-const mockProducts = [
-  // 립
-  {
-    id: 101,
-    brand: 'rom&nd',
-    name: '쥬시 래스팅 틴트',
-    option_name: '25 베어 그레이프',
-    category: '립틴트',
-    match_score: 92,
-    texture: '글로시 MLBB 저채도 쿨톤',
-    hex_code: '#C45B75',
-    popularity_score: 95,
-  },
-  {
-    id: 102,
-    brand: 'rom&nd',
-    name: '블러 퍼지 틴트',
-    option_name: '23 베어 그레이프',
-    category: '립틴트',
-    match_score: 91,
-    texture: '매트 MLBB 저채도 쿨톤',
-    hex_code: '#B95B73',
-    popularity_score: 93,
-  },
-  {
-    id: 103,
-    brand: 'peripera',
-    name: '잉크 무드 글로이 틴트',
-    option_name: '07 쿨베리',
-    category: '립틴트',
-    match_score: 88,
-    texture: '글로시 누디 쿨톤',
-    hex_code: '#C45D73',
-    popularity_score: 89,
-  },
-  {
-    id: 104,
-    brand: 'hince',
-    name: '무드 인핸서 워터 리퀴드 글로우',
-    option_name: 'New Allure',
-    category: '립틴트',
-    match_score: 86,
-    texture: '글로시 MLBB 저채도 쿨톤',
-    hex_code: '#BF6477',
-    popularity_score: 91,
-  },
-  {
-    id: 105,
-    brand: 'amuse',
-    name: '듀 틴트',
-    option_name: '13 쿨 로즈',
-    category: '립틴트',
-    match_score: 84,
-    texture: '글로시 쿨톤 고명도',
-    hex_code: '#BB5F73',
-    popularity_score: 87,
-  },
-  {
-    id: 106,
-    brand: 'lilybyred',
-    name: '무드 라이어 벨벳 틴트',
-    option_name: '04 라벤더 핑크',
-    category: '립틴트',
-    match_score: 83,
-    texture: '매트 저채도 쿨톤',
-    hex_code: '#D07186',
-    popularity_score: 84,
-  },
-  {
-    id: 107,
-    brand: 'dasique',
-    name: '크림 드 로즈 틴트',
-    option_name: '12 모브 베리',
-    category: '립틴트',
-    match_score: 82,
-    texture: '누디 MLBB 저채도 쿨톤',
-    hex_code: '#C35D72',
-    popularity_score: 83,
-  },
-  {
-    id: 108,
-    brand: 'clio',
-    name: '쉬폰 블러 틴트',
-    option_name: '08 핑크 문',
-    category: '립틴트',
-    match_score: 81,
-    texture: '매트 저채도 쿨톤',
-    hex_code: '#C85E7A',
-    popularity_score: 82,
-  },
+const fetchProducts = async () => {
+  isLoading.value = true
 
-  // 아이
-  {
-    id: 201,
-    brand: 'dasique',
-    name: '섀도우 팔레트',
-    option_name: '쿨 블렌딩',
-    category: '아이섀도우',
-    match_score: 91,
-    texture: '매트 저채도 쿨톤',
-    hex_code: '#C5A3B8',
-    popularity_score: 92,
-  },
-  {
-    id: 202,
-    brand: 'wakemake',
-    name: '소프트 블러링 아이팔레트',
-    option_name: '라벤더 블러링',
-    category: '아이섀도우',
-    match_score: 89,
-    texture: '매트 저채도 쿨톤',
-    hex_code: '#C8B6CA',
-    popularity_score: 90,
-  },
-  {
-    id: 203,
-    brand: 'clio',
-    name: '프로 아이 팔레트 에어',
-    option_name: '뮤트 라이브러리',
-    category: '아이섀도우',
-    match_score: 87,
-    texture: '매트 저채도 쿨톤',
-    hex_code: '#BBA8BE',
-    popularity_score: 88,
-  },
-  {
-    id: 204,
-    brand: 'rom&nd',
-    name: '베러 댄 팔레트',
-    option_name: '피오니 누드 가든',
-    category: '아이섀도우',
-    match_score: 85,
-    texture: '누디 저채도 쿨톤',
-    hex_code: '#D6BBC8',
-    popularity_score: 87,
-  },
-  {
-    id: 205,
-    brand: 'etude',
-    name: '룩 앳 마이 아이즈',
-    option_name: '라벤더 문',
-    category: '아이섀도우',
-    match_score: 82,
-    texture: '글로시 고명도 쿨톤',
-    hex_code: '#D8C8EA',
-    popularity_score: 80,
-  },
+  try {
+    const response = await axios.get('http://127.0.0.1:8000/api/products/')
 
-  // 치크
-  {
-    id: 301,
-    brand: 'rom&nd',
-    name: '베러 댄 치크',
-    option_name: '블루베리칩',
-    category: '치크',
-    match_score: 90,
-    texture: '저채도 쿨톤 고명도',
-    hex_code: '#F0A9B7',
-    popularity_score: 90,
-  },
-  {
-    id: 302,
-    brand: 'dasique',
-    name: '블렌딩 무드 치크',
-    option_name: '쿨 핑크',
-    category: '치크',
-    match_score: 87,
-    texture: '저채도 쿨톤 고명도',
-    hex_code: '#E7A2B0',
-    popularity_score: 86,
-  },
-  {
-    id: 303,
-    brand: 'clio',
-    name: '에어 블러 휩 블러쉬',
-    option_name: '라벤더 핑크',
-    category: '치크',
-    match_score: 85,
-    texture: '저채도 쿨톤',
-    hex_code: '#E4B4C8',
-    popularity_score: 84,
-  },
-  {
-    id: 304,
-    brand: 'peripera',
-    name: '맑게 물든 선샤인 치크',
-    option_name: '쿨한 딸기 우유',
-    category: '치크',
-    match_score: 83,
-    texture: '고명도 쿨톤',
-    hex_code: '#F4C2C9',
-    popularity_score: 82,
-  },
-  {
-    id: 305,
-    brand: 'wakemake',
-    name: '믹스 블러링 볼륨 블러셔',
-    option_name: '소프트 모브',
-    category: '치크',
-    match_score: 81,
-    texture: '저채도 누디 쿨톤',
-    hex_code: '#D9B7C8',
-    popularity_score: 81,
-  },
+    const data = Array.isArray(response.data)
+      ? response.data
+      : response.data.results || response.data.products || []
 
-  // 베이스
-  {
-    id: 401,
-    brand: 'espoir',
-    name: '비 글로우 쿠션',
-    option_name: 'A00 포슬린',
-    category: '베이스',
-    match_score: 93,
-    texture: '글로시 고명도 쿨톤',
-    hex_code: '#F1D4C6',
-    popularity_score: 94,
-  },
-  {
-    id: 402,
-    brand: 'clio',
-    name: '킬 커버 메쉬 글로우 쿠션',
-    option_name: '1.5 페어',
-    category: '베이스',
-    match_score: 90,
-    texture: '글로시 고명도 쿨톤',
-    hex_code: '#F5DFD2',
-    popularity_score: 92,
-  },
-  {
-    id: 403,
-    brand: 'laneige',
-    name: '네오 쿠션 글로우',
-    option_name: '13N 아이보리',
-    category: '베이스',
-    match_score: 88,
-    texture: '글로시 고명도 쿨톤',
-    hex_code: '#F2D8CC',
-    popularity_score: 89,
-  },
-  {
-    id: 404,
-    brand: 'hera',
-    name: '블랙 쿠션',
-    option_name: '13N1 포슬린',
-    category: '베이스',
-    match_score: 84,
-    texture: '매트 고명도 쿨톤',
-    hex_code: '#EFD2C4',
-    popularity_score: 88,
-  },
-  {
-    id: 405,
-    brand: 'jungsaemmool',
-    name: '에센셜 스킨 누더 쿠션',
-    option_name: '라이트',
-    category: '베이스',
-    match_score: 82,
-    texture: '글로시 고명도 쿨톤',
-    hex_code: '#F7E0D2',
-    popularity_score: 85,
-  },
+    products.value = data.map((item, index) => normalizeProduct(item, index))
 
-  // 렌즈
-  {
-    id: 501,
-    brand: 'OLENS',
-    name: '비비링',
-    option_name: '애쉬 그레이',
-    category: '렌즈',
-    match_score: 89,
-    texture: '저채도 쿨톤 자연스러움',
-    hex_code: '#9A9AB0',
-    popularity_score: 88,
-  },
-  {
-    id: 502,
-    brand: 'Hapa Kristin',
-    name: '원앤온리 크리스틴',
-    option_name: '애쉬 초코',
-    category: '렌즈',
-    match_score: 86,
-    texture: '저채도 쿨톤 자연스러움',
-    hex_code: '#8F8FA8',
-    popularity_score: 85,
-  },
-  {
-    id: 503,
-    brand: 'OLENS',
-    name: '글로이',
-    option_name: '애쉬 그레이',
-    category: '렌즈',
-    match_score: 84,
-    texture: '저채도 쿨톤',
-    hex_code: '#A8A6BD',
-    popularity_score: 84,
-  },
-  {
-    id: 504,
-    brand: 'LENSME',
-    name: '메이크오버',
-    option_name: '그레이 브라운',
-    category: '렌즈',
-    match_score: 82,
-    texture: '저채도 쿨톤 자연스러움',
-    hex_code: '#A19BA8',
-    popularity_score: 81,
-  },
-]
+    console.log('백엔드 상품 데이터:', products.value)
+  } catch (error) {
+    console.error('상품 데이터 불러오기 실패:', error)
+    products.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const selectCategory = (categoryKey) => {
   selectedCategory.value = categoryKey
@@ -813,11 +567,6 @@ const toggleFilter = (filterKey) => {
   } else {
     selectedFilters.value.push(filterKey)
   }
-}
-
-const resetSubFilters = () => {
-  selectedFilters.value = []
-  likedOnly.value = false
 }
 
 const resetAllFilters = () => {
@@ -898,32 +647,8 @@ const goDetail = (product) => {
   })
 }
 
-onMounted(async () => {
-  try {
-    const response = await axios.get('http://127.0.0.1:8000/api/products/')
-
-    const data = Array.isArray(response.data)
-      ? response.data
-      : response.data.results || response.data.products || []
-
-    const backendProducts = data.map((item, index) => normalizeProduct(item, index))
-
-    const mockStartIndex = backendProducts.length
-
-    const extraMockProducts = mockProducts.map((item, index) => {
-      return normalizeProduct(item, index + mockStartIndex)
-    })
-
-    products.value = [...backendProducts, ...extraMockProducts]
-
-    console.log('백엔드 상품:', backendProducts)
-    console.log('추가 상품 데이터:', extraMockProducts)
-    console.log('전체 추천 상품:', products.value)
-  } catch (error) {
-    console.error('상품 데이터 불러오기 실패:', error)
-
-    products.value = mockProducts.map((item, index) => normalizeProduct(item, index))
-  }
+onMounted(() => {
+  fetchProducts()
 })
 </script>
 
@@ -1100,7 +825,7 @@ onMounted(async () => {
 
 .product-card {
   position: relative;
-  min-height: 390px;
+  min-height: 430px;
   border: 1px solid #eaded8;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.9);
@@ -1128,6 +853,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   font-weight: 800;
+  z-index: 2;
 }
 
 .rank.top {
@@ -1152,9 +878,26 @@ onMounted(async () => {
 }
 
 .product-img {
-  height: 135px;
+  height: 150px;
   margin: 8px 18px 20px;
   border-radius: 12px;
+  overflow: hidden;
+  background: #fff1f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.real-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: white;
+}
+
+.fallback-product-visual {
+  width: 100%;
+  height: 100%;
 }
 
 .lip1,
@@ -1221,6 +964,11 @@ onMounted(async () => {
 .product-card h3 {
   margin: 0 0 10px;
   font-size: 17px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .option {
@@ -1476,5 +1224,4 @@ onMounted(async () => {
   color: white;
   border: none;
 }
-
 </style>
