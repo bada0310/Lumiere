@@ -155,15 +155,17 @@ const products = [
 
 .hero {
   min-height: 470px;
-  padding: 60px 90px;
+  padding: clamp(36px, 5vw, 60px) clamp(24px, 7vw, 90px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: linear-gradient(90deg, #fff7f2, #f7e5dd);
+  gap: clamp(24px, 4vw, 48px);
 }
 
 .hero-text h1 {
-  font-size: 52px;
+  font-family: var(--font-title-serif) !important;
+  font-size: clamp(32px, 5vw, 52px);
   line-height: 1.35;
   font-weight: 700;
 }
@@ -172,9 +174,15 @@ const products = [
   color: #c65367;
 }
 
+.hero-text h1 .point-color {
+  font-family: var(--font-title-serif) !important;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
 .hero-text p {
   margin-top: 24px;
-  font-size: 18px;
+  font-size: clamp(15px, 1.8vw, 18px);
   line-height: 1.8;
 }
 
@@ -185,12 +193,13 @@ const products = [
 }
 
 .hero-buttons button {
-  width: 280px;
-  height: 92px;
+  width: clamp(210px, 22vw, 280px);
+  min-height: clamp(76px, 8vw, 92px);
   border-radius: 12px;
-  font-size: 18px;
+  font-size: clamp(15px, 1.6vw, 18px);
   font-weight: 700;
   cursor: pointer;
+  padding: 14px 18px;
 }
 
 .hero-buttons small {
@@ -304,13 +313,13 @@ const products = [
 }
 
 .features {
-  padding: 32px 76px;
+  padding: 32px clamp(24px, 6vw, 76px);
 }
 
 .features h2 {
   text-align: center;
-  font-family: Georgia, serif;
-  font-size: 26px;
+  font-family: var(--font-title-serif) !important;
+  font-size: clamp(24px, 2.7vw, 30px);
   margin-bottom: 24px;
 }
 
@@ -492,5 +501,59 @@ const products = [
 
 .detail-btn:hover {
   background: #fdf1ed;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-buttons {
+    flex-wrap: wrap;
+  }
+
+  .hero-buttons button {
+    width: min(100%, 280px);
+  }
+
+  .hero-image {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .model-card,
+  .summary-card {
+    width: min(100%, 330px);
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .products {
+    margin-inline: clamp(16px, 5vw, 40px);
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-text h1 {
+    font-size: clamp(28px, 9vw, 34px);
+  }
+
+  .hero-buttons,
+  .hero-buttons button,
+  .hero-image {
+    width: 100%;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .products {
+    margin: 16px;
+    padding-left: 18px;
+  }
 }
 </style>
