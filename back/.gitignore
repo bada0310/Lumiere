@@ -87,4 +87,5 @@ env/
 
 # database
 db.sqlite3
+*.sqlite3back/db.sqlite3
 *.sqlite3
