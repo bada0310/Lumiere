@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
@@ -118,3 +119,184 @@ class ColorRecommendation(models.Model):
     
     def __str__(self):
         return f'[{self.personal_color.type_name}]{self.get_makeup_part_display()}-{self.color_name}({self.recommendation_type}) '
+
+
+class DiagnosisResult(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='diagnosis_results',
+    )
+    personal_color = models.ForeignKey(
+        PersonalColor,
+        on_delete=models.PROTECT,
+        related_name='diagnosis_results',
+    )
+    confidence_score = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    personal_color_code = models.CharField(max_length=80, blank=True)
+    korean_name = models.CharField(max_length=80, blank=True)
+    english_name = models.CharField(max_length=80, blank=True)
+    summary = models.TextField(blank=True)
+    keywords = models.JSONField(default=list, blank=True)
+    image_features = models.JSONField(default=list, blank=True)
+    skin_metrics = models.JSONField(default=dict, blank=True)
+    radar_chart = models.JSONField(default=dict, blank=True)
+    style_guide = models.JSONField(default=dict, blank=True)
+    is_demo = models.BooleanField(default=False)
+    diagnosed_at = models.DateField(null=True, blank=True)
+    uploaded_image = models.ImageField(
+        upload_to='diagnosis/originals/',
+        null=True,
+        blank=True,
+    )
+    generated_makeup_image = models.ImageField(
+        upload_to='diagnosis/generated/',
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def clean(self):
+        super().clean()
+        for field_name in ['skin_metrics', 'radar_chart']:
+            values = getattr(self, field_name) or {}
+            for key, value in values.items():
+                if not isinstance(value, int) or value < 0 or value > 100:
+                    raise ValidationError({field_name: f'{key} must be an integer between 0 and 100.'})
+
+    def __str__(self):
+        return f'{self.user} - {self.personal_color} ({self.confidence_score}%)'
+
+
+class DiagnosisRepresentativeColor(models.Model):
+    diagnosis = models.ForeignKey(
+        DiagnosisResult,
+        on_delete=models.CASCADE,
+        related_name='representative_colors',
+    )
+    name = models.CharField(max_length=80)
+    hex = models.CharField(max_length=7)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order']
+        constraints = [
+            models.UniqueConstraint(fields=['diagnosis', 'order'], name='unique_representative_color_order'),
+        ]
+
+    def __str__(self):
+        return f'{self.diagnosis_id} {self.name}'
+
+
+class DiagnosisColorPalette(models.Model):
+    class Group(models.TextChoices):
+        BEST = 'best', 'Best'
+        NEUTRAL = 'neutral', 'Neutral'
+        ACCENT = 'accent', 'Accent'
+        WORST = 'worst', 'Worst'
+
+    diagnosis = models.ForeignKey(
+        DiagnosisResult,
+        on_delete=models.CASCADE,
+        related_name='color_palettes',
+    )
+    group = models.CharField(max_length=20, choices=Group.choices)
+    name = models.CharField(max_length=80)
+    hex = models.CharField(max_length=7)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['group', 'order']
+        constraints = [
+            models.UniqueConstraint(fields=['diagnosis', 'group', 'order'], name='unique_palette_group_order'),
+        ]
+
+    def __str__(self):
+        return f'{self.diagnosis_id} {self.group} {self.name}'
+
+
+class DiagnosisMakeoverStyle(models.Model):
+    diagnosis = models.ForeignKey(
+        DiagnosisResult,
+        on_delete=models.CASCADE,
+        related_name='makeover_styles',
+    )
+    key = models.CharField(max_length=40)
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=200, blank=True)
+    image = models.CharField(max_length=255, null=True, blank=True)
+    order = models.PositiveSmallIntegerField(default=1)
+    is_default = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['order']
+        constraints = [
+            models.UniqueConstraint(fields=['diagnosis', 'key'], name='unique_makeover_style_key'),
+        ]
+
+    def __str__(self):
+        return f'{self.diagnosis_id} {self.name}'
+
+
+class DiagnosisRecommendedProduct(models.Model):
+    diagnosis = models.ForeignKey(
+        DiagnosisResult,
+        on_delete=models.CASCADE,
+        related_name='recommended_products',
+    )
+    product = models.ForeignKey(
+        'products.Product',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='diagnosis_recommendations',
+    )
+    category = models.CharField(max_length=40)
+    category_name = models.CharField(max_length=80)
+    tone_label = models.CharField(max_length=120)
+    brand = models.CharField(max_length=80)
+    product_name = models.CharField(max_length=120)
+    shade = models.CharField(max_length=120, blank=True)
+    description = models.CharField(max_length=240, blank=True)
+    image = models.CharField(max_length=255, null=True, blank=True)
+    product_url = models.URLField(null=True, blank=True)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order']
+        constraints = [
+            models.UniqueConstraint(fields=['diagnosis', 'category'], name='unique_recommended_product_category'),
+        ]
+
+    def __str__(self):
+        return f'{self.category_name} {self.brand} {self.product_name}'
+
+
+class DiagnosisRecommendedLens(models.Model):
+    diagnosis = models.ForeignKey(
+        DiagnosisResult,
+        on_delete=models.CASCADE,
+        related_name='recommended_lenses',
+    )
+    rank = models.CharField(max_length=20)
+    brand = models.CharField(max_length=80)
+    product_name = models.CharField(max_length=120)
+    color = models.CharField(max_length=80)
+    description = models.CharField(max_length=240, blank=True)
+    image = models.CharField(max_length=255, null=True, blank=True)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order']
+        constraints = [
+            models.UniqueConstraint(fields=['diagnosis', 'order'], name='unique_recommended_lens_order'),
+        ]
+
+    def __str__(self):
+        return f'{self.rank} {self.brand} {self.product_name}'
