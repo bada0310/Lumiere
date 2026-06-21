@@ -69,7 +69,7 @@
               <div class="radar-shape"></div>
               <span class="label top">명도 {{ radarScores.brightness }}</span>
               <span class="label right">채도 {{ radarScores.chroma }}</span>
-              <span class="label bottom-right">쿨톤 {{ radarScores.cool }}</span>
+              <span class="label bottom-right">색온도 {{ product.temperatureLabel }}</span>
               <span class="label bottom-left">탁도 {{ radarScores.softness }}</span>
               <span class="label left">대비 {{ radarScores.contrast }}</span>
             </div>
@@ -269,6 +269,8 @@ const USER_COLOR_METRICS = {
   brightness: 65,
   saturation: 30,
   coolness: 85,
+  warmth: 15,
+  temperatureAxis: 85,
   softness: 18,
   contrast: 35,
 }
@@ -397,6 +399,19 @@ const getFinishLabel = (finish) => {
   return labels[finish] || ''
 }
 
+const getTemperatureAxis = (coolness, warmth) => {
+  return clampScore((coolness - warmth + 100) / 2, 50)
+}
+
+const getTemperatureLabel = (coolness, warmth) => {
+  const diff = coolness - warmth
+  const mainScore = Math.max(coolness, warmth)
+
+  if (diff >= 20) return `쿨 ${mainScore}`
+  if (diff <= -20) return `웜 ${mainScore}`
+  return '뉴트럴'
+}
+
 const getMetric = (item, key, fallback) => {
   return toNumber(item[key], fallback)
 }
@@ -416,9 +431,10 @@ const getMetricAnalysis = (metricName, diff, productValue) => {
     return '제품 색상이 더 차분한 편이에요.'
   }
 
-  if (metricName === '쿨톤') {
-    if (productValue >= 70) return '쿨톤감이 높아서 잘 맞아요.'
-    return '쿨톤감은 약해서 참고용으로 보는 게 좋아요.'
+  if (metricName === '색온도') {
+    if (absDiff <= 12) return '색온도 방향이 비슷해서 자연스러워요.'
+    if (productValue > USER_COLOR_METRICS.temperatureAxis) return '제품이 내 기준보다 쿨한 방향이 강해요.'
+    return '제품이 내 기준보다 웜한 방향이 강해요.'
   }
 
   if (metricName === '탁도') {
@@ -463,6 +479,8 @@ const normalizeProduct = (item, index = 0) => {
   const depth = getMetric(item, 'depth', 20)
   const softness = getMetric(item, 'softness', 18)
   const contrast = getMetric(item, 'contrast', 35)
+  const temperatureAxis = getTemperatureAxis(coolness, warmth)
+  const temperatureLabel = getTemperatureLabel(coolness, warmth)
 
   return {
     id: item.id || item.product_option_id || item.option_id || index + 1,
@@ -501,6 +519,8 @@ const normalizeProduct = (item, index = 0) => {
     saturation,
     coolness,
     warmth,
+    temperatureAxis,
+    temperatureLabel,
     depth,
     softness,
     contrast,
@@ -586,7 +606,7 @@ const radarScores = computed(() => {
   return {
     brightness: product.value.brightness,
     chroma: product.value.saturation,
-    cool: product.value.coolness,
+      cool: product.value.temperatureAxis,
     softness: product.value.softness,
     contrast: product.value.contrast,
   }
@@ -610,9 +630,9 @@ const compareItems = computed(() => {
     },
     {
       icon: '❄️',
-      name: '쿨톤',
-      mine: USER_COLOR_METRICS.coolness,
-      product: product.value.coolness,
+      name: '색온도',
+      mine: USER_COLOR_METRICS.temperatureAxis,
+      product: product.value.temperatureAxis,
     },
     {
       icon: '☁️',
@@ -644,7 +664,7 @@ const recommendReasons = computed(() => {
 
   const reasons = [
     `${product.value.categoryLabel} 카테고리에서 ${product.value.toneLabel || '여름 쿨 라이트'} 기준으로 추천된 옵션이에요.`,
-    `대표 색상은 ${product.value.hex}이고, 명도 ${product.value.brightness}, 채도 ${product.value.saturation}, 쿨톤 ${product.value.coolness}로 분석됐어요.`,
+    `대표 색상은 ${product.value.hex}이고, 명도 ${product.value.brightness}, 채도 ${product.value.saturation}, 색온도는 ${product.value.temperatureLabel} 방향으로 분석됐어요.`,
     product.value.desc,
   ]
 
@@ -655,8 +675,7 @@ const getColorDistance = (a, b) => {
   return (
     Math.abs(a.brightness - b.brightness) * 0.22 +
     Math.abs(a.saturation - b.saturation) * 0.18 +
-    Math.abs(a.coolness - b.coolness) * 0.24 +
-    Math.abs(a.warmth - b.warmth) * 0.14 +
+    Math.abs(a.temperatureAxis - b.temperatureAxis) * 0.30 +
     Math.abs(a.softness - b.softness) * 0.12 +
     Math.abs(a.contrast - b.contrast) * 0.10
   )

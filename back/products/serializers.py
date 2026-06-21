@@ -19,13 +19,51 @@ class ProductSerializer(serializers.ModelSerializer):
             'image_url',
             'product_url',
             'description',
+
+            # 네이버 쇼핑 API 원본 정보
+            'price',
+            'mall_name',
+            'naver_product_id',
+            'source_query',
+            'naver_category1',
+            'naver_category2',
+            'naver_category3',
+            'naver_category4',
+
+            # 추천/필터용 정보
+            'texture',
+            'finish',
+            'tone_tag',
+            'color_family',
+
+            # 색상 분석 정보
+            'hex_code',
+            'rgb_r',
+            'rgb_g',
+            'rgb_b',
+            'brightness',
+            'saturation',
+            'coolness',
+            'warmth',
+            'depth',
+            'softness',
+            'contrast',
+
+            # 추천 결과
             'match_score',
+            'reason',
+
+            # 리뷰/시간 정보
             'review_count',
             'average_rating',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['created_at', 'updated_at']
+
+        read_only_fields = [
+            'created_at',
+            'updated_at',
+        ]
 
 
 class ReviewSerializer(serializers.ModelSerializer):

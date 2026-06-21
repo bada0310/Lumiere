@@ -4,7 +4,7 @@
       <section class="hero">
         <div>
           <h1>당신에게 딱 맞는 화장품 옵션을 추천해드려요</h1>
-          <p>{{ selectedCategoryLabel }} 카테고리에서 여름 쿨 라이트 톤에 어울리는 옵션만 선별했어요.</p>
+          <p>{{ selectedCategoryLabel }} 카테고리에서 여름 쿨 라이트 기준에 가까운 옵션만 선별했어요.</p>
         </div>
 
         <div class="my-tone-card">
@@ -139,7 +139,7 @@
           <span>여름 쿨 라이트</span>
           <span>명도: 밝음</span>
           <span>채도: 낮음</span>
-          <span>쿨톤</span>
+          <span>색온도: 쿨</span>
         </div>
 
         <button class="outline-btn" type="button" @click="resetAllFilters">
@@ -328,14 +328,15 @@ const filterOptions = [
   { key: 'nude', label: '누디', keywords: ['누디', 'nude', '베이지', 'beige'] },
   { key: 'matte', label: '매트', keywords: ['매트', 'matte', '벨벳', '블러', 'VELVET', 'MATTE'] },
   { key: 'glossy', label: '글로시', keywords: ['글로시', 'glossy', '글로우', '촉촉', '워터', 'GLOSSY'] },
-  { key: 'cool', label: '쿨톤', keywords: ['쿨톤', '여름쿨', '겨울쿨', '쿨', 'cool', '라벤더', '모브', '핑크', '로즈', 'SUMMER', 'WINTER'] },
+  { key: 'cool', label: '쿨 계열', keywords: ['쿨톤', '여름쿨', '겨울쿨', '쿨', 'cool', '라벤더', '모브', '핑크', '로즈', 'SUMMER', 'WINTER'] },
+  { key: 'warm', label: '웜 계열', keywords: ['웜톤', '봄웜', '가을웜', '웜', 'warm', '코랄', '피치', '브라운', '베이지', 'SPRING', 'AUTUMN'] },
   { key: 'lowChroma', label: '저채도', keywords: ['저채도', '차분', '뮤트', 'soft', 'mauve', 'MUTE'] },
   { key: 'highBrightness', label: '고명도', keywords: ['고명도', '라이트', '밝음', '맑은', 'light', 'LIGHT'] },
 ]
 
 const toneFilters = computed(() => {
   return filterOptions.filter((filter) => {
-    return ['mlbb', 'nude', 'cool', 'lowChroma', 'highBrightness'].includes(filter.key)
+    return ['mlbb', 'nude', 'cool', 'warm', 'lowChroma', 'highBrightness'].includes(filter.key)
   })
 })
 
@@ -469,9 +470,9 @@ const makeMetricTags = (metrics, item) => {
   const tags = ['추천']
 
   if (metrics.coolness >= metrics.warmth) {
-    tags.push('쿨톤')
+    tags.push('쿨 계열')
   } else {
-    tags.push('웜톤')
+    tags.push('웜 계열')
   }
 
   if (metrics.brightness >= 70) {
@@ -511,6 +512,26 @@ const getFilterKeys = (text) => {
       return filter.keywords.some((keyword) => searchText.includes(normalizeText(keyword)))
     })
     .map((filter) => filter.key)
+}
+
+const getMetricFilterKeys = (metrics) => {
+  const keys = []
+
+  if (metrics.coolness >= metrics.warmth) {
+    keys.push('cool')
+  } else {
+    keys.push('warm')
+  }
+
+  if (metrics.brightness >= 70) {
+    keys.push('highBrightness')
+  }
+
+  if (metrics.saturation <= 40) {
+    keys.push('lowChroma')
+  }
+
+  return keys
 }
 
 const normalizeProduct = (item, index) => {
@@ -608,7 +629,7 @@ const normalizeProduct = (item, index) => {
     imageClass: `${categoryKey}${(index % 5) + 1}`,
     desc,
     tags,
-    filterKeys: getFilterKeys(filterText),
+    filterKeys: [...new Set([...getFilterKeys(filterText), ...getMetricFilterKeys(metrics)])],
     raw: item,
   }
 }
