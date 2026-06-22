@@ -352,6 +352,7 @@ import {
 import { useRequireLogin } from '@/composables/useRequireLogin'
 import { getDiagnosisProfileImageUrl, normalizeDiagnosisResult } from '@/utils/diagnosisResultTransform'
 import { getSavedMockDiagnosisResult, saveMockDiagnosisResult } from '@/utils/diagnosisMockStorage'
+import { saveDiagnosisColorProfile } from '@/utils/colorRecommendationHelpers'
 
 const AvoidList = defineComponent({
   name: 'AvoidList',
@@ -582,6 +583,7 @@ const applyDiagnosisResult = (raw) => {
     ''
   profileImageErrored.value = false
   isSaved.value = Boolean(normalized?.is_mock && getSavedMockDiagnosisResult()?.id === normalized.id)
+  saveDiagnosisColorProfile(normalized)
 }
 
 const loadMockDiagnosis = (toneKey = DEFAULT_MOCK_TONE_KEY) => {
@@ -751,7 +753,10 @@ const changeMockType = (event) => {
 }
 
 const goToProducts = () => {
-  router.push('/products')
+  router.push({
+    path: '/products',
+    query: { source: 'diagnosis' },
+  })
 }
 
 const scrollToMakeover = () => {

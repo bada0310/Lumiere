@@ -37,6 +37,19 @@
             <p class="brand">{{ product.brand }}</p>
             <h2>{{ product.name }}</h2>
             <h3>{{ product.option }}</h3>
+            <div v-if="product.groupOptions?.length > 1" class="detail-option-picker">
+              <button
+                v-for="option in product.groupOptions"
+                :key="option.id"
+                type="button"
+                :class="{ active: String(option.id) === String(product.id) }"
+                :style="{ '--option-color': option.hex }"
+                @click="selectGroupOption(option)"
+              >
+                <span></span>
+                {{ option.option }}
+              </button>
+            </div>
             <p class="meta">
               {{ product.categoryLabel }}
               <span></span>
@@ -163,6 +176,77 @@
                 <span>{{ saturationLabel }}</span>
                 <span>{{ softnessLabel }}</span>
               </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="option-chart-card">
+          <div class="section-head compact">
+            <div>
+              <h2>옵션 퍼스널 컬러 차트</h2>
+              <p>
+                {{ product.brand }} {{ product.name }}의 색상 옵션 {{ groupOptionProducts.length }}개를 같은 기준으로 배치했어요.
+              </p>
+            </div>
+
+            <div v-if="bestGroupOption" class="best-option-pill">
+              <span :style="{ backgroundColor: bestGroupOption.hex }"></span>
+              추천 옵션 {{ bestGroupOption.option }} · {{ bestGroupOption.personalScore }}%
+            </div>
+          </div>
+
+          <div class="option-chart-layout">
+            <div class="option-scatter" aria-label="상품 옵션 색상 분포 차트">
+              <div class="scatter-axis scatter-axis-x"></div>
+              <div class="scatter-axis scatter-axis-y"></div>
+              <span class="scatter-label scatter-label-warm">Warm</span>
+              <span class="scatter-label scatter-label-cool">Cool</span>
+              <span class="scatter-label scatter-label-light">Light</span>
+              <span class="scatter-label scatter-label-deep">Deep</span>
+
+              <button
+                v-for="point in optionChartPoints"
+                :key="point.id"
+                type="button"
+                class="option-dot"
+                :class="{ active: point.isActive, best: point.isBest }"
+                :title="`${point.option} · 명도 ${point.brightness} · 채도 ${point.saturation}`"
+                :style="{
+                  left: `${point.x}%`,
+                  bottom: `${point.y}%`,
+                  width: `${point.size}px`,
+                  height: `${point.size}px`,
+                  backgroundColor: point.hex,
+                }"
+                @click="selectGroupOption(point)"
+              ></button>
+
+              <div
+                class="reference-marker"
+                :style="{
+                  left: `${comparisonChartPoint.x}%`,
+                  bottom: `${comparisonChartPoint.y}%`,
+                }"
+              >
+                {{ hasSkinProfile ? '내 피부' : '기준 톤' }}
+              </div>
+            </div>
+
+            <aside class="option-rank-panel">
+              <h3>옵션별 적합도</h3>
+
+              <button
+                v-for="option in rankedGroupOptions"
+                :key="option.id"
+                type="button"
+                :class="{ active: String(option.id) === String(product.id) }"
+                @click="selectGroupOption(option)"
+              >
+                <span class="rank-swatch" :style="{ backgroundColor: option.hex }"></span>
+                <strong>{{ option.option || '옵션명 없음' }}</strong>
+                <small>{{ option.temperatureLabel }} · {{ option.brightnessLabel }}</small>
+                <em>{{ option.personalScore }}%</em>
+              </button>
             </aside>
           </div>
         </section>
@@ -350,6 +434,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { makeDetailPayload, makeProductGroups } from './productCatalog'
+import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { saveDiagnosisColorProfile } from '@/utils/colorRecommendationHelpers'
 
 const route = useRoute()
 const router = useRouter()
@@ -471,6 +558,28 @@ const getStoredSkinMetrics = () => {
 }
 
 const userSkinMetrics = ref(null)
+
+const syncLatestDiagnosisProfile = async () => {
+  if (!localStorage.getItem('access_token')) return
+
+  try {
+    const latestDiagnosis = await getLatestDiagnosis()
+    if (!latestDiagnosis) return
+
+    const profile = saveDiagnosisColorProfile(latestDiagnosis)
+    userSkinMetrics.value = {
+      brightness: profile.brightness,
+      saturation: profile.saturation,
+      coolness: profile.coolness,
+      warmth: profile.warmth,
+      softness: profile.softness,
+      contrast: profile.contrast,
+    }
+    selectedReferenceTone.value = profile.toneTag || selectedReferenceTone.value
+  } catch (error) {
+    console.warn('최신 진단 피부 데이터를 불러오지 못했어요:', error)
+  }
+}
 
 const categoryTabs = [
   {
@@ -703,8 +812,12 @@ const normalizeProduct = (item, index = 0) => {
   return {
     id: item.id || item.product_option_id || item.option_id || index + 1,
     brand: item.brand || item.product_brand || '브랜드 미상',
-    name: item.name || item.product_name || '추천 상품',
+    name: item.groupName || item.name || item.product_name || '추천 상품',
     option: item.option || item.option_name || item.color_name || item.texture || '',
+    groupKey: item.groupKey || '',
+    groupName: item.groupName || '',
+    groupOptions: Array.isArray(item.groupOptions) ? item.groupOptions : [],
+    optionCount: item.optionCount || item.groupOptions?.length || 1,
     categoryKey,
     categoryLabel: item.categoryLabel || getCategoryLabel(categoryKey),
     score,
@@ -759,7 +872,14 @@ const loadProducts = async () => {
   isLoading.value = true
 
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/products/')
+    let response
+
+    try {
+      response = await axios.get('http://127.0.0.1:8000/api/products/')
+    } catch (apiError) {
+      console.warn('API 상세 데이터 대신 로컬 products_raw.json을 사용합니다:', apiError)
+      response = await axios.get('/products_raw.json')
+    }
 
     const data = Array.isArray(response.data)
       ? response.data
@@ -778,18 +898,7 @@ const loadProducts = async () => {
 const setCurrentProduct = () => {
   const currentId = String(route.params.id || '')
   const storedText = localStorage.getItem('selectedProductOption')
-
-  const fetchedProduct =
-    allProducts.value.find((item) => String(item.id) === currentId) ||
-    allProducts.value[0] ||
-    null
-
-  if (fetchedProduct) {
-    product.value = fetchedProduct
-    isLiked.value = Boolean(fetchedProduct.liked)
-    localStorage.setItem('selectedProductOption', JSON.stringify(fetchedProduct))
-    return
-  }
+  const storedGroupText = localStorage.getItem('selectedProductGroup')
 
   if (storedText) {
     try {
@@ -805,7 +914,43 @@ const setCurrentProduct = () => {
     }
   }
 
-  product.value = null
+  if (storedGroupText) {
+    try {
+      const storedGroup = JSON.parse(storedGroupText)
+      const storedOption = storedGroup.options?.find((item) => String(item.id) === currentId)
+      const detailPayload = makeDetailPayload(storedGroup, storedOption || storedGroup.representative)
+
+      if (detailPayload) {
+        product.value = normalizeProduct(detailPayload)
+        isLiked.value = Boolean(product.value.liked)
+        return
+      }
+    } catch (error) {
+      console.error('저장된 상품 그룹 정보를 읽는 데 실패했습니다:', error)
+    }
+  }
+
+  const groups = makeProductGroups(allProducts.value)
+  const matchedGroup = groups.find((group) => {
+    return group.options.some((item) => String(item.id) === currentId)
+  })
+  const matchedOption = matchedGroup?.options.find((item) => String(item.id) === currentId)
+  const groupedPayload = makeDetailPayload(matchedGroup, matchedOption)
+
+  if (groupedPayload) {
+    product.value = normalizeProduct(groupedPayload)
+    isLiked.value = Boolean(product.value.liked)
+    localStorage.setItem('selectedProductOption', JSON.stringify(product.value))
+    localStorage.setItem('selectedProductGroup', JSON.stringify(matchedGroup))
+    return
+  }
+
+  const fetchedProduct =
+    allProducts.value.find((item) => String(item.id) === currentId) ||
+    allProducts.value[0] ||
+    null
+
+  product.value = fetchedProduct
   isLiked.value = Boolean(product.value?.liked)
 }
 
@@ -843,6 +988,66 @@ const comparisonMetricsWithAxis = computed(() => {
 const displayScore = computed(() => {
   if (!product.value) return 0
   return calculateMatchScore(product.value, comparisonMetrics.value)
+})
+
+const groupOptionProducts = computed(() => {
+  if (!product.value) return []
+
+  const rawOptions = product.value.groupOptions?.length
+    ? product.value.groupOptions
+    : [product.value]
+
+  const normalized = rawOptions.map((option, index) => {
+    return normalizeProduct({
+      ...option,
+      groupKey: product.value.groupKey,
+      groupName: product.value.groupName || product.value.name,
+      groupOptions: rawOptions,
+      optionCount: rawOptions.length,
+    }, index)
+  })
+
+  const uniqueOptions = new Map()
+  normalized.forEach((option) => {
+    uniqueOptions.set(String(option.id), option)
+  })
+
+  return [...uniqueOptions.values()]
+})
+
+const rankedGroupOptions = computed(() => {
+  return groupOptionProducts.value
+    .map((option) => ({
+      ...option,
+      personalScore: calculateMatchScore(option, comparisonMetrics.value),
+    }))
+    .sort((a, b) => b.personalScore - a.personalScore)
+})
+
+const bestGroupOption = computed(() => {
+  return rankedGroupOptions.value[0] || null
+})
+
+const comparisonChartPoint = computed(() => {
+  const reference = comparisonMetricsWithAxis.value
+
+  return {
+    x: reference.temperatureAxis,
+    y: reference.brightness,
+  }
+})
+
+const optionChartPoints = computed(() => {
+  const bestId = bestGroupOption.value ? String(bestGroupOption.value.id) : ''
+
+  return rankedGroupOptions.value.map((option) => ({
+    ...option,
+    x: option.temperatureAxis,
+    y: option.brightness,
+    size: Math.max(11, Math.min(26, Math.round(option.saturation / 4))),
+    isActive: String(option.id) === String(product.value?.id),
+    isBest: String(option.id) === bestId,
+  }))
 })
 
 const comparisonSubjectLabel = computed(() => {
@@ -1155,6 +1360,22 @@ const reviews = [
   },
 ]
 
+const selectGroupOption = (option) => {
+  if (!product.value) return
+
+  const detailPayload = {
+    ...option,
+    groupKey: product.value.groupKey,
+    groupName: product.value.groupName || product.value.name,
+    groupOptions: product.value.groupOptions,
+    optionCount: product.value.optionCount,
+  }
+
+  product.value = normalizeProduct(detailPayload)
+  isLiked.value = Boolean(product.value.liked)
+  localStorage.setItem('selectedProductOption', JSON.stringify(product.value))
+}
+
 const goDetail = (item) => {
   localStorage.setItem('selectedProductOption', JSON.stringify(item))
 
@@ -1201,8 +1422,9 @@ watch(
   }
 )
 
-onMounted(() => {
+onMounted(async () => {
   userSkinMetrics.value = getStoredSkinMetrics()
+  await syncLatestDiagnosisProfile()
   loadProducts()
 })
 </script>
@@ -1263,6 +1485,7 @@ onMounted(() => {
 
 .top-card,
 .color-chart-card,
+.option-chart-card,
 .compare-card,
 .similar-section,
 .purchase-box,
@@ -1359,7 +1582,42 @@ onMounted(() => {
 
 .product-info h3 {
   font-size: 24px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
+}
+
+.detail-option-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.detail-option-picker button {
+  min-height: 36px;
+  border: 1px solid #eaded8;
+  border-radius: 9px;
+  background: #fffafa;
+  color: #4d4441;
+  padding: 0 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.detail-option-picker button.active {
+  border-color: #c65367;
+  color: #c65367;
+  background: #fff0f1;
+}
+
+.detail-option-picker span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--option-color);
+  border: 1px solid rgba(45, 37, 36, 0.12);
 }
 
 .meta {
@@ -1798,6 +2056,203 @@ onMounted(() => {
   font-weight: 800;
 }
 
+.option-chart-card {
+  margin-top: 18px;
+  padding: 34px;
+}
+
+.best-option-pill {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #eaded8;
+  border-radius: 999px;
+  background: #fff8f6;
+  color: #c65367;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.best-option-pill span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(45, 37, 36, 0.14);
+}
+
+.option-chart-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) 340px;
+  gap: 28px;
+  align-items: stretch;
+}
+
+.option-scatter {
+  position: relative;
+  min-height: 390px;
+  border: 1px solid #eaded8;
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(246, 211, 177, 0.2), rgba(216, 222, 255, 0.26)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 248, 246, 0.9));
+  overflow: hidden;
+}
+
+.scatter-axis {
+  position: absolute;
+  background: rgba(94, 74, 70, 0.18);
+}
+
+.scatter-axis-x {
+  left: 7%;
+  right: 7%;
+  bottom: 50%;
+  height: 1px;
+}
+
+.scatter-axis-y {
+  top: 8%;
+  bottom: 8%;
+  left: 50%;
+  width: 1px;
+}
+
+.scatter-label {
+  position: absolute;
+  color: #8e7e79;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.scatter-label-warm {
+  left: 18px;
+  bottom: 49%;
+}
+
+.scatter-label-cool {
+  right: 18px;
+  bottom: 49%;
+}
+
+.scatter-label-light {
+  top: 16px;
+  left: 51%;
+}
+
+.scatter-label-deep {
+  bottom: 16px;
+  left: 51%;
+}
+
+.option-dot {
+  position: absolute;
+  transform: translate(-50%, 50%);
+  border: 2px solid rgba(255, 255, 255, 0.94);
+  border-radius: 999px;
+  box-shadow: 0 9px 18px rgba(80, 45, 50, 0.18);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.option-dot:hover,
+.option-dot.active {
+  z-index: 4;
+  transform: translate(-50%, 50%) scale(1.2);
+}
+
+.option-dot.active {
+  border-color: #2d2524;
+  box-shadow: 0 0 0 5px rgba(45, 37, 36, 0.12), 0 12px 22px rgba(80, 45, 50, 0.2);
+}
+
+.option-dot.best {
+  box-shadow: 0 0 0 5px rgba(198, 83, 103, 0.18), 0 12px 22px rgba(198, 83, 103, 0.18);
+}
+
+.reference-marker {
+  position: absolute;
+  transform: translate(-50%, 50%);
+  z-index: 5;
+  min-height: 32px;
+  padding: 7px 11px;
+  border: 1px solid #c65367;
+  border-radius: 999px;
+  background: white;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(198, 83, 103, 0.14);
+  white-space: nowrap;
+}
+
+.option-rank-panel {
+  border: 1px solid #eaded8;
+  border-radius: 14px;
+  background: #fff8f6;
+  padding: 22px;
+  overflow: hidden;
+}
+
+.option-rank-panel h3 {
+  margin: 0 0 16px;
+}
+
+.option-rank-panel button {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid #eaded8;
+  border-radius: 10px;
+  background: white;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 3px;
+  align-items: center;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option-rank-panel button + button {
+  margin-top: 10px;
+}
+
+.option-rank-panel button.active {
+  border-color: #c65367;
+  background: #fff0f1;
+}
+
+.rank-swatch {
+  grid-row: 1 / 3;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(45, 37, 36, 0.14);
+}
+
+.option-rank-panel strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2d2524;
+}
+
+.option-rank-panel small {
+  color: #7b706c;
+}
+
+.option-rank-panel em {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  color: #c65367;
+  font-style: normal;
+  font-size: 20px;
+  font-weight: 900;
+}
+
 .compare-card {
   margin-top: 18px;
   padding: 34px;
@@ -2221,6 +2676,10 @@ onMounted(() => {
     grid-column: 1 / -1;
     justify-self: center;
     width: min(620px, 100%);
+  }
+
+  .option-chart-layout {
+    grid-template-columns: 1fr;
   }
 }
 </style>
