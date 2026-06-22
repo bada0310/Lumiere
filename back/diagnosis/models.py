@@ -259,6 +259,14 @@ class DiagnosisColorPalette(models.Model):
 
 
 class DiagnosisMakeoverStyle(models.Model):
+    class Status(models.TextChoices):
+        NONE = 'none', 'None'
+        QUEUED = 'queued', 'Queued'
+        RUNNING = 'running', 'Running'
+        COMPLETE = 'complete', 'Complete'
+        FAILED = 'failed', 'Failed'
+        SKIPPED = 'skipped', 'Skipped'
+
     diagnosis = models.ForeignKey(
         DiagnosisResult,
         on_delete=models.CASCADE,
@@ -268,6 +276,8 @@ class DiagnosisMakeoverStyle(models.Model):
     name = models.CharField(max_length=80)
     description = models.CharField(max_length=200, blank=True)
     image = models.CharField(max_length=255, null=True, blank=True)
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.NONE, db_index=True)
+    error_message = models.TextField(blank=True)
     order = models.PositiveSmallIntegerField(default=1)
     is_default = models.BooleanField(default=False)
 
@@ -389,6 +399,7 @@ class MakeupGenerationJob(models.Model):
         on_delete=models.CASCADE,
         related_name='makeup_generation_jobs',
     )
+    style_key = models.CharField(max_length=40, blank=True, db_index=True)
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.QUEUED, db_index=True)
     prompt = models.TextField(blank=True)
     error_message = models.TextField(blank=True)

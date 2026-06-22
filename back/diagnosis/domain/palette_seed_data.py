@@ -3,7 +3,8 @@ from copy import deepcopy
 from diagnosis.domain.tone_keys import CANONICAL_TONE_KEYS, build_tone_name, split_tone_key
 
 
-ROLE_KEYS = ('highlighter', 'base', 'shading', 'point')
+ROLE_KEYS = ('highlighter', 'base', 'shading', 'point', 'aegyosal', 'eyeliner')
+PALETTE_MIN_COUNTS = {'best': 5, 'neutral': 4, 'accent': 4, 'try': 4, 'worst': 3}
 
 SEASON_META = {
     'spring': {
@@ -121,6 +122,60 @@ def _avoid(name, name_ko, hex_value, reason):
         'usage': 'avoid',
         'reason': reason,
     }
+
+
+PALETTE_TOP_UPS = {
+    'warm': {
+        'neutral': [
+            _chip('Natural Beige', 'Natural Beige', '#D7B99A', 'base', 'Stable warm beige for base and daily styling.'),
+            _chip('Camel Beige', 'Camel Beige', '#C19465', 'base', 'Warm camel beige that connects naturally with warm undertones.'),
+            _chip('Toasted Taupe', 'Toasted Taupe', '#9B7A62', 'eyeliner', 'Soft warm taupe for definition without harsh contrast.'),
+            _chip('Deep Mocha', 'Deep Mocha', '#5A3A2E', 'eyeliner', 'Deep brown line color for warm deep eye makeup.'),
+        ],
+        'accent': [
+            _chip('Antique Gold', 'Antique Gold', '#B99655', 'eye_highlighter', 'Muted gold highlight that stays warm and elegant.'),
+            _chip('Deep Teal', 'Deep Teal', '#0F5B5B', 'eye_point', 'Deep teal point color for refined contrast.'),
+            _chip('Olive Brown', 'Olive Brown', '#5C5634', 'eye_point', 'Olive brown point color for warm natural depth.'),
+            _chip('Brick Rose', 'Brick Rose', '#9E4F49', 'lip_cheek', 'Muted brick rose that works for lips and blush.'),
+        ],
+        'try': [
+            _chip('Cinnamon', 'Cinnamon', '#9C5A35', 'try', 'Warm cinnamon shade for soft daily shading.'),
+            _chip('Terracotta', 'Terracotta', '#B76343', 'try', 'Earthy terracotta that supports warm styling.'),
+            _chip('Soft Khaki', 'Soft Khaki', '#85845A', 'try', 'Calm khaki for outfit or point color trials.'),
+            _chip('Peach Beige', 'Peach Beige', '#D8A07A', 'aegyosal', 'Warm peach beige for natural under-eye brightness.'),
+        ],
+        'worst': [
+            _avoid('Pastel Lavender', 'Pastel Lavender', '#D9C6F0', 'Cool pastel lavender can flatten warm depth.'),
+            _avoid('Cool Mint', 'Cool Mint', '#BDEFEA', 'Cool mint can make warm skin look dull.'),
+            _avoid('Neon Pink', 'Neon Pink', '#FF2FA0', 'Neon pink can separate from warm undertones.'),
+        ],
+    },
+    'cool': {
+        'neutral': [
+            _chip('Cool Ivory', 'Cool Ivory', '#F0E8EA', 'base', 'Clean cool ivory for base makeup.'),
+            _chip('Rose Beige', 'Rose Beige', '#D8C2C7', 'base', 'Balanced rose beige for cool-neutral skin.'),
+            _chip('Soft Pewter', 'Soft Pewter', '#A8A6AF', 'eye_highlighter', 'Muted pewter highlight for cool tones.'),
+            _chip('Deep Slate', 'Deep Slate', '#3F4450', 'eyeliner', 'Soft dark slate liner color.'),
+        ],
+        'accent': [
+            _chip('Mauve Rose', 'Mauve Rose', '#A96F82', 'lip_cheek', 'Cool rose accent with muted depth.'),
+            _chip('Blueberry', 'Blueberry', '#5A527F', 'eye_point', 'Cool berry-blue point color.'),
+            _chip('Smoky Plum', 'Smoky Plum', '#6B4D69', 'eye_shading', 'Smoky plum shade for cool definition.'),
+            _chip('Berry Red', 'Berry Red', '#A83258', 'lip', 'Cool berry red for lip point.'),
+        ],
+        'try': [
+            _chip('Rose Taupe', 'Rose Taupe', '#B5939B', 'try', 'Cool rose taupe for low-risk trial.'),
+            _chip('Cloud Blue', 'Cloud Blue', '#D6E5F7', 'try', 'Soft blue trial color for outfit accents.'),
+            _chip('Pale Lilac', 'Pale Lilac', '#DCCEF4', 'aegyosal', 'Light lilac beige for cool under-eye brightness.'),
+            _chip('Smoky Navy', 'Smoky Navy', '#27324D', 'try', 'Deep cool navy for controlled contrast.'),
+        ],
+        'worst': [
+            _avoid('Mustard', 'Mustard', '#B88918', 'Strong yellow warmth can clash with cool undertones.'),
+            _avoid('Rust Orange', 'Rust Orange', '#B4572A', 'Rust orange can make cool skin look heavy.'),
+            _avoid('Camel', 'Camel', '#B9854D', 'Warm camel can reduce cool clarity.'),
+        ],
+    },
+}
 
 
 BASE_SWATCHES = {
@@ -361,6 +416,26 @@ def _chip_names(items):
     return [item.get('name') for item in items if item.get('name')]
 
 
+def _append_unique_colors(items, additions, target_count):
+    result = list(items)
+    seen = {item.get('name') for item in result}
+    for item in additions:
+        if len(result) >= target_count:
+            break
+        if item.get('name') in seen:
+            continue
+        result.append(deepcopy(item))
+        seen.add(item.get('name'))
+    return result
+
+
+def _fill_palette_groups(palettes, temperature):
+    top_ups = PALETTE_TOP_UPS[temperature]
+    for group, target_count in PALETTE_MIN_COUNTS.items():
+        palettes[group] = _append_unique_colors(palettes.get(group) or [], top_ups.get(group, []), target_count)
+    return palettes
+
+
 def _legacy_makeup_palette(makeup_guide):
     eye_roles = makeup_guide['eye']['roles']
     return {
@@ -413,15 +488,24 @@ def _build_payload(tone_key):
         'try': swatches['try'],
         'worst': swatches['worst'],
     }
+    palettes = _fill_palette_groups(palettes, temperature)
 
     highlighter = _first_by_usage(palettes['neutral'], {'eye_highlighter'}, palettes['neutral'][0])
     eye_base = _first_by_usage(best, {'eye_base'}, palettes['neutral'][0])
     shading = _first_by_usage(best + palettes['accent'], {'eye_shading'}, palettes['accent'][0])
     point = _first_by_usage(palettes['accent'], {'eye_point'}, palettes['accent'][0])
+    aegyosal = _first_by_usage(palettes['try'] + palettes['neutral'], {'aegyosal', 'eye_aegyosal'}, palettes['neutral'][0])
+    eyeliner = _first_by_usage(
+        palettes['neutral'] + palettes['accent'] + best,
+        {'eyeliner', 'eye_liner'},
+        shading,
+    )
     lip_chips = [item for item in best + palettes['accent'] if item.get('usage') in {'lip', 'lip_cheek'}][:4]
+    if len(lip_chips) < 4:
+        lip_chips = _append_unique_colors(lip_chips, palettes['accent'] + best, 4)
     blush_chips = [item for item in best if item.get('usage') in {'cheek', 'lip_cheek'}][:3]
-    if not blush_chips:
-        blush_chips = lip_chips[:2]
+    if len(blush_chips) < 3:
+        blush_chips = _append_unique_colors(blush_chips, lip_chips + palettes['accent'], 3)
 
     makeup_guide = {
         'base': {
@@ -430,7 +514,7 @@ def _build_payload(tone_key):
             'guide': temp_meta['base_guide'],
             'recommended': [palettes['neutral'][0]['name'], palettes['neutral'][0]['nameKo']],
             'avoid': temp_meta['avoid_base'],
-            'chips': [palettes['neutral'][0]],
+            'chips': palettes['neutral'][:3],
         },
         'eye': {
             'title': '아이',
@@ -441,6 +525,8 @@ def _build_payload(tone_key):
                 'base': eye_base,
                 'shading': shading,
                 'point': point,
+                'aegyosal': aegyosal,
+                'eyeliner': eyeliner,
             },
             'avoid': _chip_names(palettes['worst'][:2]),
         },
@@ -586,6 +672,9 @@ def validate_palette_payload(tone_key, payload):
         if not items:
             errors.append(f'{tone_key}: palettes.{group} must not be empty')
             continue
+        min_count = PALETTE_MIN_COUNTS[group]
+        if len(items) < min_count:
+            errors.append(f'{tone_key}: palettes.{group} must have at least {min_count} colors')
         for index, item in enumerate(items):
             for key in ['name', 'nameKo', 'hex', 'usage']:
                 if not item.get(key):

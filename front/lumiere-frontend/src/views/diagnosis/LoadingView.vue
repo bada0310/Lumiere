@@ -1,9 +1,7 @@
 <template>
   <div class="page">
-
-
     <main class="loading-page">
-      <section class="steps">
+      <section class="steps" aria-label="진단 단계">
         <div class="step done">✓</div>
         <div class="line active"></div>
         <div class="step active">2</div>
@@ -17,126 +15,106 @@
         <span>결과 확인</span>
       </section>
 
-      <section class="loading-card">
-        <div class="left-section">
-          <div class="face-box">
-            <div class="scan-frame">
-              <div class="face">🙂</div>
-            </div>
+      <DiagnosisLoadingStory
+        :steps="analysisSteps"
+        :current-step="currentStep"
+        :preview-url="previewUrl"
+        :message="currentMessage"
+        :error="errorMessage"
+      />
 
-            <div class="safe-message">
-              <strong>안심하고 이용하세요!</strong>
-              <p>
-                원본 사진은 분석 후 저장되지 않아요.<br />
-                모든 데이터는 안전하게 보호됩니다.
-              </p>
-            </div>
-          </div>
-
-          <div class="warning-box">
-            <div class="warning-icon">⚠️</div>
-            <div>
-              <strong>분석이 원활하지 않아요 🥲</strong>
-              <p>
-                조명이 너무 어두워요.<br />
-                밝은 곳에서 다시 찍어볼까요?
-              </p>
-            </div>
-            <button>다시 촬영하기</button>
-          </div>
-        </div>
-
-        <div class="center-section">
-          <div class="circle-progress">
-            <div class="percent">63<span>%</span></div>
-            <strong>분석이 진행 중이에요</strong>
-            <p>약 8초 남음</p>
-          </div>
-
-          <div class="process-list">
-            <div class="process-item done">
-              <span>✓</span>
-              <div>
-                <strong>피부 영역 감지 중</strong>
-                <p>얼굴 영역을 인식했습니다.</p>
-              </div>
-            </div>
-
-            <div class="process-item done">
-              <span>✓</span>
-              <div>
-                <strong>피부톤 수치 추출 중</strong>
-                <p>LAB 색상 정보를 추출하고 있어요.</p>
-              </div>
-            </div>
-
-            <div class="process-item active">
-              <span></span>
-              <div>
-                <strong>명도 / 채도 / 쿨톤 계산 중</strong>
-                <p>색상 특성을 분석하고 있어요.</p>
-              </div>
-            </div>
-
-            <div class="process-item">
-              <span></span>
-              <div>
-                <strong>퍼스널컬러 매칭 중</strong>
-                <p>당신에게 가장 잘 어울리는 컬러를 찾고 있어요.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <aside class="right-section">
-          <div class="info-box">
-            <div class="info-icon">🔒</div>
-            <div>
-              <strong>개인정보 보호 안내</strong>
-              <p>
-                원본 사진은 분석 후 즉시 삭제되며,<br />
-                분석 결과만 저장됩니다.
-              </p>
-              <a>자세히 보기 →</a>
-            </div>
-          </div>
-
-          <div class="tip-box">
-            <h3>분석이 잘 진행되도록 팁!</h3>
-
-            <div class="tip-item">
-              <span>☀️</span>
-              <p><strong>밝은 자연광에서 촬영해 주세요</strong><br />창가나 밝은 곳에서 찍으면 더 정확해요.</p>
-            </div>
-
-            <div class="tip-item">
-              <span>🙂</span>
-              <p><strong>정면을 바라봐 주세요</strong><br />고개를 기울이거나 돌리지 마세요.</p>
-            </div>
-
-            <div class="tip-item">
-              <span>💄</span>
-              <p><strong>메이크업은 가볍게</strong><br />진단 정확도를 높일 수 있어요.</p>
-            </div>
-
-            <div class="tip-item">
-              <span>⏱️</span>
-              <p><strong>잠시만 기다려 주세요</strong><br />최대 20초 이내에 완료됩니다!</p>
-            </div>
-          </div>
-        </aside>
-
-        <div class="bottom-area">
-          <button class="cancel-btn">분석 취소</button>
-          <p>🛡️ Lumière는 당신의 데이터를 안전하게 보호합니다.</p>
-        </div>
-      </section>
+      <div class="loading-actions">
+        <button v-if="errorMessage" type="button" class="outline-btn" @click="router.push('/upload')">다시 업로드하기</button>
+        <button v-else type="button" class="outline-btn" @click="router.push('/upload')">분석 취소</button>
+      </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import AppHeader from '@/components/AppHeader.vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+import DiagnosisLoadingStory from '@/components/diagnosis/DiagnosisLoadingStory.vue'
+import { createDiagnosis } from '@/services/diagnosisApi'
+
+const router = useRouter()
+
+const historyState = window.history.state || {}
+const diagnosisFile = historyState.diagnosisFile || null
+const previewUrl = ref(historyState.previewUrl || '')
+const errorMessage = ref('')
+const currentStep = ref('uploaded')
+const stepTimer = ref(null)
+
+const analysisSteps = [
+  {
+    key: 'uploaded',
+    title: '사진 업로드 완료',
+    description: '업로드한 이미지를 분석 준비 중이에요.',
+  },
+  {
+    key: 'face_analysis',
+    title: '얼굴 정보 분석 중',
+    description: '피부 톤과 전체 인상을 읽고 있어요.',
+  },
+  {
+    key: 'tone_detection',
+    title: '퍼스널 컬러 판별 중',
+    description: '고정 toneKey 중 가장 가까운 타입을 찾고 있어요.',
+  },
+  {
+    key: 'makeup_guide',
+    title: '메이크업 가이드 정리 중',
+    description: 'DB의 고정 팔레트를 바탕으로 컬러칩을 준비해요.',
+  },
+  {
+    key: 'result_ready',
+    title: '결과 준비 중',
+    description: '결과 페이지를 정리하고 있어요.',
+  },
+]
+
+const currentMessage = computed(() => {
+  const step = analysisSteps.find((item) => item.key === currentStep.value)
+  return step?.description || '업로드한 사진을 바탕으로 피부 톤과 분위기를 분석하고 있어요.'
+})
+
+const advanceSteps = () => {
+  let index = 0
+  currentStep.value = analysisSteps[index].key
+  stepTimer.value = window.setInterval(() => {
+    index = Math.min(index + 1, analysisSteps.length - 1)
+    currentStep.value = analysisSteps[index].key
+    if (index >= analysisSteps.length - 1 && stepTimer.value) {
+      window.clearInterval(stepTimer.value)
+      stepTimer.value = null
+    }
+  }, 1400)
+}
+
+const submitDiagnosis = async () => {
+  if (!diagnosisFile) {
+    errorMessage.value = '분석할 이미지가 없어요. 다시 업로드해 주세요.'
+    return
+  }
+
+  advanceSteps()
+
+  try {
+    const result = await createDiagnosis(diagnosisFile)
+    currentStep.value = 'result_ready'
+    router.replace(`/diagnosis/results/${result.id}`)
+  } catch (error) {
+    const detail = error?.response?.data?.detail
+    errorMessage.value = detail || '진단 요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  }
+}
+
+onMounted(submitDiagnosis)
+onBeforeUnmount(() => {
+  if (stepTimer.value) window.clearInterval(stepTimer.value)
+})
 </script>
 
 <style scoped>
@@ -146,7 +124,8 @@ import AppHeader from '@/components/AppHeader.vue'
 }
 
 .loading-page {
-  padding: 32px 70px 48px;
+  min-height: 100vh;
+  padding: 32px 48px 48px;
   background: linear-gradient(180deg, #fffaf7 0%, #fbf4f1 100%);
 }
 
@@ -178,7 +157,7 @@ import AppHeader from '@/components/AppHeader.vue'
 }
 
 .line {
-  width: 260px;
+  width: 220px;
   height: 1px;
   background: #ddd;
 }
@@ -188,7 +167,7 @@ import AppHeader from '@/components/AppHeader.vue'
 }
 
 .step-labels {
-  width: 650px;
+  width: 560px;
   margin: 10px auto 30px;
   display: flex;
   justify-content: space-between;
@@ -202,252 +181,33 @@ import AppHeader from '@/components/AppHeader.vue'
   font-weight: 700;
 }
 
-.loading-card {
-  max-width: 1220px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid #eaded8;
-  border-radius: 16px;
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 0.9fr;
-  position: relative;
-  overflow: hidden;
-}
-
-.left-section,
-.center-section,
-.right-section {
-  padding: 26px;
-}
-
-.center-section {
-  border-left: 1px solid #eaded8;
-  border-right: 1px solid #eaded8;
-}
-
-.face-box {
-  height: 560px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #f3ddd4, #fff4ef);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.scan-frame {
-  width: 330px;
-  height: 360px;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.25) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.25) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-.face {
-  font-size: 120px;
-}
-
-.safe-message {
-  position: absolute;
-  left: 32px;
-  bottom: 28px;
-  background: rgba(255, 255, 255, 0.86);
-  border-radius: 12px;
-  padding: 18px 22px;
-  line-height: 1.7;
-  color: #555;
-}
-
-.safe-message strong {
-  color: #333;
-}
-
-.warning-box {
-  margin-top: 28px;
-  padding: 24px 28px;
-  border-radius: 14px;
-  background: #fff5f3;
-  border: 1px solid #f1ded8;
-  display: grid;
-  grid-template-columns: 42px 1fr 150px;
-  align-items: center;
-  gap: 18px;
-}
-
-.warning-icon {
-  font-size: 28px;
-}
-
-.warning-box p {
-  margin: 8px 0 0;
-  color: #555;
-  line-height: 1.6;
-}
-
-.warning-box button {
-  height: 46px;
-  background: white;
-  border: 1px solid #d98c99;
-  color: #c65367;
-  border-radius: 8px;
-  font-weight: 700;
-}
-
-.circle-progress {
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  margin: 18px auto 36px;
-  background:
-    conic-gradient(#c65367 0deg 227deg, #f3e4e4 227deg 360deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  box-shadow: inset 0 0 0 18px #fffaf7;
-}
-
-.percent {
-  font-size: 54px;
-  font-weight: 800;
-  color: #c65367;
-}
-
-.percent span {
-  font-size: 26px;
-}
-
-.circle-progress strong {
-  margin-top: 8px;
-}
-
-.circle-progress p {
-  color: #777;
-}
-
-.process-list {
-  width: 340px;
-  margin: 0 auto;
-}
-
-.process-item {
-  display: flex;
-  gap: 18px;
-  margin-bottom: 32px;
-  position: relative;
-}
-
-.process-item span {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2px solid #ddd;
-  background: white;
-  flex-shrink: 0;
-}
-
-.process-item.done span {
-  background: #c65367;
-  color: white;
-  border-color: #c65367;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.process-item.active span {
-  border-color: #c65367;
-  border-style: dashed;
-}
-
-.process-item strong {
-  font-size: 17px;
-}
-
-.process-item p {
-  margin-top: 6px;
-  color: #777;
-  line-height: 1.5;
-}
-
-.info-box,
-.tip-box {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #eaded8;
-  border-radius: 14px;
-  padding: 26px;
-}
-
-.info-box {
-  display: flex;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.info-icon {
-  font-size: 28px;
-}
-
-.info-box p {
-  color: #666;
-  line-height: 1.7;
-}
-
-.info-box a {
-  color: #c65367;
-  font-weight: 700;
-}
-
-.tip-box h3 {
-  margin-bottom: 28px;
-}
-
-.tip-item {
-  display: flex;
-  gap: 18px;
-  margin-bottom: 28px;
-}
-
-.tip-item span {
-  font-size: 24px;
-}
-
-.tip-item p {
-  margin: 0;
-  line-height: 1.7;
-  color: #666;
-}
-
-.tip-item strong {
-  color: #333;
-}
-
-.bottom-area {
-  grid-column: 1 / 4;
-  border-top: 1px solid #eaded8;
-  padding: 18px 0 24px;
+.loading-actions {
+  margin-top: 22px;
   text-align: center;
 }
 
-.cancel-btn {
-  width: 310px;
-  height: 50px;
-  border: 1px solid #c65367;
-  color: #c65367;
-  background: white;
+.outline-btn {
+  min-width: 180px;
+  min-height: 44px;
+  border: 1px solid #d98c99;
   border-radius: 8px;
-  font-weight: 700;
-  font-size: 16px;
+  background: #fff;
+  color: #c65367;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-.bottom-area p {
-  margin-top: 18px;
-  color: #777;
+@media (max-width: 720px) {
+  .loading-page {
+    padding: 22px 16px 40px;
+  }
+
+  .step-labels {
+    width: 100%;
+  }
+
+  .line {
+    width: 64px;
+  }
 }
 </style>

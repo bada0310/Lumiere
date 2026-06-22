@@ -333,6 +333,89 @@ export const MOCK_PERSONAL_COLOR_RESULTS = [
   }),
 ]
 
+const MOCK_TOP_UPS = {
+  neutral: [
+    { name: 'Natural Beige', hex: '#D7B99A' },
+    { name: 'Soft Taupe', hex: '#A98C7A' },
+    { name: 'Cream Ivory', hex: '#F1DFC8' },
+    { name: 'Deep Mocha', hex: '#6A4A3A' },
+  ],
+  accent: [
+    { name: 'Antique Gold', hex: '#B99655' },
+    { name: 'Deep Teal', hex: '#0F5B5B' },
+    { name: 'Olive Brown', hex: '#5C5634' },
+    { name: 'Brick Rose', hex: '#9E4F49' },
+  ],
+  try: [
+    { name: 'Cinnamon', hex: '#9C5A35' },
+    { name: 'Camel Beige', hex: '#C19465' },
+    { name: 'Soft Khaki', hex: '#85845A' },
+    { name: 'Terracotta', hex: '#B76343' },
+  ],
+  worst: [
+    { name: 'Pastel Lavender', hex: '#D9C6F0' },
+    { name: 'Cool Mint', hex: '#BDEFEA' },
+    { name: 'Neon Pink', hex: '#FF2FA0' },
+  ],
+}
+
+const padColors = (colors = [], fallback = [], target = 4) => {
+  const result = [...colors]
+  for (const color of fallback) {
+    if (result.length >= target) break
+    if (!result.some((item) => item.name === color.name)) result.push(color)
+  }
+  return result
+}
+
+const expandMockResult = (result) => {
+  const palettes = result.palettes || {}
+  const eye = result.makeupColorGuide?.eye || {}
+  const neutral = padColors(palettes.neutral, MOCK_TOP_UPS.neutral, 4)
+  const accent = padColors(palettes.accent, MOCK_TOP_UPS.accent, 4)
+  const tryColors = padColors(palettes.try, MOCK_TOP_UPS.try, 4)
+  const worst = padColors(palettes.worst, MOCK_TOP_UPS.worst, 3)
+
+  return {
+    ...result,
+    palettes: {
+      ...palettes,
+      best: padColors(palettes.best, result.representativeColors || [], 5),
+      neutral,
+      accent,
+      try: tryColors,
+      worst,
+    },
+    makeupColorGuide: {
+      ...result.makeupColorGuide,
+      base: {
+        ...result.makeupColorGuide?.base,
+        chips: padColors(result.makeupColorGuide?.base?.chips, neutral, 3),
+      },
+      eye: {
+        ...eye,
+        aegyosal: padColors(eye.aegyosal, [neutral[0], neutral[1], MOCK_TOP_UPS.try[1]], 3),
+        eyeliner: padColors(eye.eyeliner, [neutral[3], accent[2], MOCK_TOP_UPS.neutral[3]], 3),
+      },
+      lip: {
+        ...result.makeupColorGuide?.lip,
+        chips: padColors(result.makeupColorGuide?.lip?.chips, accent, 4),
+      },
+      blush: {
+        ...result.makeupColorGuide?.blush,
+        chips: padColors(result.makeupColorGuide?.blush?.chips, accent, 3),
+      },
+    },
+    styleGuide: {
+      ...result.styleGuide,
+      outfit: {
+        description: '톤에 맞는 상하의와 포인트 컬러입니다.',
+        colors: padColors(result.styleGuide?.fashion, palettes.best, 4),
+      },
+    },
+  }
+}
+
 export const DEFAULT_MOCK_TONE_KEY = 'summer_cool_light'
 
 export const isMockPersonalColorResultKey = (toneKey) => {
@@ -342,8 +425,8 @@ export const isMockPersonalColorResultKey = (toneKey) => {
 
 export const getMockPersonalColorResult = (toneKey = DEFAULT_MOCK_TONE_KEY) => {
   const normalizedKey = String(toneKey || DEFAULT_MOCK_TONE_KEY).replace(/-/g, '_')
-  return (
+  const result =
     MOCK_PERSONAL_COLOR_RESULTS.find((result) => result.toneKey === normalizedKey || result.type === normalizedKey) ||
     MOCK_PERSONAL_COLOR_RESULTS[0]
-  )
+  return expandMockResult(result)
 }

@@ -18,18 +18,14 @@
         </div>
       </section>
 
-      <section v-if="loading" class="state-card">
-        진단 결과를 불러오고 있어요.
-      </section>
+      <section v-if="loading" class="state-card">진단 결과를 불러오고 있어요.</section>
 
       <section v-else-if="errorMessage" class="state-card">
         <strong>{{ errorMessage }}</strong>
         <button type="button" @click="loadDiagnosis">다시 불러오기</button>
       </section>
 
-      <section v-else-if="!diagnosisResult" class="state-card">
-        표시할 진단 결과가 없어요.
-      </section>
+      <section v-else-if="!diagnosisResult" class="state-card">표시할 진단 결과가 없어요.</section>
 
       <section v-else class="result-shell">
         <div class="result-topline">
@@ -65,39 +61,27 @@
               </div>
             </div>
 
-            <div class="tags" aria-label="진단 키워드">
+            <div class="tags" aria-label="스타일 키워드">
               <span v-for="tag in keywords" :key="tag">{{ tag }}</span>
             </div>
           </article>
 
           <article class="profile-panel">
             <div class="section-title-block">
-              <span>Gen AI / 기본 프로필</span>
+              <span>대표 이미지</span>
               <h2>결과 타입 대표 이미지</h2>
             </div>
 
             <div class="profile-image-frame">
-              <img
-                :src="safeProfileImageUrl"
-                :alt="`${resultName} 타입의 기본 프로필 이미지`"
-                @error="profileImageErrored = true"
-              />
+              <img :src="safeProfileImageUrl" :alt="`${resultName} 대표 이미지`" @error="profileImageErrored = true" />
             </div>
 
             <p class="profile-caption">
-              toneKey <strong>{{ diagnosisResult.personal_color_code || '-' }}</strong> 기준으로
-              <code>images/tones</code> 이미지가 매핑됩니다.
+              toneKey <strong>{{ diagnosisResult.personal_color_code || '-' }}</strong> 기준의 고정 대표 이미지입니다.
             </p>
 
-            <GeneratedMakeupImage
-              :generated-url="diagnosisResult.generated_makeup_image_url"
-              :uploaded-url="diagnosisResult.processed_image_url || diagnosisResult.uploaded_image_url"
-              :generation-status="diagnosisResult.makeup_generation_status"
-              @retry="loadDiagnosis"
-            />
-
-            <div v-if="diagnosisResult.uploaded_image_url" class="secondary-image">
-              <img :src="diagnosisResult.uploaded_image_url" alt="진단에 사용한 원본 이미지" />
+            <div v-if="sourceImageUrl" class="secondary-image">
+              <img :src="sourceImageUrl" alt="진단에 사용한 원본 이미지" />
               <span>진단 원본 이미지</span>
             </div>
           </article>
@@ -107,8 +91,8 @@
           <article class="section-card feature-panel">
             <div class="section-head">
               <div>
-                <h2>전체 이미지 특징</h2>
-                <p>AI가 읽은 인상과 톤의 방향입니다.</p>
+                <h2>AI 분석 포인트</h2>
+                <p>사진에서 읽은 톤 판단 근거입니다.</p>
               </div>
             </div>
 
@@ -152,8 +136,8 @@
           <article class="section-card">
             <div class="section-head">
               <div>
-                <h2>피부톤 정량 분석</h2>
-                <p>mock 데이터 수치가 그대로 반영되는 영역입니다.</p>
+                <h2>피부 톤 정량 분석</h2>
+                <p>밝기, 채도, 대비를 시각화한 지표입니다.</p>
               </div>
             </div>
 
@@ -175,7 +159,7 @@
             <div class="section-head">
               <div>
                 <h2>피부 특성 밸런스</h2>
-                <p>평균값과 비교한 레이더 차트입니다.</p>
+                <p>주요 톤 지표를 한눈에 비교합니다.</p>
               </div>
             </div>
             <SkinBalanceChart :axes="radarRows" />
@@ -213,7 +197,7 @@
           <div class="section-head">
             <div>
               <h2>메이크업 컬러 가이드</h2>
-              <p>제품명이 아니라 색 계열과 사용 위치를 기준으로 정리했어요.</p>
+              <p>제품명이 아니라 toneKey 기반 색상과 사용 위치를 정리했어요.</p>
             </div>
           </div>
 
@@ -232,7 +216,7 @@
             </article>
 
             <article class="makeup-card makeup-card--eye">
-              <h3>아이</h3>
+              <h3>아이 메이크업</h3>
               <p>{{ makeupGuide.eye.description }}</p>
               <div class="eye-guide-grid">
                 <div v-for="group in eyeGuideGroups" :key="group.key" class="eye-guide-card">
@@ -241,6 +225,7 @@
                   <ColorChipList :colors="group.colors" :label="`아이 ${group.label} 컬러`" compact />
                 </div>
               </div>
+              <AvoidList :items="makeupGuide.eye.avoid" />
             </article>
 
             <article class="makeup-card">
@@ -264,39 +249,21 @@
         <section ref="makeoverRef" class="section-card makeover-section">
           <div class="section-head">
             <div>
-              <h2>AI 메이크오버 예시</h2>
-              <p>제품 추천이 아니라 스타일 적용 분위기를 확인하는 영역입니다.</p>
-            </div>
-
-            <div v-if="makeoverStyles.length" class="tabs" role="tablist" aria-label="메이크오버 스타일">
-              <button
-                v-for="look in makeoverStyles"
-                :key="look.key"
-                type="button"
-                :class="{ active: selectedLookKey === look.key }"
-                @click="selectedLookKey = look.key"
-              >
-                {{ look.name }}
-              </button>
+              <h2>AI 메이크오버 이미지</h2>
+              <p>진단 결과와 분리된 비동기 작업으로 스타일별 이미지를 순차 표시합니다.</p>
             </div>
           </div>
 
-          <div v-if="makeoverStyles.length" class="makeover-list">
-            <article
-              v-for="look in makeoverStyles"
-              :key="look.key"
-              class="look-card"
-              :class="{ active: selectedLookKey === look.key }"
-            >
-              <img v-if="look.image_url" :src="look.image_url" :alt="`${look.name} 메이크업 스타일 이미지`" />
-              <div v-else class="image-placeholder" aria-hidden="true">
-                <span>{{ look.name }}</span>
-              </div>
-              <strong>{{ look.name }}</strong>
-              <p>{{ look.description }}</p>
-            </article>
-          </div>
-          <p v-else class="empty-text">메이크오버 이미지가 아직 없어요.</p>
+          <AIMakeoverGallery
+            :styles="makeoverStyles"
+            :status="makeoverStatus"
+            :selected-key="selectedLookKey"
+            :loading="makeoverLoading"
+            :error="makeoverError"
+            @start="startMakeovers"
+            @retry="retryMakeover"
+            @select="selectedLookKey = $event"
+          />
         </section>
 
         <section class="lower-grid">
@@ -304,37 +271,20 @@
             <div class="section-head">
               <div>
                 <h2>추가 스타일 가이드</h2>
-                <p>렌즈, 헤어, 액세서리, 의상 컬러 방향입니다.</p>
+                <p>렌즈, 헤어, 악세서리, 의상 컬러 방향입니다.</p>
               </div>
             </div>
 
             <div class="style-grid">
-              <div class="style-card">
-                <h3>렌즈</h3>
-                <ColorChipList :colors="styleGuide.lens" label="추천 렌즈 컬러" compact />
-              </div>
-
-              <div class="style-card">
-                <h3>헤어</h3>
-                <ColorChipList :colors="styleGuide.hair" label="추천 헤어 컬러" compact />
-              </div>
-
-              <div class="style-card">
-                <h3>액세서리</h3>
-                <ul class="plain-list">
-                  <li v-for="item in styleGuide.accessory" :key="item">{{ item }}</li>
-                </ul>
-              </div>
-
-              <div class="style-card">
-                <h3>의상</h3>
-                <ColorChipList :colors="styleGuide.fashion" label="추천 의상 컬러" compact />
-              </div>
+              <StyleGuideCard icon="◉" title="렌즈" :colors="styleGuide.lens" />
+              <StyleGuideCard icon="⌁" title="헤어" :colors="styleGuide.hair" />
+              <StyleGuideCard icon="✦" title="악세서리" :items="styleGuide.accessory" />
+              <StyleGuideCard icon="▣" title="의상" :description="styleGuide.outfit.description" :colors="outfitColors" />
             </div>
 
             <div v-if="stylingKeywords.length || productToneRangeText" class="fixed-palette-meta">
               <div v-if="stylingKeywords.length">
-                <h3>스타일링 키워드</h3>
+                <h3>스타일 키워드</h3>
                 <div class="keyword-row">
                   <span v-for="keyword in stylingKeywords" :key="keyword">{{ keyword }}</span>
                 </div>
@@ -359,8 +309,8 @@
             <span>제품 추천은 별도 페이지에서 확인해요.</span>
           </button>
           <button type="button" class="cta-btn" @click="scrollToMakeover">
-            AI 메이크오버 더 보기
-            <span>스타일 예시 영역으로 이동합니다.</span>
+            AI 메이크오버 보기
+            <span>스타일 이미지 영역으로 이동합니다.</span>
           </button>
           <button type="button" class="cta-btn" :class="{ saved: isSaved }" @click="saveResult">
             {{ isSaved ? '결과 저장 완료' : '결과 저장하기' }}
@@ -368,8 +318,8 @@
           </button>
         </section>
 
-        <p class="save-notice">
-          개발 환경의 mock 결과는 localStorage에 저장되어 새로고침 후에도 마이페이지에서 확인할 수 있어요.
+        <p v-if="diagnosisResult.is_mock" class="save-notice">
+          개발 환경의 mock 결과는 localStorage에 저장됩니다.
         </p>
       </section>
     </main>
@@ -380,8 +330,10 @@
 import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import GeneratedMakeupImage from '@/components/diagnosis/GeneratedMakeupImage.vue'
+import AIMakeoverGallery from '@/components/diagnosis/AIMakeoverGallery.vue'
+import ColorChipList from '@/components/diagnosis/ColorChipList.vue'
 import SkinBalanceChart from '@/components/diagnosis/SkinBalanceChart.vue'
+import StyleGuideCard from '@/components/diagnosis/StyleGuideCard.vue'
 import { FALLBACK_TONE_IMAGE } from '@/data/toneImages'
 import {
   DEFAULT_MOCK_TONE_KEY,
@@ -389,55 +341,17 @@ import {
   isMockPersonalColorResultKey,
   MOCK_PERSONAL_COLOR_RESULTS,
 } from '@/data/mockPersonalColorResults'
-import { getDemoDiagnosis, getDiagnosisResult, getLatestDiagnosis } from '@/services/diagnosisApi'
+import {
+  getDemoDiagnosis,
+  getDiagnosisResult,
+  getLatestDiagnosis,
+  getMakeoverStatus,
+  retryMakeoverStyle,
+  startMakeoverGeneration,
+} from '@/services/diagnosisApi'
 import { useRequireLogin } from '@/composables/useRequireLogin'
 import { getDiagnosisProfileImageUrl, normalizeDiagnosisResult } from '@/utils/diagnosisResultTransform'
 import { getSavedMockDiagnosisResult, saveMockDiagnosisResult } from '@/utils/diagnosisMockStorage'
-
-const ColorChipList = defineComponent({
-  name: 'ColorChipList',
-  props: {
-    colors: {
-      type: Array,
-      default: () => [],
-    },
-    label: {
-      type: String,
-      default: '컬러칩',
-    },
-    compact: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  setup(props) {
-    return () =>
-      h(
-        'div',
-        {
-          class: ['inline-color-list', { 'inline-color-list--compact': props.compact }],
-          role: 'list',
-          'aria-label': props.label,
-        },
-        props.colors.map((color) =>
-          h(
-            'div',
-            {
-              key: color.name,
-              class: 'inline-color-chip',
-              role: 'listitem',
-              title: color.description || `${color.name} ${color.hex}`,
-              'aria-label': `${color.name} ${color.hex}`,
-            },
-            [
-              h('span', { style: { backgroundColor: color.hex } }),
-              h('small', color.name),
-            ],
-          ),
-        ),
-      )
-  },
-})
 
 const AvoidList = defineComponent({
   name: 'AvoidList',
@@ -454,7 +368,7 @@ const AvoidList = defineComponent({
             h('strong', '피하면 좋은 방향'),
             h(
               'ul',
-              props.items.map((item) => h('li', { key: item }, item)),
+              props.items.map((item) => h('li', { key: String(item) }, typeof item === 'string' ? item : item.name || item.description)),
             ),
           ])
         : null
@@ -472,11 +386,13 @@ const selectedLookKey = ref('')
 const isSaved = ref(false)
 const makeoverRef = ref(null)
 const profileImageErrored = ref(false)
-let makeupPollTimer = null
+const makeoverState = ref({ status: 'none', styles: [], error: '' })
+const makeoverLoading = ref(false)
+let makeoverPollTimer = null
 
 const isDev = import.meta.env.DEV
 const mockOptions = MOCK_PERSONAL_COLOR_RESULTS
-const defaultTip = '색상은 제품명보다 실제 발색과 채도, 명도, 온도감이 더 중요해요.'
+const defaultTip = '색상은 제품명보다 실제 발색, 채도, 명도, 온도감이 더 중요해요.'
 
 const selectedMockQuery = computed(() => {
   const queryValue = route.query.mock
@@ -498,85 +414,80 @@ const formatDate = (value) => {
   return date.toISOString().slice(0, 10).replaceAll('-', '.')
 }
 
+const diagnosisId = computed(() => route.params.diagnosisId || route.params.id || diagnosisResult.value?.id || '')
+const canUseMakeoverApi = computed(() => Boolean(diagnosisId.value && !diagnosisResult.value?.is_mock && !diagnosisResult.value?.is_demo))
 const confidence = computed(() => clampPercent(diagnosisResult.value?.confidence ?? diagnosisResult.value?.confidence_score))
-
-const resultName = computed(() => {
-  return diagnosisResult.value?.korean_name || diagnosisResult.value?.personal_color?.korean_name || '퍼스널 컬러'
-})
-
-const resultEnglishName = computed(() => {
-  return diagnosisResult.value?.english_name || diagnosisResult.value?.personal_color?.english_name || ''
-})
-
-const resultSummary = computed(() => {
-  return diagnosisResult.value?.summary || '진단 결과에 맞춘 컬러와 스타일 가이드를 확인해보세요.'
-})
-
-const resultDate = computed(() => {
-  return formatDate(diagnosisResult.value?.diagnosed_at || diagnosisResult.value?.created_at)
-})
-
+const resultName = computed(() => diagnosisResult.value?.korean_name || diagnosisResult.value?.personal_color?.korean_name || '퍼스널 컬러')
+const resultEnglishName = computed(() => diagnosisResult.value?.english_name || diagnosisResult.value?.personal_color?.english_name || '')
+const resultSummary = computed(() => diagnosisResult.value?.summary || '진단 결과에 맞춘 컬러와 스타일 가이드를 확인해보세요.')
+const resultDate = computed(() => formatDate(diagnosisResult.value?.diagnosed_at || diagnosisResult.value?.created_at))
 const keywords = computed(() => asArray(diagnosisResult.value?.keywords))
 const imageFeatures = computed(() => asArray(diagnosisResult.value?.image_features))
 const representativeColors = computed(() => asArray(diagnosisResult.value?.representative_colors))
-const makeoverStyles = computed(() => asArray(diagnosisResult.value?.makeover_styles))
 const makeupGuide = computed(() => diagnosisResult.value?.makeup_color_guide || normalizeDiagnosisResult({})?.makeup_color_guide)
-const styleGuide = computed(() => diagnosisResult.value?.style_guide || { lens: [], hair: [], accessory: [], fashion: [] })
+const styleGuide = computed(() => diagnosisResult.value?.style_guide || { lens: [], hair: [], accessory: [], outfit: { colors: [] } })
+const outfitColors = computed(() => asArray(styleGuide.value?.outfit?.colors?.length ? styleGuide.value.outfit.colors : styleGuide.value?.fashion))
 const paletteStatus = computed(() => diagnosisResult.value?.palette_status || '')
-const stylingKeywords = computed(() => asArray(diagnosisResult.value?.styling_keywords))
+const stylingKeywords = computed(() => asArray(diagnosisResult.value?.styling_keywords || styleGuide.value?.styling_keywords))
+const makeoverStyles = computed(() => asArray(makeoverState.value.styles?.length ? makeoverState.value.styles : diagnosisResult.value?.ai_makeover?.styles))
+const makeoverStatus = computed(() => makeoverState.value.status || diagnosisResult.value?.ai_makeover?.status || 'none')
+const makeoverError = computed(() => makeoverState.value.error || '')
+const sourceImageUrl = computed(() => diagnosisResult.value?.processed_image_url || diagnosisResult.value?.uploaded_image_url || '')
+const safeProfileImageUrl = computed(() => (profileImageErrored.value ? FALLBACK_TONE_IMAGE : getDiagnosisProfileImageUrl(diagnosisResult.value)))
+
 const productToneRangeText = computed(() => {
   const range = diagnosisResult.value?.recommended_product_tone_range || {}
-  const parts = []
-  if (range.hue?.length) parts.push(`색상: ${range.hue.join(', ')}`)
-  if (range.brightness?.length) parts.push(`명도: ${range.brightness.join(', ')}`)
-  if (range.chroma?.length) parts.push(`채도: ${range.chroma.join(', ')}`)
-  if (range.temperature) parts.push(`온도: ${range.temperature}`)
+  const parts = [
+    range.temperature && `온도감 ${range.temperature}`,
+    asArray(range.brightness).length && `명도 ${range.brightness.join(', ')}`,
+    asArray(range.chroma).length && `채도 ${range.chroma.join(', ')}`,
+    asArray(range.hue).length && `색상 ${range.hue.join(', ')}`,
+  ].filter(Boolean)
   return parts.join(' / ')
 })
-const isMakeupGenerating = computed(() =>
-  ['queued', 'running', 'loading', 'pending'].includes(diagnosisResult.value?.makeup_generation_status),
-)
 
-const profileImageUrl = computed(() => getDiagnosisProfileImageUrl(diagnosisResult.value))
-const safeProfileImageUrl = computed(() => (profileImageErrored.value ? FALLBACK_TONE_IMAGE : profileImageUrl.value))
+const isMakeoverActive = computed(() => {
+  if (['queued', 'running', 'pending', 'loading', 'partial'].includes(makeoverStatus.value)) return true
+  return makeoverStyles.value.some((style) => ['queued', 'running', 'pending', 'loading'].includes(style.status))
+})
 
 const skinMetricLabels = [
-  { key: 'brightness', name: '명도', desc: '피부 밝기 정도' },
-  { key: 'saturation', name: '채도', desc: '색의 선명한 정도' },
-  { key: 'clarity', name: '청탁', desc: '맑고 투명한 정도' },
-  { key: 'contrast', name: '대비', desc: '이목구비 대비감' },
-  { key: 'cool_warm', name: '쿨톤 ↔ 웜톤', desc: '피부 온도감 축' },
-  { key: 'softness', name: '부드러움', desc: '전체 인상의 소프트함' },
+  { key: 'brightness', name: '명도', desc: '피부가 밝게 보이는 정도' },
+  { key: 'saturation', name: '채도', desc: '얼굴에 어울리는 색의 선명도' },
+  { key: 'clarity', name: '맑기', desc: '탁기 없이 깨끗하게 보이는 정도' },
+  { key: 'contrast', name: '대비', desc: '이목구비와 색의 또렷함' },
+  { key: 'cool_warm', name: '온도감', desc: '쿨톤과 웜톤의 기울기' },
+  { key: 'softness', name: '부드러움', desc: '부드러운 컬러가 어울리는 정도' },
 ]
 
 const radarLabels = [
-  { key: 'brightness', name: '명도', average: 62 },
-  { key: 'saturation', name: '채도', average: 48 },
-  { key: 'clarity', name: '청탁', average: 55 },
-  { key: 'contrast', name: '대비', average: 50 },
-  { key: 'softness', name: '부드러움', average: 57 },
-  { key: 'coolness', name: '쿨감', average: 52 },
+  { key: 'brightness', label: '명도' },
+  { key: 'saturation', label: '채도' },
+  { key: 'clarity', label: '맑기' },
+  { key: 'contrast', label: '대비' },
+  { key: 'softness', label: '부드러움' },
+  { key: 'coolness', label: '쿨감' },
 ]
 
 const paletteGroups = [
-  { key: 'best', label: 'BEST', description: '가장 잘 어울리는 컬러' },
-  { key: 'neutral', label: 'NEUTRAL', description: '자연스럽고 안정적인 컬러' },
-  { key: 'accent', label: 'ACCENT', description: '포인트로 좋은 컬러' },
-  { key: 'try', label: 'TRY', description: '부담 없이 시도해볼 컬러' },
-  { key: 'worst', label: 'WORST', description: '피하면 좋은 컬러' },
+  { key: 'best', label: 'BEST', description: '가장 안정적으로 어울리는 컬러' },
+  { key: 'neutral', label: 'NEUTRAL', description: '베이스와 데일리로 쓰기 좋은 컬러' },
+  { key: 'accent', label: 'ACCENT', description: '포인트로 생기를 더하는 컬러' },
+  { key: 'try', label: 'TRY', description: '조심스럽게 시도해볼 만한 컬러' },
+  { key: 'worst', label: 'WORST', description: '얼굴색을 흐리게 만들 수 있는 컬러' },
 ]
 
 const eyeGuideGroups = computed(() => [
   {
     key: 'highlighter',
     label: '하이라이터',
-    description: '눈앞머리와 애교살 포인트',
+    description: '눈두덩과 눈 앞머리에 밝게 올리는 컬러',
     colors: makeupGuide.value.eye.highlighter,
   },
   {
     key: 'base',
     label: '베이스',
-    description: '눈두덩 전체에 깔아주는 컬러',
+    description: '눈두덩 전체를 깔끔하게 정리하는 컬러',
     colors: makeupGuide.value.eye.base,
   },
   {
@@ -588,14 +499,25 @@ const eyeGuideGroups = computed(() => [
   {
     key: 'point',
     label: '포인트',
-    description: '눈꼬리와 언더 포인트 컬러',
+    description: '눈꼬리와 삼각존에 더하는 포인트 컬러',
     colors: makeupGuide.value.eye.point,
+  },
+  {
+    key: 'aegyosal',
+    label: '애굣살',
+    description: '밝고 자연스럽게 볼륨을 주는 컬러',
+    colors: makeupGuide.value.eye.aegyosal,
+  },
+  {
+    key: 'eyeliner',
+    label: '아이라이너',
+    description: '점막과 라인을 또렷하게 잡는 컬러',
+    colors: makeupGuide.value.eye.eyeliner,
   },
 ])
 
 const formatMetricLabel = (metric) => {
   if (metric.key !== 'cool_warm') return String(metric.value)
-
   const intensity = Math.round(Math.abs(metric.value - 50) * 2)
   if (intensity === 0) return '중립'
   return metric.value < 50 ? `쿨 ${intensity}` : `웜 ${intensity}`
@@ -603,7 +525,6 @@ const formatMetricLabel = (metric) => {
 
 const skinMetricRows = computed(() => {
   const metrics = diagnosisResult.value?.skin_metrics || {}
-
   return skinMetricLabels.map((metric) => {
     const value = clampPercent(metrics[metric.key])
     return {
@@ -616,36 +537,51 @@ const skinMetricRows = computed(() => {
 
 const radarRows = computed(() => {
   const chart = diagnosisResult.value?.radar_chart || {}
-
   return radarLabels.map((axis) => ({
     ...axis,
     value: clampPercent(chart[axis.key]),
   }))
 })
 
-const paletteItems = (key) => {
-  return asArray(diagnosisResult.value?.color_palettes?.[key])
-}
+const paletteItems = (key) => asArray(diagnosisResult.value?.color_palettes?.[key])
 
-const iconLabel = (icon) => ({
-  sparkle: '✦',
-  cloud: '☁',
-  diamond: '◇',
-  flower: '✿',
-  sun: '☼',
-  leaf: '◇',
-}[icon] || '✦')
+const iconLabel = (icon) =>
+  ({
+    sparkle: '✦',
+    cloud: '○',
+    diamond: '◇',
+    flower: '✽',
+    sun: '☼',
+    leaf: '⌁',
+    circle: '◌',
+  })[icon] || '✦'
+
+const normalizeMakeoverPayload = (payload) => ({
+  status: payload?.status || 'none',
+  error: payload?.error || payload?.detail || '',
+  styles: asArray(payload?.styles || payload?.makeover_styles).map((style, index) => ({
+    key: style.key || `style-${index}`,
+    name: style.name || `스타일 ${index + 1}`,
+    description: style.description || '',
+    image_url: style.image_url || style.image || '',
+    status: style.status || (style.image_url || style.image ? 'complete' : 'none'),
+    error_message: style.error_message || style.error || '',
+    order: style.order ?? index + 1,
+    is_default: Boolean(style.is_default || index === 0),
+  })),
+})
 
 const applyDiagnosisResult = (raw) => {
   const normalized = normalizeDiagnosisResult(raw)
   diagnosisResult.value = normalized
+  makeoverState.value = normalized?.ai_makeover || { status: 'none', styles: [], error: '' }
   selectedLookKey.value =
-    normalized?.makeover_styles?.find((look) => look.is_default)?.key ||
+    normalized?.ai_makeover?.styles?.find((look) => look.is_default)?.key ||
+    normalized?.ai_makeover?.styles?.[0]?.key ||
     normalized?.makeover_styles?.[0]?.key ||
     ''
   profileImageErrored.value = false
   isSaved.value = Boolean(normalized?.is_mock && getSavedMockDiagnosisResult()?.id === normalized.id)
-  scheduleMakeupPolling()
 }
 
 const loadMockDiagnosis = (toneKey = DEFAULT_MOCK_TONE_KEY) => {
@@ -655,11 +591,82 @@ const loadMockDiagnosis = (toneKey = DEFAULT_MOCK_TONE_KEY) => {
     errorMessage.value = `지원하지 않는 mock 타입입니다: ${toneKey}`
     return
   }
-
   applyDiagnosisResult({
     ...getMockPersonalColorResult(toneKey),
     is_mock: true,
   })
+}
+
+const loadMakeovers = async ({ silent = false } = {}) => {
+  if (!canUseMakeoverApi.value) return
+  if (!silent) makeoverLoading.value = true
+
+  try {
+    const data = await getMakeoverStatus(diagnosisId.value)
+    makeoverState.value = normalizeMakeoverPayload(data)
+    if (!selectedLookKey.value && makeoverState.value.styles.length) {
+      selectedLookKey.value = makeoverState.value.styles[0].key
+    }
+    scheduleMakeoverPolling()
+  } catch (error) {
+    if (!silent) {
+      makeoverState.value = {
+        ...makeoverState.value,
+        error: error?.response?.data?.detail || 'AI 메이크오버 상태를 불러오지 못했어요.',
+      }
+    }
+    stopMakeoverPolling()
+  } finally {
+    if (!silent) makeoverLoading.value = false
+  }
+}
+
+const startMakeovers = async () => {
+  if (!canUseMakeoverApi.value || makeoverLoading.value) return
+  makeoverLoading.value = true
+
+  try {
+    const data = await startMakeoverGeneration(diagnosisId.value)
+    makeoverState.value = normalizeMakeoverPayload(data)
+    if (!selectedLookKey.value && makeoverState.value.styles.length) {
+      selectedLookKey.value = makeoverState.value.styles[0].key
+    }
+    scheduleMakeoverPolling()
+  } catch (error) {
+    makeoverState.value = {
+      ...makeoverState.value,
+      error: error?.response?.data?.detail || 'AI 메이크오버 생성을 시작하지 못했어요.',
+    }
+  } finally {
+    makeoverLoading.value = false
+  }
+}
+
+const startMakeoversIfNeeded = async () => {
+  if (!canUseMakeoverApi.value) return
+  if (!['none', 'skipped'].includes(makeoverStatus.value)) {
+    scheduleMakeoverPolling()
+    return
+  }
+  await startMakeovers()
+}
+
+const retryMakeover = async (styleKey) => {
+  if (!canUseMakeoverApi.value || !styleKey) return
+  makeoverLoading.value = true
+
+  try {
+    const data = await retryMakeoverStyle(diagnosisId.value, styleKey)
+    makeoverState.value = normalizeMakeoverPayload(data)
+    scheduleMakeoverPolling()
+  } catch (error) {
+    makeoverState.value = {
+      ...makeoverState.value,
+      error: error?.response?.data?.detail || 'AI 메이크오버 재생성을 시작하지 못했어요.',
+    }
+  } finally {
+    makeoverLoading.value = false
+  }
 }
 
 const loadDiagnosis = async ({ silent = false } = {}) => {
@@ -673,11 +680,12 @@ const loadDiagnosis = async ({ silent = false } = {}) => {
     }
 
     const id = route.params.diagnosisId || route.params.id
-    const data = route.name === 'diagnosis-result-demo' || id === 'demo'
-      ? await getDemoDiagnosis()
-      : id
-        ? await getDiagnosisResult(id)
-        : await getLatestDiagnosis()
+    const data =
+      route.name === 'diagnosis-result-demo' || id === 'demo'
+        ? await getDemoDiagnosis()
+        : id
+          ? await getDiagnosisResult(id)
+          : await getLatestDiagnosis()
 
     if (!data) {
       if (isDev) {
@@ -685,17 +693,18 @@ const loadDiagnosis = async ({ silent = false } = {}) => {
         applyDiagnosisResult(savedMock || { ...getMockPersonalColorResult(), is_mock: true })
         return
       }
-
       diagnosisResult.value = null
       return
     }
 
     applyDiagnosisResult(data)
+    await loadMakeovers({ silent: true })
+    await startMakeoversIfNeeded()
   } catch (error) {
     console.error('진단 결과 조회 실패:', error)
 
     if (silent) {
-      stopMakeupPolling()
+      stopMakeoverPolling()
       return
     }
 
@@ -711,22 +720,22 @@ const loadDiagnosis = async ({ silent = false } = {}) => {
   }
 }
 
-const stopMakeupPolling = () => {
-  if (!makeupPollTimer) return
-  window.clearInterval(makeupPollTimer)
-  makeupPollTimer = null
+const stopMakeoverPolling = () => {
+  if (!makeoverPollTimer) return
+  window.clearInterval(makeoverPollTimer)
+  makeoverPollTimer = null
 }
 
-const scheduleMakeupPolling = () => {
-  stopMakeupPolling()
-  if (!isMakeupGenerating.value || diagnosisResult.value?.is_mock) return
+const scheduleMakeoverPolling = () => {
+  stopMakeoverPolling()
+  if (!isMakeoverActive.value || diagnosisResult.value?.is_mock || diagnosisResult.value?.is_demo) return
 
-  makeupPollTimer = window.setInterval(() => {
-    if (!isMakeupGenerating.value) {
-      stopMakeupPolling()
+  makeoverPollTimer = window.setInterval(() => {
+    if (!isMakeoverActive.value) {
+      stopMakeoverPolling()
       return
     }
-    loadDiagnosis({ silent: true })
+    loadMakeovers({ silent: true })
   }, 4000)
 }
 
@@ -750,10 +759,12 @@ const scrollToMakeover = () => {
 }
 
 const saveResult = () => {
-  if (!requireLogin({
-    message: '진단 결과 저장은 로그인 후 이용할 수 있어요.',
-    redirect: route.fullPath,
-  })) {
+  if (
+    !requireLogin({
+      message: '진단 결과 저장은 로그인 후 이용할 수 있어요.',
+      redirect: route.fullPath,
+    })
+  ) {
     return
   }
 
@@ -765,9 +776,12 @@ const saveResult = () => {
   alert('진단 결과를 저장했어요. 마이페이지에서 다시 확인할 수 있어요.')
 }
 
-watch(() => route.fullPath, () => loadDiagnosis())
+watch(
+  () => route.fullPath,
+  () => loadDiagnosis(),
+)
 onMounted(loadDiagnosis)
-onUnmounted(stopMakeupPolling)
+onUnmounted(stopMakeoverPolling)
 </script>
 
 <style scoped>
@@ -1026,17 +1040,6 @@ onUnmounted(stopMakeupPolling)
   text-align: center;
 }
 
-.profile-caption code {
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: #f6eeee;
-  color: #8b3a4a;
-}
-
-.profile-panel :deep(.generated-makeup) {
-  height: 260px;
-}
-
 .secondary-image {
   display: grid;
   grid-template-columns: 52px 1fr;
@@ -1277,8 +1280,7 @@ onUnmounted(stopMakeupPolling)
   background: #fff;
 }
 
-.makeup-card h3,
-.style-card h3 {
+.makeup-card h3 {
   margin: 0 0 10px;
   color: #9e4655;
   font-size: 15px;
@@ -1318,44 +1320,6 @@ onUnmounted(stopMakeupPolling)
   font-weight: 800;
 }
 
-.inline-color-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-
-.inline-color-chip {
-  max-width: 150px;
-  min-height: 38px;
-  padding: 6px 9px 6px 7px;
-  border: 1px solid #eee3df;
-  border-radius: 999px;
-  background: #fffaf7;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.inline-color-chip span {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  flex: 0 0 auto;
-}
-
-.inline-color-chip small {
-  min-width: 0;
-  color: #534845;
-  font-size: 12px;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.inline-color-list--compact .inline-color-chip {
-  max-width: 132px;
-}
-
 .avoid-list {
   margin-top: 14px;
   padding-top: 12px;
@@ -1367,8 +1331,7 @@ onUnmounted(stopMakeupPolling)
   font-size: 12px;
 }
 
-.avoid-list ul,
-.plain-list {
+.avoid-list ul {
   margin: 8px 0 0;
   padding-left: 18px;
   color: #6d625f;
@@ -1378,7 +1341,7 @@ onUnmounted(stopMakeupPolling)
 
 .eye-guide-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1401,86 +1364,11 @@ onUnmounted(stopMakeupPolling)
   line-height: 1.45;
 }
 
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tabs button {
-  min-width: 88px;
-  height: 34px;
-  border: 0;
-  border-radius: 7px;
-  background: #f8eeee;
-  color: #5e5653;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.tabs button.active,
-.tabs button:focus-visible {
-  background: #c65367;
-  color: white;
-  outline: 2px solid #efb8c2;
-  outline-offset: 2px;
-}
-
-.makeover-list {
-  margin-top: 24px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.look-card {
-  padding: 12px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.look-card.active {
-  border-color: #c65367;
-  background: #fffaf7;
-}
-
-.look-card img,
-.image-placeholder {
-  width: 100%;
-  aspect-ratio: 1.5 / 1;
-  border-radius: 8px;
-  object-fit: cover;
-  background: linear-gradient(135deg, #fff1eb, #f1d7e0);
-  margin-bottom: 11px;
-}
-
-.image-placeholder {
-  display: grid;
-  place-items: center;
-  color: #9e4655;
-  font-weight: 900;
-}
-
-.look-card p {
-  margin: 4px 0 0;
-  color: #8e7e79;
-  font-size: 12px;
-}
-
 .style-grid {
   margin-top: 18px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-}
-
-.style-card {
-  min-height: 132px;
-  padding: 16px;
-  border: 1px solid #eaded8;
-  border-radius: 10px;
-  background: #fff;
 }
 
 .fixed-palette-meta {
@@ -1634,7 +1522,6 @@ onUnmounted(stopMakeupPolling)
   .palette-section,
   .makeup-grid,
   .eye-guide-grid,
-  .makeover-list,
   .style-grid,
   .cta-grid {
     grid-template-columns: 1fr;

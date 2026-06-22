@@ -38,6 +38,31 @@ export const getDiagnosisResult = async (resultId) => {
   return response.data
 }
 
+export const startMakeoverGeneration = async (resultId) => {
+  const response = await axios.post(`${API_BASE_URL}/api/diagnosis/results/${resultId}/makeovers/`, null, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export const getMakeoverStatus = async (resultId) => {
+  const response = await axios.get(`${API_BASE_URL}/api/diagnosis/results/${resultId}/makeovers/`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export const retryMakeoverStyle = async (resultId, styleKey) => {
+  const response = await axios.post(
+    `${API_BASE_URL}/api/diagnosis/results/${resultId}/makeovers/${styleKey}/retry/`,
+    null,
+    {
+      headers: authHeaders(),
+    },
+  )
+  return response.data
+}
+
 export const getDemoDiagnosis = async () => {
   const response = await axios.get(`${API_BASE_URL}/api/diagnosis/demo/`)
   return response.data

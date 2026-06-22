@@ -197,10 +197,13 @@ def build_makeup_color_guide(palette_data):
             },
             'eye': {
                 'description': eye.get('guide') or eye.get('description') or '',
-                'highlighter': _role_chips(roles, 'highlighter'),
-                'base': _role_chips(roles, 'base'),
-                'shading': _role_chips(roles, 'shading'),
-                'point': _role_chips(roles, 'point'),
+                'highlighter': _role_chips(eye, roles, 'highlighter'),
+                'base': _role_chips(eye, roles, 'base'),
+                'shading': _role_chips(eye, roles, 'shading'),
+                'point': _role_chips(eye, roles, 'point'),
+                'aegyosal': _role_chips(eye, roles, 'aegyosal'),
+                'eyeliner': _role_chips(eye, roles, 'eyeliner'),
+                'avoid': eye.get('avoid') or [],
             },
             'lip': {
                 'title': lip.get('title') or '립 메이크업',
@@ -239,6 +242,9 @@ def build_makeup_color_guide(palette_data):
             'base': chips_for_usage('eye', 'eye_base'),
             'shading': chips_for_usage('eye_shading'),
             'point': chips_for_usage('eye_point', 'accent'),
+            'aegyosal': chips_for_usage('aegyosal', 'eye_aegyosal'),
+            'eyeliner': chips_for_usage('eyeliner', 'eye_liner'),
+            'avoid': makeup.get('eye', {}).get('avoid', []),
         },
         'lip': {
             'title': '립 메이크업',
@@ -265,7 +271,11 @@ def _chip(item):
     }
 
 
-def _role_chips(roles, key):
+def _role_chips(eye, roles, key):
+    direct_items = eye.get(key)
+    if direct_items:
+        return [_chip(item) for item in (direct_items if isinstance(direct_items, list) else [direct_items])]
+
     item = roles.get(key)
     return [_chip(item)] if item else []
 

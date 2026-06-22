@@ -1,14 +1,14 @@
 <template>
   <div class="page">
     <main class="upload-page">
-      <div class="back">‹ 이전으로</div>
+      <button class="back" type="button" @click="router.back()">이전으로</button>
 
       <section class="title-section">
-        <h1>AI 퍼스널컬러 진단</h1>
-        <p>정확한 진단을 위해 가이드를 따라 사진을 업로드해 주세요.</p>
+        <h1>AI 퍼스널 컬러 진단</h1>
+        <p>정확한 진단을 위해 자연광에서 정면 사진을 업로드해 주세요.</p>
       </section>
 
-      <section class="steps">
+      <section class="steps" aria-label="진단 단계">
         <div class="step active">1</div>
         <div class="line active"></div>
         <div class="step">2</div>
@@ -28,29 +28,13 @@
             <h2>촬영 가이드</h2>
 
             <div class="guide-list">
-              <div class="guide-item">
-                <span>☀️</span>
-                <p><strong>밝은 자연광 또는 밝은 조명</strong><br />그늘이나 어두운 곳은 피해 주세요.</p>
-              </div>
-
-              <div class="guide-item">
-                <span>🙂</span>
-                <p><strong>정면을 바라보고 촬영</strong><br />고개를 기울이거나 돌리지 마세요.</p>
-              </div>
-
-              <div class="guide-item">
-                <span>✨</span>
-                <p><strong>노필터로 촬영</strong><br />보정이나 필터는 사용하지 마세요.</p>
-              </div>
-
-              <div class="guide-item">
-                <span>👓</span>
-                <p><strong>안경을 벗고 촬영</strong><br />렌즈는 착용해도 괜찮아요.</p>
-              </div>
-
-              <div class="guide-item">
-                <span>👒</span>
-                <p><strong>모자나 머리띠를 벗고 촬영</strong><br />이마와 헤어라인이 보여야 해요.</p>
+              <div v-for="item in guideItems" :key="item.title" class="guide-item">
+                <span aria-hidden="true">{{ item.icon }}</span>
+                <p>
+                  <strong>{{ item.title }}</strong>
+                  <br />
+                  {{ item.description }}
+                </p>
               </div>
             </div>
           </div>
@@ -59,10 +43,11 @@
             <h2>사진 업로드</h2>
 
             <div class="upload-area">
-              <div class="camera-icon">📷</div>
+              <div class="camera-icon">CAM</div>
               <p>
-                사진을 업로드하거나<br />
-                카메라로 촬영해 주세요
+                사진을 업로드하거나
+                <br />
+                카메라로 촬영해 주세요.
               </p>
 
               <input
@@ -73,57 +58,55 @@
                 @change="handleFileChange"
               />
               <button class="primary-btn" type="button" :disabled="submitting" @click="openFilePicker">
-                📷 카메라 / 갤러리에서 선택
+                카메라 / 갤러리에서 선택
               </button>
               <button v-if="selectedFile" class="outline-btn" type="button" :disabled="submitting" @click="clearSelectedFile">
                 다른 사진으로 변경
               </button>
 
-              <small>JPG, PNG 파일만 업로드 가능 (최대 10MB)</small>
+              <small>JPG, PNG 파일만 업로드 가능해요. 최대 10MB</small>
             </div>
           </div>
 
           <div class="preview-box">
-            <h2>업로드한 이미지 미리보기</h2>
+            <h2>업로드한 이미지</h2>
 
             <div class="preview-image">
               <img v-if="previewUrl" :src="previewUrl" alt="업로드 이미지 미리보기" class="preview-photo" />
-              <div v-else class="face-placeholder">🙂</div>
+              <div v-else class="face-placeholder">FACE</div>
             </div>
 
-            <button class="outline-btn full" type="button" :disabled="submitting" @click="openFilePicker">다른 사진으로 변경 ↻</button>
+            <button class="outline-btn full" type="button" :disabled="submitting" @click="openFilePicker">
+              다른 사진으로 변경
+            </button>
           </div>
         </div>
 
         <div class="example-grid">
           <div class="example-box">
-            <h3>⊙ 좋은 사진 예시</h3>
-
+            <h3>좋은 사진 조건</h3>
             <div class="example-list">
               <div class="good-img"></div>
               <div class="good-img"></div>
               <div class="good-img"></div>
               <div class="good-img"></div>
             </div>
-
-            <p class="good-text">✓ 가이드에 맞는 사진은 더 정확한 진단 결과를 제공합니다.</p>
+            <p class="good-text">정면, 밝은 자연광, 필터 없는 사진이 가장 안정적이에요.</p>
           </div>
 
           <div class="example-box">
-            <h3>⊗ 잘못된 사진 예시</h3>
-
+            <h3>피하면 좋은 조건</h3>
             <div class="example-list">
               <div class="bad-img"></div>
               <div class="bad-img"></div>
               <div class="bad-img"></div>
               <div class="bad-img"></div>
             </div>
-
             <div class="bad-labels">
-              <span>조명이 어두워요</span>
-              <span>측면 사진이에요</span>
-              <span>안경을 착용했어요</span>
-              <span>필터가 적용됐어요</span>
+              <span>어두운 조명</span>
+              <span>측면 사진</span>
+              <span>강한 보정</span>
+              <span>색조 렌즈</span>
             </div>
           </div>
         </div>
@@ -131,10 +114,10 @@
         <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
         <button type="button" class="analysis-btn" :disabled="!selectedFile || submitting" @click="submitDiagnosis">
-          {{ submitting ? 'AI 분석 중...' : '분석 시작하기 →' }}
+          {{ submitting ? '준비 중...' : '분석 시작하기' }}
         </button>
 
-        <p class="privacy">🔒 업로드된 이미지는 AI 분석 후 즉시 삭제되며 저장되지 않습니다.</p>
+        <p class="privacy">업로드한 이미지는 진단 분석과 결과 저장을 위해 사용됩니다.</p>
       </section>
     </main>
   </div>
@@ -144,7 +127,6 @@
 import { onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { createDiagnosis } from '@/services/diagnosisApi'
 import { useRequireLogin } from '@/composables/useRequireLogin'
 
 const router = useRouter()
@@ -155,6 +137,14 @@ const selectedFile = ref(null)
 const previewUrl = ref('')
 const submitting = ref(false)
 const errorMessage = ref('')
+
+const guideItems = [
+  { icon: '☼', title: '밝은 자연광', description: '그늘이나 어두운 조명은 피해주세요.' },
+  { icon: '◎', title: '정면 촬영', description: '고개를 기울이거나 돌리지 말아주세요.' },
+  { icon: 'N', title: '필터 없이', description: '보정이나 필터를 적용하지 않은 사진이 좋아요.' },
+  { icon: '□', title: '얼굴 노출', description: '안경, 모자, 진한 색조 렌즈는 가능하면 빼주세요.' },
+  { icon: '⌁', title: '헤어라인 확인', description: '이마와 얼굴 윤곽이 보이면 더 정확해요.' },
+]
 
 const openFilePicker = () => {
   fileInput.value?.click()
@@ -174,13 +164,13 @@ const handleFileChange = (event) => {
 
   if (!['image/jpeg', 'image/png'].includes(file.type)) {
     clearSelectedFile()
-    errorMessage.value = 'JPG 또는 PNG 이미지만 업로드할 수 있습니다.'
+    errorMessage.value = 'JPG 또는 PNG 이미지만 업로드할 수 있어요.'
     return
   }
 
   if (file.size > 10 * 1024 * 1024) {
     clearSelectedFile()
-    errorMessage.value = '10MB 이하의 이미지를 업로드해 주세요.'
+    errorMessage.value = '10MB 이하 이미지를 업로드해 주세요.'
     return
   }
 
@@ -195,13 +185,23 @@ const clearSelectedFile = () => {
   if (fileInput.value) fileInput.value.value = ''
 }
 
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+
 const submitDiagnosis = async () => {
   if (!selectedFile.value || submitting.value) return
 
-  if (!requireLogin({
-    message: 'AI 퍼스널컬러 진단은 로그인 후 이용할 수 있습니다.',
-    redirect: '/upload',
-  })) {
+  if (
+    !requireLogin({
+      message: 'AI 퍼스널 컬러 진단은 로그인 후 이용할 수 있어요.',
+      redirect: '/upload',
+    })
+  ) {
     return
   }
 
@@ -209,12 +209,16 @@ const submitDiagnosis = async () => {
   errorMessage.value = ''
 
   try {
-    const result = await createDiagnosis(selectedFile.value)
-    router.push(`/diagnosis/results/${result.id}`)
+    const previewDataUrl = await fileToDataUrl(selectedFile.value)
+    router.push({
+      name: 'loading',
+      state: {
+        diagnosisFile: selectedFile.value,
+        previewUrl: previewDataUrl,
+      },
+    })
   } catch (error) {
-    const detail = error?.response?.data?.detail
-    errorMessage.value = detail || '진단 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
-  } finally {
+    errorMessage.value = '이미지를 준비하지 못했어요. 다시 시도해 주세요.'
     submitting.value = false
   }
 }
@@ -234,8 +238,11 @@ onBeforeUnmount(revokePreview)
 }
 
 .back {
-  font-size: 14px;
-  color: #333;
+  border: 0;
+  background: transparent;
+  color: #6d625f;
+  cursor: pointer;
+  font: inherit;
   margin-bottom: 8px;
 }
 
@@ -270,6 +277,7 @@ onBeforeUnmount(revokePreview)
   align-items: center;
   justify-content: center;
   color: #777;
+  font-weight: 800;
 }
 
 .step.active {
@@ -354,7 +362,17 @@ h2 {
 }
 
 .guide-item span {
-  font-size: 24px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff0f1;
+  color: #c65367;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  flex: 0 0 auto;
 }
 
 .guide-item p {
@@ -364,17 +382,26 @@ h2 {
 }
 
 .upload-area {
-  height: 348px;
+  min-height: 348px;
   border: 2px dashed #e9b9c2;
   border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 24px;
 }
 
 .camera-icon {
-  font-size: 52px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fff0f1;
+  color: #c65367;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 900;
   margin-bottom: 20px;
 }
 
@@ -387,11 +414,12 @@ h2 {
 .primary-btn,
 .outline-btn {
   width: 230px;
-  height: 44px;
+  min-height: 44px;
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
   margin-top: 12px;
+  padding: 10px 14px;
 }
 
 .primary-btn {
@@ -430,6 +458,7 @@ h2 {
   align-items: center;
   justify-content: center;
   margin-bottom: 18px;
+  overflow: hidden;
 }
 
 .face-placeholder {
@@ -440,7 +469,8 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 70px;
+  color: #9e4655;
+  font-weight: 900;
 }
 
 .preview-photo {
@@ -514,8 +544,8 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 420px;
-  height: 52px;
+  width: min(420px, 100%);
+  min-height: 52px;
   margin: 28px auto 16px;
   border-radius: 8px;
   background: #c65367;
@@ -537,5 +567,35 @@ h2 {
   text-align: center;
   color: #777;
   font-size: 14px;
+}
+
+@media (max-width: 1080px) {
+  .top-grid,
+  .example-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .upload-page {
+    padding: 22px 16px 40px;
+  }
+
+  .upload-card {
+    padding: 20px 16px;
+  }
+
+  .step-labels {
+    width: 100%;
+  }
+
+  .line {
+    width: 64px;
+  }
+
+  .bad-labels,
+  .example-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

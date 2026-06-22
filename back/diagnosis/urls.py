@@ -7,5 +7,11 @@ urlpatterns = [
     path('demo/', views.DemoDiagnosisResultView.as_view(), name='diagnosis-demo'),
     path('latest/', views.LatestDiagnosisResultView.as_view(), name='diagnosis-latest'),
     path('results/', views.DiagnosisResultListCreateView.as_view(), name='diagnosis-results'),
+    path('results/<int:pk>/makeovers/', views.DiagnosisMakeoverView.as_view(), name='diagnosis-makeovers'),
+    path(
+        'results/<int:pk>/makeovers/<str:style_key>/retry/',
+        views.DiagnosisMakeoverRetryView.as_view(),
+        name='diagnosis-makeover-retry',
+    ),
     path('results/<int:pk>/', views.DiagnosisResultDetailView.as_view(), name='diagnosis-result-detail'),
 ]

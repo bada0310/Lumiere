@@ -102,7 +102,7 @@ class DiagnosisMakeoverStyleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DiagnosisMakeoverStyle
-        fields = ['key', 'name', 'description', 'image', 'image_url', 'order', 'is_default']
+        fields = ['key', 'name', 'description', 'image', 'image_url', 'status', 'error_message', 'order', 'is_default']
 
     def get_image_url(self, obj):
         return build_media_url(self.context.get('request'), obj.image)

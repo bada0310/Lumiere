@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status
 from rest_framework.views import APIView
@@ -10,6 +11,11 @@ from rest_framework.response import Response
 from diagnosis.ai_clients.openai_compatible import AIClientConfigurationError, AIClientResponseError
 from diagnosis.domain.tone_keys import build_tone_name
 from diagnosis.services.ai_diagnosis import diagnose_personal_color
+from diagnosis.services.makeup_generation import (
+    enqueue_makeover_generation,
+    get_makeover_payload,
+    retry_makeover_style_generation,
+)
 from diagnosis.services.palettes import apply_palette_snapshot_to_diagnosis, serialize_palette
 from diagnosis.services.workflow import get_or_create_personal_color
 
@@ -248,6 +254,68 @@ class DiagnosisResultDetailView(generics.RetrieveAPIView):
             .select_related('user', 'personal_color')
             .prefetch_related(*DIAGNOSIS_PREFETCH)
         )
+
+
+class DiagnosisMakeoverView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        diagnosis = self._get_diagnosis(request, pk)
+        return Response(get_makeover_payload(diagnosis, request=request))
+
+    def post(self, request, pk):
+        diagnosis = self._get_diagnosis(request, pk)
+        if diagnosis.status != DiagnosisResult.Status.COMPLETED:
+            return Response(
+                {'detail': '완료된 진단 결과에서만 AI 메이크오버를 생성할 수 있어요.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if diagnosis.palette_status != DiagnosisResult.PaletteStatus.READY:
+            return Response(
+                {'detail': '고정 팔레트가 준비된 진단 결과에서만 AI 메이크오버를 생성할 수 있어요.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not (diagnosis.processed_image or diagnosis.uploaded_image):
+            return Response(
+                {'detail': 'AI 메이크오버에 사용할 원본 이미지가 없어요.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        enqueue_makeover_generation(diagnosis)
+        diagnosis = self._get_diagnosis(request, pk)
+        return Response(get_makeover_payload(diagnosis, request=request), status=status.HTTP_202_ACCEPTED)
+
+    def _get_diagnosis(self, request, pk):
+        return get_object_or_404(
+            DiagnosisResult.objects.filter(user=request.user)
+            .select_related('user', 'personal_color')
+            .prefetch_related(*DIAGNOSIS_PREFETCH),
+            pk=pk,
+        )
+
+
+class DiagnosisMakeoverRetryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk, style_key):
+        diagnosis = get_object_or_404(
+            DiagnosisResult.objects.filter(user=request.user)
+            .select_related('user', 'personal_color')
+            .prefetch_related(*DIAGNOSIS_PREFETCH),
+            pk=pk,
+        )
+        try:
+            retry_makeover_style_generation(diagnosis, style_key)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        diagnosis = get_object_or_404(
+            DiagnosisResult.objects.filter(user=request.user)
+            .select_related('user', 'personal_color')
+            .prefetch_related(*DIAGNOSIS_PREFETCH),
+            pk=pk,
+        )
+        return Response(get_makeover_payload(diagnosis, request=request), status=status.HTTP_202_ACCEPTED)
 
 
 class LatestDiagnosisResultView(generics.GenericAPIView):

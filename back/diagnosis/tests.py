@@ -21,6 +21,8 @@ from diagnosis.services.makeup_generation import build_makeup_generation_prompt
 from diagnosis.services.multimodal_diagnosis import validate_diagnosis_payload
 from diagnosis.services.palettes import get_palette_for_tone_key, serialize_palette
 
+EXPECTED_EYE_ROLES = {'highlighter', 'base', 'shading', 'point', 'aegyosal', 'eyeliner'}
+
 
 class ToneKeyNormalizerTests(TestCase):
     def test_normalizes_aliases(self):
@@ -208,7 +210,7 @@ class PaletteServiceTests(TestCase):
         self.assertFalse(palette['isPlaceholder'])
         self.assertGreater(len(palette['palettes']['best']), 0)
         self.assertGreater(len(palette['palettes']['worst']), 0)
-        self.assertEqual(set(palette['makeupColorGuide']['eye']['roles'].keys()), {'highlighter', 'base', 'shading', 'point'})
+        self.assertEqual(set(palette['makeupColorGuide']['eye']['roles'].keys()), EXPECTED_EYE_ROLES)
 
 
 class PaletteSeedDataTests(TestCase):
@@ -227,7 +229,7 @@ class PaletteSeedDataTests(TestCase):
             payload = serialize_palette(PersonalColorPalette.objects.get(tone_key=tone_key))
             self.assertGreater(len(payload['palettes']['best']), 0)
             self.assertGreater(len(payload['palettes']['worst']), 0)
-            self.assertEqual(set(payload['makeupColorGuide']['eye']['roles'].keys()), {'highlighter', 'base', 'shading', 'point'})
+            self.assertEqual(set(payload['makeupColorGuide']['eye']['roles'].keys()), EXPECTED_EYE_ROLES)
 
 
 class MakeupGenerationPromptTests(TestCase):
