@@ -161,7 +161,7 @@ import UserAvatar from '@/components/user/UserAvatar.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useRequireLogin } from '@/composables/useRequireLogin'
 import { DEFAULT_PROFILE_IMAGE } from '@/constants/images'
-import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { getDiagnosisResults } from '@/services/diagnosisApi'
 import { getSavedMockDiagnosisResult } from '@/utils/diagnosisMockStorage'
 import { getDiagnosisProfileImageUrl, normalizeDiagnosisResult } from '@/utils/diagnosisResultTransform'
 
@@ -171,7 +171,7 @@ const { handleAuthFailure } = useRequireLogin()
 
 const isEditModalOpen = ref(false)
 const isSavingProfile = ref(false)
-const latestDiagnosisFromApi = ref(null)
+const diagnosisResultsFromApi = ref([])
 const savedMockDiagnosis = ref(null)
 
 const userInfo = computed(() => ({
@@ -181,30 +181,28 @@ const userInfo = computed(() => ({
   email: currentUser.value?.email || '',
 }))
 
-const normalizedLatestDiagnosis = computed(() => {
-  const source = latestDiagnosisFromApi.value || savedMockDiagnosis.value
-  return source ? normalizeDiagnosisResult(source) : null
+const normalizedDiagnosisResults = computed(() => {
+  const apiResults = diagnosisResultsFromApi.value.map(normalizeDiagnosisResult).filter(Boolean)
+  if (apiResults.length) return apiResults
+
+  const savedMock = savedMockDiagnosis.value ? normalizeDiagnosisResult(savedMockDiagnosis.value) : null
+  return savedMock ? [savedMock] : []
 })
 
 const resolvedProfileImageUrl = computed(() => {
-  return currentUser.value?.profileImageUrl || getDiagnosisProfileImageUrl(normalizedLatestDiagnosis.value) || DEFAULT_PROFILE_IMAGE
+  return currentUser.value?.profileImageUrl || getDiagnosisProfileImageUrl(normalizedDiagnosisResults.value[0]) || DEFAULT_PROFILE_IMAGE
 })
 
 const diagnosisList = computed(() => {
-  if (!normalizedLatestDiagnosis.value) return []
-
-  const result = normalizedLatestDiagnosis.value
-  return [
-    {
-      id: result.id,
-      date: new Date(result.diagnosed_at || result.created_at).toLocaleDateString('ko-KR'),
-      result: result.korean_name || '진단 결과',
-      toneKey: result.personal_color_code,
-      mockQuery: result.type || result.personal_color_code,
-      confidenceScore: result.confidence_score || result.confidence,
-      isMock: Boolean(result.is_mock),
-    },
-  ]
+  return normalizedDiagnosisResults.value.map((result) => ({
+    id: result.id,
+    date: new Date(result.diagnosed_at || result.created_at).toLocaleDateString('ko-KR'),
+    result: result.korean_name || '진단 결과',
+    toneKey: result.personal_color_code,
+    mockQuery: result.type || result.personal_color_code,
+    confidenceScore: result.confidence_score || result.confidence,
+    isMock: Boolean(result.is_mock),
+  }))
 })
 
 const latestDiagnosis = computed(() => diagnosisList.value[0] || null)
@@ -269,7 +267,7 @@ const viewDiagnosisResult = (item) => {
     return
   }
 
-  router.push(`/result/${item.id}`)
+  router.push(`/diagnosis/results/${item.id}`)
 }
 
 const goToProductDetail = (productOptionId) => {
@@ -287,7 +285,7 @@ onMounted(async () => {
 
   try {
     await loadCurrentUser({ force: true })
-    latestDiagnosisFromApi.value = await getLatestDiagnosis()
+    diagnosisResultsFromApi.value = await getDiagnosisResults()
   } catch (error) {
     if (handleAuthFailure(error)) return
     console.error('마이페이지 데이터를 가져오지 못했어요.', error)
