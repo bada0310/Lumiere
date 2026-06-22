@@ -9,9 +9,11 @@
 
         <div class="my-tone-card">
           <div>
-            <p>나의 퍼스널컬러</p>
-            <strong>여름 쿨 라이트 기준</strong>
-            <RouterLink to="/result">피부 분석 후 맞춤 추천 보기 ›</RouterLink>
+            <p>{{ hasDiagnosisProfile ? 'AI 진단 기준' : '추천 기준' }}</p>
+            <strong>{{ recommendationBasis.toneName }}</strong>
+            <RouterLink to="/upload">
+              {{ hasDiagnosisProfile ? '다시 진단하기 ›' : '피부 분석 후 맞춤 추천 보기 ›' }}
+            </RouterLink>
           </div>
           <div class="profile"></div>
         </div>
@@ -27,6 +29,95 @@
         >
           {{ category.icon }} {{ category.label }}
         </button>
+      </section>
+
+      <section class="color-chart-section">
+        <div class="chart-copy">
+          <span>{{ hasDiagnosisProfile ? 'AI 추천 알고리즘' : '기준 톤 추천' }}</span>
+          <h2>내 톤과 가까운 색상 분포</h2>
+          <p>
+            {{
+              hasDiagnosisProfile
+                ? '진단 결과의 명도와 채도, 쿨/웜 방향을 기준으로 선택한 브랜드의 색상 옵션을 모두 비교했어요.'
+                : '아직 피부 분석 전이라 기본 기준 톤과 선택한 브랜드의 색상 옵션을 먼저 비교해요.'
+            }}
+          </p>
+
+          <div class="chart-meta">
+            <span>{{ chartProducts.length }}개 색상 옵션</span>
+            <span>점 크기 = 채도</span>
+          </div>
+        </div>
+
+        <div class="tone-chart" aria-label="추천 색상 분포 차트">
+          <div class="axis axis-x"></div>
+          <div class="axis axis-y"></div>
+          <span class="axis-label axis-label--warm">Warm</span>
+          <span class="axis-label axis-label--cool">Cool</span>
+          <span class="axis-label axis-label--light">Light</span>
+          <span class="axis-label axis-label--deep">Deep</span>
+
+          <button
+            v-for="point in chartProducts"
+            :key="point.id"
+            type="button"
+            class="chart-dot"
+            :title="`${point.brand} ${point.name} ${point.option} - 채도 ${point.saturation}`"
+            :style="{
+              left: `${point.chart.x}%`,
+              bottom: `${point.chart.y}%`,
+              width: `${point.chart.size}px`,
+              height: `${point.chart.size}px`,
+              backgroundColor: point.chart.color,
+            }"
+            @click="goDetail(point, point)"
+          ></button>
+
+          <div
+            class="user-zone"
+            :style="{
+              left: `${recommendationBasisChart.x}%`,
+              bottom: `${recommendationBasisChart.y}%`,
+            }"
+          >
+            내 기준
+          </div>
+        </div>
+      </section>
+
+      <section class="brand-board" v-if="brandStats.length">
+        <div class="brand-board-head">
+          <div>
+            <h2>브랜드</h2>
+            <p>Total {{ brandTotalCount }}</p>
+          </div>
+
+          <button type="button" @click="clearBrands" :disabled="selectedBrands.length === 0">
+            선택 초기화
+          </button>
+        </div>
+
+        <div class="brand-check-grid">
+          <label
+            v-for="brand in visibleBrandStats"
+            :key="brand.name"
+            :class="{ active: selectedBrands.includes(brand.name) }"
+          >
+            <input
+              type="checkbox"
+              :checked="selectedBrands.includes(brand.name)"
+              @change="toggleBrand(brand.name)"
+            />
+            <span>{{ brand.name }}</span>
+            <small>{{ brand.count }}</small>
+          </label>
+        </div>
+
+        <div class="brand-board-foot" v-if="brandStats.length > brandPanelLimit">
+          <button type="button" @click="toggleBrandPanel">
+            {{ isBrandPanelExpanded ? '접기' : `더보기 ${brandStats.length - brandPanelLimit}` }}
+          </button>
+        </div>
       </section>
 
       <section class="filter-row">
@@ -61,9 +152,9 @@
       <section class="info-row">
         <p>
           <span v-if="keyword">"{{ keyword }}" {{ selectedCategoryLabel }} 검색 결과 </span>
-          총 {{ filteredProducts.length }}개의 추천 옵션
+          총 {{ filteredProducts.length }}개의 제품 그룹
         </p>
-        <p>ⓘ 피부 분석 전에는 기준 톤과 상품 대표색의 유사도를 먼저 보여줘요.</p>
+        <p>ⓘ 브랜드를 선택하면 위 차트가 해당 브랜드의 전체 색상 옵션 분포로 바뀝니다.</p>
       </section>
 
       <section v-if="isLoading" class="empty-box">
@@ -85,10 +176,10 @@
           <button
             type="button"
             class="heart"
-            :class="{ active: product.liked }"
+            :class="{ active: isGroupLiked(product) }"
             @click.stop="toggleLike(product)"
           >
-            {{ product.liked ? '♥' : '♡' }}
+            {{ isGroupLiked(product) ? '♥' : '♡' }}
           </button>
 
           <div class="product-img">
@@ -108,7 +199,10 @@
 
           <p class="brand">{{ product.brand }}</p>
           <h3>{{ product.name }}</h3>
-          <p v-if="product.option" class="option">{{ product.option }}</p>
+          <p class="option">
+            색상 옵션 {{ product.optionCount }}개
+            <span v-if="product.option"> · 대표 {{ product.option }}</span>
+          </p>
 
           <div class="color-dots">
             <span
@@ -125,14 +219,8 @@
           </div>
 
           <p class="score">
-            {{ product.score }}<span>% 적합</span>
+            {{ product.bestScore || product.score }}<span>% 대표 옵션</span>
           </p>
-
-          <p class="desc">{{ product.desc }}</p>
-
-          <div class="tags">
-            <span v-for="tag in product.tags" :key="tag">{{ tag }}</span>
-          </div>
         </article>
       </section>
 
@@ -145,10 +233,10 @@
       <section class="bottom-bar">
         <div class="standard">
           <strong>맞춤 추천 기준</strong>
-          <span>여름 쿨 라이트</span>
-          <span>명도: 밝음</span>
-          <span>채도: 낮음</span>
-          <span>쿨 방향 기준</span>
+          <span>{{ recommendationBasis.toneName }}</span>
+          <span>{{ recommendationBasisLabels.brightness }}</span>
+          <span>{{ recommendationBasisLabels.saturation }}</span>
+          <span>{{ recommendationBasisLabels.direction }}</span>
         </div>
 
         <button class="outline-btn" type="button" @click="resetAllFilters">
@@ -280,21 +368,38 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { makeDetailPayload, makeProductGroups } from './productCatalog'
+import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import {
+  calculateProductMatchScore,
+  getChartPoint,
+  getMetricLabels,
+  hasSavedUserColorProfile,
+  readUserColorProfile,
+  saveDiagnosisColorProfile,
+} from '@/utils/colorRecommendationHelpers'
 
 const router = useRouter()
 const route = useRoute()
 
 const products = ref([])
+const productGroups = computed(() => makeProductGroups(products.value))
 const selectedCategory = ref('lip')
+const selectedBrands = ref([])
 const selectedFilters = ref([])
 const sortOption = ref('scoreDesc')
 const likedOnly = ref(false)
+const likedGroupKeys = ref(new Set())
 const isFilterModalOpen = ref(false)
 const draftCategory = ref('lip')
 const draftFilters = ref([])
 const draftSortOption = ref('scoreDesc')
 const isLoading = ref(false)
 const keyword = computed(() => String(route.query.keyword || '').trim())
+const userColorProfile = ref(readUserColorProfile())
+const hasDiagnosisProfile = ref(hasSavedUserColorProfile())
+const brandPanelLimit = 15
+const isBrandPanelExpanded = ref(false)
 
 const allCategoryTab = {
   key: 'all',
@@ -377,18 +482,98 @@ const heroDescription = computed(() => {
       : `"${keyword.value}" 검색 결과 중 ${selectedCategoryLabel.value} 카테고리 옵션을 보여드려요.`
   }
 
-  return `${selectedCategoryLabel.value} 카테고리에서 여름 쿨 라이트 기준에 가까운 옵션을 먼저 보여드려요.`
+  return `${selectedCategoryLabel.value} 카테고리에서 ${recommendationBasis.value.toneName} 기준에 가까운 옵션을 먼저 보여드려요.`
+})
+
+const recommendationBasis = computed(() => userColorProfile.value)
+const recommendationBasisLabels = computed(() => getMetricLabels(recommendationBasis.value))
+const recommendationBasisChart = computed(() => getChartPoint(recommendationBasis.value))
+
+const chartProducts = computed(() => {
+  const options = filteredProducts.value.flatMap((product) => {
+    const groupOptions = product.options?.length ? product.options : [product]
+
+    return groupOptions.map((option) => ({
+      ...option,
+      groupKey: product.groupKey,
+      groupName: product.name,
+      groupOptions: groupOptions,
+      optionCount: groupOptions.length,
+      chart: getChartPoint(option),
+    }))
+  })
+
+  const uniqueOptions = new Map()
+  options.forEach((option) => {
+    uniqueOptions.set(String(option.id), option)
+  })
+
+  const clusterIndexes = new Map()
+
+  return [...uniqueOptions.values()].map((option) => {
+    const basePoint = getChartPoint(option)
+    const clusterKey = `${Math.round(basePoint.x / 3) * 3}-${Math.round(basePoint.y / 3) * 3}`
+    const clusterIndex = clusterIndexes.get(clusterKey) || 0
+    clusterIndexes.set(clusterKey, clusterIndex + 1)
+
+    const angle = clusterIndex * 2.399963
+    const radius = clusterIndex === 0 ? 0 : 2.4 + Math.floor(clusterIndex / 6) * 1.2
+    const chart = {
+      ...basePoint,
+      x: Math.min(98, Math.max(2, basePoint.x + Math.cos(angle) * radius)),
+      y: Math.min(98, Math.max(2, basePoint.y + Math.sin(angle) * radius)),
+    }
+
+    return {
+      ...option,
+      chart,
+    }
+  })
+})
+
+const brandStats = computed(() => {
+  const counts = new Map()
+
+  productGroups.value
+    .filter((product) => {
+      return selectedCategory.value === 'all' || product.categoryKey === selectedCategory.value
+    })
+    .forEach((product) => {
+      if (!product.brand) return
+      counts.set(product.brand, (counts.get(product.brand) || 0) + 1)
+    })
+
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count
+      return a.name.localeCompare(b.name, 'ko')
+    })
+})
+
+const visibleBrandStats = computed(() => {
+  return isBrandPanelExpanded.value
+    ? brandStats.value
+    : brandStats.value.slice(0, brandPanelLimit)
+})
+
+const brandTotalCount = computed(() => {
+  return brandStats.value.reduce((sum, brand) => sum + brand.count, 0)
 })
 
 const filteredProducts = computed(() => {
-  let result = [...products.value]
+  let result = [...productGroups.value]
 
   if (!keyword.value || selectedCategory.value !== 'all') {
     result = result.filter((product) => product.categoryKey === selectedCategory.value)
   }
 
   if (likedOnly.value) {
-    result = result.filter((product) => product.liked)
+    result = result.filter((product) => likedGroupKeys.value.has(product.groupKey))
+  }
+
+  if (selectedBrands.value.length > 0) {
+    result = result.filter((product) => selectedBrands.value.includes(product.brand))
   }
 
   if (keyword.value) {
@@ -429,6 +614,23 @@ const filteredProducts = computed(() => {
 
 const normalizeText = (value) => {
   return String(value || '').toLowerCase().replace(/\s/g, '')
+}
+
+const isLensProduct = (item) => {
+  const category = String(item.category || item.product_category || '').toUpperCase()
+  if (category === 'LENS') return true
+
+  const text = normalizeText(`
+    ${item.category || ''}
+    ${item.category_name || ''}
+    ${item.product_category || ''}
+    ${item.name || ''}
+    ${item.product_name || ''}
+    ${item.option_name || ''}
+    ${item.description || ''}
+  `)
+
+  return ['렌즈', '컬러렌즈', '원데이', 'lens'].some((keyword) => text.includes(normalizeText(keyword)))
 }
 
 const toNumber = (value, fallback = 0) => {
@@ -607,7 +809,7 @@ const normalizeProduct = (item, index) => {
   const brand = item.brand || item.product_brand || '브랜드 미상'
   const name = item.name || item.product_name || '추천 상품'
   const option = item.option_name || item.option || item.color_name || item.texture || ''
-  const score = clampScore(item.match_score ?? item.similarity_score ?? item.score ?? 90 - index)
+  const rawScore = clampScore(item.match_score ?? item.similarity_score ?? item.score ?? 90 - index)
   const popularityScore = Number(item.popularity_score || item.popularityScore || item.review_count || 0)
 
   const imageUrl = item.image_url || item.image || item.thumbnail || item.thumbnail_url || ''
@@ -627,6 +829,8 @@ const normalizeProduct = (item, index) => {
     softness: toNumber(item.softness, 18),
     contrast: toNumber(item.contrast, 35),
   }
+
+  const score = calculateProductMatchScore(userColorProfile.value, metrics) || rawScore
 
   const metricTags = makeMetricTags(metrics, item)
   const rawTags = Array.isArray(item.tags) ? item.tags : []
@@ -708,13 +912,22 @@ const fetchProducts = async () => {
   isLoading.value = true
 
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/products/')
+    let response
+
+    try {
+      response = await axios.get('http://127.0.0.1:8000/api/products/')
+    } catch (apiError) {
+      console.warn('API 상품 데이터 대신 로컬 products_raw.json을 사용합니다:', apiError)
+      response = await axios.get('/products_raw.json')
+    }
 
     const data = Array.isArray(response.data)
       ? response.data
       : response.data.results || response.data.products || []
 
-    products.value = data.map((item, index) => normalizeProduct(item, index))
+    products.value = data
+      .filter((item) => !isLensProduct(item))
+      .map((item, index) => normalizeProduct(item, index))
 
     console.log('백엔드 상품 데이터:', products.value)
   } catch (error) {
@@ -725,8 +938,24 @@ const fetchProducts = async () => {
   }
 }
 
+const syncLatestDiagnosisProfile = async () => {
+  if (!localStorage.getItem('access_token')) return
+
+  try {
+    const latestDiagnosis = await getLatestDiagnosis()
+    if (!latestDiagnosis) return
+
+    userColorProfile.value = saveDiagnosisColorProfile(latestDiagnosis)
+    hasDiagnosisProfile.value = true
+  } catch (error) {
+    console.warn('최신 진단 피부 데이터를 불러오지 못했어요:', error)
+  }
+}
+
 const selectCategory = (categoryKey) => {
   selectedCategory.value = categoryKey
+  selectedBrands.value = []
+  isBrandPanelExpanded.value = false
   likedOnly.value = false
 }
 
@@ -742,9 +971,29 @@ const toggleFilter = (filterKey) => {
 
 const resetAllFilters = () => {
   selectedCategory.value = keyword.value ? 'all' : 'lip'
+  selectedBrands.value = []
   selectedFilters.value = []
   sortOption.value = 'scoreDesc'
   likedOnly.value = false
+  isBrandPanelExpanded.value = false
+}
+
+const toggleBrand = (brand) => {
+  likedOnly.value = false
+
+  if (selectedBrands.value.includes(brand)) {
+    selectedBrands.value = selectedBrands.value.filter((item) => item !== brand)
+  } else {
+    selectedBrands.value = [...selectedBrands.value, brand]
+  }
+}
+
+const clearBrands = () => {
+  selectedBrands.value = []
+}
+
+const toggleBrandPanel = () => {
+  isBrandPanelExpanded.value = !isBrandPanelExpanded.value
 }
 
 const openAllFilter = () => {
@@ -781,7 +1030,7 @@ const applyAllFilter = () => {
 }
 
 const previewCount = computed(() => {
-  let result = [...products.value]
+  let result = [...productGroups.value]
 
   if (draftCategory.value !== 'all') {
     result = result.filter((product) => product.categoryKey === draftCategory.value)
@@ -796,31 +1045,51 @@ const previewCount = computed(() => {
   return result.length
 })
 
+const isGroupLiked = (product) => {
+  return likedGroupKeys.value.has(product.groupKey)
+}
+
 const toggleLike = (product) => {
-  product.liked = !product.liked
+  const nextKeys = new Set(likedGroupKeys.value)
+
+  if (nextKeys.has(product.groupKey)) {
+    nextKeys.delete(product.groupKey)
+  } else {
+    nextKeys.add(product.groupKey)
+  }
+
+  likedGroupKeys.value = nextKeys
 }
 
 const toggleLikedMode = () => {
   likedOnly.value = !likedOnly.value
   selectedFilters.value = []
+  selectedBrands.value = []
 }
 
 const compareItems = () => {
   alert('비교 기능은 다음 단계에서 연결하면 됩니다!')
 }
 
-const goDetail = (product) => {
-  localStorage.setItem('selectedProductOption', JSON.stringify(product))
+const goDetail = (product, option = product.representative) => {
+  const detailPayload = makeDetailPayload(product, option)
+
+  localStorage.setItem('selectedProductOption', JSON.stringify(detailPayload))
+  localStorage.setItem('selectedProductGroup', JSON.stringify(product))
 
   router.push({
     name: 'product-detail',
     params: {
-      id: product.id,
+      id: detailPayload.id,
     },
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  userColorProfile.value = readUserColorProfile()
+  hasDiagnosisProfile.value = hasSavedUserColorProfile()
+  await syncLatestDiagnosisProfile()
+
   if (keyword.value) {
     selectedCategory.value = 'all'
   }
@@ -868,7 +1137,7 @@ watch(
   font-family: var(--font-title-serif) !important;
   font-size: 30px;
   margin-bottom: 16px;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 .hero p {
@@ -945,6 +1214,260 @@ watch(
   color: white;
 }
 
+.color-chart-section {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.2fr);
+  gap: 22px;
+  align-items: stretch;
+  margin: 0 0 28px;
+  padding: 24px;
+  border: 1px solid #eaded8;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 24px rgba(88, 55, 45, 0.04);
+}
+
+.chart-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.chart-copy span {
+  color: #c65367;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.chart-copy h2 {
+  margin: 8px 0 10px;
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.chart-copy p {
+  margin: 0;
+  color: #6b625f;
+  line-height: 1.7;
+}
+
+.chart-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.chart-meta span {
+  padding: 8px 12px;
+  border: 1px solid #eaded8;
+  border-radius: 999px;
+  background: #fff8f6;
+  color: #6b4b52;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tone-chart {
+  position: relative;
+  min-height: 320px;
+  border: 1px solid #eaded8;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(246, 211, 177, 0.18), rgba(218, 222, 255, 0.22)),
+    #fffaf7;
+  overflow: hidden;
+}
+
+.axis {
+  position: absolute;
+  background: rgba(198, 83, 103, 0.2);
+}
+
+.axis-x {
+  left: 8%;
+  right: 8%;
+  bottom: 50%;
+  height: 1px;
+}
+
+.axis-y {
+  top: 8%;
+  bottom: 8%;
+  left: 50%;
+  width: 1px;
+}
+
+.axis-label {
+  position: absolute;
+  color: #8e7e79;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.axis-label--warm {
+  left: 18px;
+  bottom: 48%;
+}
+
+.axis-label--cool {
+  right: 18px;
+  bottom: 48%;
+}
+
+.axis-label--light {
+  top: 14px;
+  left: 51%;
+}
+
+.axis-label--deep {
+  bottom: 14px;
+  left: 51%;
+}
+
+.chart-dot {
+  position: absolute;
+  transform: translate(-50%, 50%);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 5px 14px rgba(80, 45, 50, 0.18);
+  cursor: pointer;
+  transition: 0.18s;
+}
+
+.chart-dot:hover {
+  z-index: 4;
+  transform: translate(-50%, 50%) scale(1.22);
+}
+
+.user-zone {
+  position: absolute;
+  transform: translate(-50%, 50%);
+  z-index: 3;
+  padding: 6px 10px;
+  border: 1px solid #c65367;
+  border-radius: 999px;
+  background: #fff;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(198, 83, 103, 0.16);
+  white-space: nowrap;
+}
+
+.brand-board {
+  margin: 0 0 24px;
+  border: 1px solid #a7c957;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+}
+
+.brand-board-head {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid #eaded8;
+}
+
+.brand-board-head > div {
+  padding: 20px 24px;
+  border-right: 1px solid #eaded8;
+}
+
+.brand-board h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+
+.brand-board p {
+  margin: 0;
+  color: #91be3f;
+  font-weight: 900;
+}
+
+.brand-board-head button {
+  justify-self: end;
+  align-self: end;
+  margin: 0 18px 16px 0;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  color: #8e7e79;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.brand-board-head button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.brand-check-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.brand-check-grid label {
+  min-height: 52px;
+  padding: 0 18px;
+  border-right: 1px solid #eaded8;
+  border-bottom: 1px solid #eaded8;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  color: #4d4441;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.brand-check-grid label:nth-child(5n) {
+  border-right: none;
+}
+
+.brand-check-grid label.active {
+  background: #f6fbef;
+  color: #5f8f16;
+}
+
+.brand-check-grid input {
+  width: 15px;
+  height: 15px;
+  accent-color: #91be3f;
+}
+
+.brand-check-grid span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-check-grid small {
+  color: #9b8d88;
+  font-size: 12px;
+}
+
+.brand-board-foot {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #eaded8;
+  background: #f7f7f7;
+}
+
+.brand-board-foot button {
+  height: 100%;
+  padding: 0 24px;
+  border: none;
+  border-right: 1px solid #eaded8;
+  background: white;
+  color: #6b625f;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .filter-row {
   display: flex;
   justify-content: space-between;
@@ -984,6 +1507,7 @@ watch(
   align-items: center;
   gap: 12px;
   font-weight: 800;
+  margin-left: auto;
 }
 
 .sort select {
@@ -1013,7 +1537,7 @@ watch(
 
 .product-card {
   position: relative;
-  min-height: 430px;
+  min-height: 338px;
   border: 1px solid #eaded8;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.9);
@@ -1160,14 +1684,19 @@ watch(
 }
 
 .option {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: #3c3431;
+}
+
+.option span {
+  color: #8a7772;
+  font-size: 13px;
 }
 
 .color-dots {
   display: flex;
   gap: 7px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .color-dots span {
@@ -1427,5 +1956,65 @@ watch(
   background: linear-gradient(135deg, #c65367, #d96f82);
   color: white;
   border: none;
+}
+
+@media (max-width: 1100px) {
+  .recommend-page {
+    padding: 32px 24px 110px;
+  }
+
+  .hero,
+  .filter-row,
+  .info-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .my-tone-card {
+    width: 100%;
+  }
+
+  .color-chart-section {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-board-head {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-board-head > div {
+    border-right: none;
+  }
+
+  .brand-check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .brand-check-grid label:nth-child(5n) {
+    border-right: 1px solid #eaded8;
+  }
+
+  .brand-check-grid label:nth-child(2n) {
+    border-right: none;
+  }
+
+  .sort {
+    margin-left: 0;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-bar {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
