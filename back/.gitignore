@@ -23,6 +23,7 @@ env/
 # Environment Variables (환경 변수 파일)
 .env
 .env.*
+!.env.example
 # vscode
 .vscode/
 *.code-workspace
