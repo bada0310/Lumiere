@@ -1,6 +1,8 @@
 from django.conf import settings
 from rest_framework import serializers
 
+from diagnosis.services.palettes import build_makeup_color_guide
+
 from .models import (
     DiagnosisColorPalette,
     DiagnosisMakeoverStyle,
@@ -38,6 +40,7 @@ class PersonalColorSerializer(serializers.ModelSerializer):
             'id',
             'code',
             'type_name',
+            'tone_key',
             'korean_name',
             'english_name',
             'season',
@@ -56,10 +59,12 @@ class PersonalColorSerializer(serializers.ModelSerializer):
         ]
 
     def get_code(self, obj):
+        if obj.tone_key:
+            return obj.tone_key
         tone = (obj.tone or '').lower()
-        tone_map = {'bright': 'bright', 'light': 'light', 'mute': 'muted', 'deep': 'deep'}
+        tone_map = {'bright': 'bright', 'light': 'light', 'mute': 'mute', 'deep': 'deep'}
         season = 'autumn' if obj.season == 'fall' else obj.season
-        return f'{season}-{obj.base_temperature}-{tone_map.get(tone, tone)}'
+        return f'{season}_{obj.base_temperature}_{tone_map.get(tone, tone)}'
 
     def get_english_name(self, obj):
         season = 'Autumn' if obj.season == 'fall' else (obj.season or '').title()
@@ -149,12 +154,18 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
     confidence = serializers.IntegerField(source='confidence_score', read_only=True)
     diagnosed_at = serializers.SerializerMethodField()
     uploaded_image_url = serializers.SerializerMethodField()
+    processed_image_url = serializers.SerializerMethodField()
     generated_makeup_image_url = serializers.SerializerMethodField()
     representative_colors = DiagnosisRepresentativeColorSerializer(many=True, read_only=True)
     makeover_styles = DiagnosisMakeoverStyleSerializer(many=True, read_only=True)
     recommended_products = DiagnosisRecommendedProductSerializer(many=True, read_only=True)
     recommended_lenses = DiagnosisRecommendedLensSerializer(many=True, read_only=True)
     color_palettes = serializers.SerializerMethodField()
+    palette = serializers.SerializerMethodField()
+    makeup_color_guide = serializers.SerializerMethodField()
+    analysis = serializers.SerializerMethodField()
+    evidence = serializers.SerializerMethodField()
+    cautions = serializers.SerializerMethodField()
 
     class Meta:
         model = DiagnosisResult
@@ -162,8 +173,10 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'id',
             'user',
             'user_id',
+            'status',
             'personal_color',
             'personal_color_id',
+            'tone_key',
             'personal_color_code',
             'korean_name',
             'english_name',
@@ -171,6 +184,13 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'confidence_score',
             'diagnosed_at',
             'summary',
+            'diagnosis_json',
+            'analysis',
+            'evidence',
+            'cautions',
+            'palette',
+            'palette_snapshot',
+            'palette_status',
             'keywords',
             'image_features',
             'skin_metrics',
@@ -183,8 +203,13 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'style_guide',
             'uploaded_image',
             'uploaded_image_url',
+            'processed_image',
+            'processed_image_url',
             'generated_makeup_image',
             'generated_makeup_image_url',
+            'makeup_generation_status',
+            'makeup_generation_error',
+            'makeup_color_guide',
             'is_demo',
             'created_at',
         ]
@@ -194,6 +219,7 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'user_id',
             'personal_color',
             'uploaded_image_url',
+            'processed_image_url',
             'generated_makeup_image_url',
             'created_at',
         ]
@@ -210,12 +236,32 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
     def get_uploaded_image_url(self, obj):
         return self._absolute_image_url(obj.uploaded_image)
 
+    def get_processed_image_url(self, obj):
+        return self._absolute_image_url(obj.processed_image)
+
     def get_generated_makeup_image_url(self, obj):
         return self._absolute_image_url(obj.generated_makeup_image)
 
     def get_color_palettes(self, obj):
-        grouped = {'best': [], 'neutral': [], 'accent': [], 'worst': []}
+        grouped = {'best': [], 'neutral': [], 'accent': [], 'try': [], 'worst': []}
         serializer_context = {'request': self.context.get('request')}
         for item in obj.color_palettes.all():
             grouped[item.group].append(DiagnosisColorPaletteSerializer(item, context=serializer_context).data)
         return grouped
+
+    def get_palette(self, obj):
+        return obj.palette_snapshot or None
+
+    def get_makeup_color_guide(self, obj):
+        if not obj.palette_snapshot:
+            return None
+        return build_makeup_color_guide(obj.palette_snapshot)
+
+    def get_analysis(self, obj):
+        return (obj.diagnosis_json or {}).get('analysis')
+
+    def get_evidence(self, obj):
+        return (obj.diagnosis_json or {}).get('evidence')
+
+    def get_cautions(self, obj):
+        return (obj.diagnosis_json or {}).get('cautions', [])

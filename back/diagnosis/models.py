@@ -10,6 +10,8 @@ class PersonalColor(models.Model):
     type_name = models.CharField(max_length=50, unique=True) # 예: 여름 쿨 (뮤트)
 
     # 0 = 완전 웜톤, 100 = 완전 쿨톤 
+    tone_key = models.CharField(max_length=80, unique=True, null=True, blank=True, db_index=True)
+
     class BaseTemperature(models.TextChoices):
         warm = 'warm', '웜(warm)'
         cool = 'cool', '쿨(cool)'
@@ -122,6 +124,24 @@ class ColorRecommendation(models.Model):
 
 
 class DiagnosisResult(models.Model):
+    class Status(models.TextChoices):
+        COMPLETED = 'completed', 'Completed'
+        LOW_CONFIDENCE = 'low_confidence', 'Low confidence'
+        FAILED = 'failed', 'Failed'
+
+    class PaletteStatus(models.TextChoices):
+        READY = 'ready', 'Ready'
+        PREPARING = 'preparing', 'Preparing'
+        MISSING = 'missing', 'Missing'
+
+    class MakeupGenerationStatus(models.TextChoices):
+        NONE = 'none', 'None'
+        QUEUED = 'queued', 'Queued'
+        RUNNING = 'running', 'Running'
+        COMPLETE = 'complete', 'Complete'
+        FAILED = 'failed', 'Failed'
+        SKIPPED = 'skipped', 'Skipped'
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -136,10 +156,15 @@ class DiagnosisResult(models.Model):
         default=0,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.COMPLETED)
+    tone_key = models.CharField(max_length=80, blank=True, db_index=True)
     personal_color_code = models.CharField(max_length=80, blank=True)
     korean_name = models.CharField(max_length=80, blank=True)
     english_name = models.CharField(max_length=80, blank=True)
     summary = models.TextField(blank=True)
+    diagnosis_json = models.JSONField(default=dict, blank=True)
+    palette_snapshot = models.JSONField(default=dict, blank=True)
+    palette_status = models.CharField(max_length=30, choices=PaletteStatus.choices, default=PaletteStatus.READY)
     keywords = models.JSONField(default=list, blank=True)
     image_features = models.JSONField(default=list, blank=True)
     skin_metrics = models.JSONField(default=dict, blank=True)
@@ -152,11 +177,22 @@ class DiagnosisResult(models.Model):
         null=True,
         blank=True,
     )
+    processed_image = models.ImageField(
+        upload_to='diagnosis/processed/',
+        null=True,
+        blank=True,
+    )
     generated_makeup_image = models.ImageField(
         upload_to='diagnosis/generated/',
         null=True,
         blank=True,
     )
+    makeup_generation_status = models.CharField(
+        max_length=30,
+        choices=MakeupGenerationStatus.choices,
+        default=MakeupGenerationStatus.NONE,
+    )
+    makeup_generation_error = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -199,6 +235,7 @@ class DiagnosisColorPalette(models.Model):
         BEST = 'best', 'Best'
         NEUTRAL = 'neutral', 'Neutral'
         ACCENT = 'accent', 'Accent'
+        TRY = 'try', 'Try'
         WORST = 'worst', 'Worst'
 
     diagnosis = models.ForeignKey(
@@ -300,3 +337,66 @@ class DiagnosisRecommendedLens(models.Model):
 
     def __str__(self):
         return f'{self.rank} {self.brand} {self.product_name}'
+
+
+class PersonalColorPalette(models.Model):
+    tone_key = models.CharField(max_length=80, unique=True, db_index=True)
+    data = models.JSONField(default=dict, blank=True)
+    tone_name = models.CharField(max_length=80)
+    season = models.CharField(max_length=20)
+    temperature = models.CharField(max_length=20)
+    brightness = models.CharField(max_length=40)
+    chroma = models.CharField(max_length=40)
+    contrast = models.CharField(max_length=40)
+    description = models.TextField(blank=True)
+    keywords = models.JSONField(default=list, blank=True)
+    best_colors = models.JSONField(default=list, blank=True)
+    worst_colors = models.JSONField(default=list, blank=True)
+    makeup_palette = models.JSONField(default=dict, blank=True)
+    base_makeup_guide = models.TextField(blank=True)
+    lip_guide = models.TextField(blank=True)
+    cheek_guide = models.TextField(blank=True)
+    eye_guide = models.TextField(blank=True)
+    styling_keywords = models.JSONField(default=list, blank=True)
+    recommended_product_tone_range = models.JSONField(default=dict, blank=True)
+    is_placeholder = models.BooleanField(default=False)
+    personal_color = models.OneToOneField(
+        PersonalColor,
+        on_delete=models.SET_NULL,
+        related_name='fixed_palette',
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['tone_key']
+
+    def __str__(self):
+        return f'{self.tone_key} palette'
+
+
+class MakeupGenerationJob(models.Model):
+    class Status(models.TextChoices):
+        QUEUED = 'queued', 'Queued'
+        RUNNING = 'running', 'Running'
+        COMPLETE = 'complete', 'Complete'
+        FAILED = 'failed', 'Failed'
+
+    diagnosis = models.ForeignKey(
+        DiagnosisResult,
+        on_delete=models.CASCADE,
+        related_name='makeup_generation_jobs',
+    )
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.QUEUED, db_index=True)
+    prompt = models.TextField(blank=True)
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'makeup job {self.pk} for diagnosis {self.diagnosis_id}'

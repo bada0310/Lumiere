@@ -89,13 +89,12 @@
               <code>images/tones</code> 이미지가 매핑됩니다.
             </p>
 
-            <div v-if="diagnosisResult.generated_makeup_image_url" class="secondary-image">
-              <img
-                :src="diagnosisResult.generated_makeup_image_url"
-                :alt="`${resultName} Gen AI 메이크업 이미지`"
-              />
-              <span>Gen AI 생성 이미지</span>
-            </div>
+            <GeneratedMakeupImage
+              :generated-url="diagnosisResult.generated_makeup_image_url"
+              :uploaded-url="diagnosisResult.processed_image_url || diagnosisResult.uploaded_image_url"
+              :generation-status="diagnosisResult.makeup_generation_status"
+              @retry="loadDiagnosis"
+            />
 
             <div v-if="diagnosisResult.uploaded_image_url" class="secondary-image">
               <img :src="diagnosisResult.uploaded_image_url" alt="진단에 사용한 원본 이미지" />
@@ -182,6 +181,10 @@
             <SkinBalanceChart :axes="radarRows" />
           </article>
         </section>
+
+        <p v-if="paletteStatus === 'preparing'" class="palette-warning">
+          선택된 toneKey의 상세 팔레트가 준비 중이라 기본 fallback palette를 표시합니다.
+        </p>
 
         <section class="palette-section">
           <article v-for="group in paletteGroups" :key="group.key" class="palette-card">
@@ -328,6 +331,20 @@
                 <ColorChipList :colors="styleGuide.fashion" label="추천 의상 컬러" compact />
               </div>
             </div>
+
+            <div v-if="stylingKeywords.length || productToneRangeText" class="fixed-palette-meta">
+              <div v-if="stylingKeywords.length">
+                <h3>스타일링 키워드</h3>
+                <div class="keyword-row">
+                  <span v-for="keyword in stylingKeywords" :key="keyword">{{ keyword }}</span>
+                </div>
+              </div>
+
+              <div v-if="productToneRangeText">
+                <h3>추천 제품 색상 범위</h3>
+                <p>{{ productToneRangeText }}</p>
+              </div>
+            </div>
           </article>
 
           <article class="section-card tip-section">
@@ -360,9 +377,10 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import GeneratedMakeupImage from '@/components/diagnosis/GeneratedMakeupImage.vue'
 import SkinBalanceChart from '@/components/diagnosis/SkinBalanceChart.vue'
 import { FALLBACK_TONE_IMAGE } from '@/data/toneImages'
 import {
@@ -454,6 +472,7 @@ const selectedLookKey = ref('')
 const isSaved = ref(false)
 const makeoverRef = ref(null)
 const profileImageErrored = ref(false)
+let makeupPollTimer = null
 
 const isDev = import.meta.env.DEV
 const mockOptions = MOCK_PERSONAL_COLOR_RESULTS
@@ -503,6 +522,20 @@ const representativeColors = computed(() => asArray(diagnosisResult.value?.repre
 const makeoverStyles = computed(() => asArray(diagnosisResult.value?.makeover_styles))
 const makeupGuide = computed(() => diagnosisResult.value?.makeup_color_guide || normalizeDiagnosisResult({})?.makeup_color_guide)
 const styleGuide = computed(() => diagnosisResult.value?.style_guide || { lens: [], hair: [], accessory: [], fashion: [] })
+const paletteStatus = computed(() => diagnosisResult.value?.palette_status || '')
+const stylingKeywords = computed(() => asArray(diagnosisResult.value?.styling_keywords))
+const productToneRangeText = computed(() => {
+  const range = diagnosisResult.value?.recommended_product_tone_range || {}
+  const parts = []
+  if (range.hue?.length) parts.push(`색상: ${range.hue.join(', ')}`)
+  if (range.brightness?.length) parts.push(`명도: ${range.brightness.join(', ')}`)
+  if (range.chroma?.length) parts.push(`채도: ${range.chroma.join(', ')}`)
+  if (range.temperature) parts.push(`온도: ${range.temperature}`)
+  return parts.join(' / ')
+})
+const isMakeupGenerating = computed(() =>
+  ['queued', 'running', 'loading', 'pending'].includes(diagnosisResult.value?.makeup_generation_status),
+)
 
 const profileImageUrl = computed(() => getDiagnosisProfileImageUrl(diagnosisResult.value))
 const safeProfileImageUrl = computed(() => (profileImageErrored.value ? FALLBACK_TONE_IMAGE : profileImageUrl.value))
@@ -529,6 +562,7 @@ const paletteGroups = [
   { key: 'best', label: 'BEST', description: '가장 잘 어울리는 컬러' },
   { key: 'neutral', label: 'NEUTRAL', description: '자연스럽고 안정적인 컬러' },
   { key: 'accent', label: 'ACCENT', description: '포인트로 좋은 컬러' },
+  { key: 'try', label: 'TRY', description: '부담 없이 시도해볼 컬러' },
   { key: 'worst', label: 'WORST', description: '피하면 좋은 컬러' },
 ]
 
@@ -611,6 +645,7 @@ const applyDiagnosisResult = (raw) => {
     ''
   profileImageErrored.value = false
   isSaved.value = Boolean(normalized?.is_mock && getSavedMockDiagnosisResult()?.id === normalized.id)
+  scheduleMakeupPolling()
 }
 
 const loadMockDiagnosis = (toneKey = DEFAULT_MOCK_TONE_KEY) => {
@@ -627,8 +662,8 @@ const loadMockDiagnosis = (toneKey = DEFAULT_MOCK_TONE_KEY) => {
   })
 }
 
-const loadDiagnosis = async () => {
-  loading.value = true
+const loadDiagnosis = async ({ silent = false } = {}) => {
+  if (!silent) loading.value = true
   errorMessage.value = ''
 
   try {
@@ -659,6 +694,11 @@ const loadDiagnosis = async () => {
   } catch (error) {
     console.error('진단 결과 조회 실패:', error)
 
+    if (silent) {
+      stopMakeupPolling()
+      return
+    }
+
     if (isDev) {
       const savedMock = getSavedMockDiagnosisResult()
       applyDiagnosisResult(savedMock || { ...getMockPersonalColorResult(), is_mock: true })
@@ -667,8 +707,27 @@ const loadDiagnosis = async () => {
 
     errorMessage.value = '진단 결과를 불러오지 못했어요.'
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
+}
+
+const stopMakeupPolling = () => {
+  if (!makeupPollTimer) return
+  window.clearInterval(makeupPollTimer)
+  makeupPollTimer = null
+}
+
+const scheduleMakeupPolling = () => {
+  stopMakeupPolling()
+  if (!isMakeupGenerating.value || diagnosisResult.value?.is_mock) return
+
+  makeupPollTimer = window.setInterval(() => {
+    if (!isMakeupGenerating.value) {
+      stopMakeupPolling()
+      return
+    }
+    loadDiagnosis({ silent: true })
+  }, 4000)
 }
 
 const changeMockType = (event) => {
@@ -706,8 +765,9 @@ const saveResult = () => {
   alert('진단 결과를 저장했어요. 마이페이지에서 다시 확인할 수 있어요.')
 }
 
-watch(() => route.fullPath, loadDiagnosis)
+watch(() => route.fullPath, () => loadDiagnosis())
 onMounted(loadDiagnosis)
+onUnmounted(stopMakeupPolling)
 </script>
 
 <style scoped>
@@ -973,6 +1033,10 @@ onMounted(loadDiagnosis)
   color: #8b3a4a;
 }
 
+.profile-panel :deep(.generated-makeup) {
+  height: 260px;
+}
+
 .secondary-image {
   display: grid;
   grid-template-columns: 52px 1fr;
@@ -1167,8 +1231,20 @@ onMounted(loadDiagnosis)
 .palette-section {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
+}
+
+.palette-warning {
+  max-width: 1360px;
+  margin: 22px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #eaded8;
+  border-radius: 8px;
+  background: #fffaf7;
+  color: #8b3a4a;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .palette-card {
@@ -1405,6 +1481,44 @@ onMounted(loadDiagnosis)
   border: 1px solid #eaded8;
   border-radius: 10px;
   background: #fff;
+}
+
+.fixed-palette-meta {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #eaded8;
+  border-radius: 10px;
+  background: #fffaf7;
+  display: grid;
+  gap: 14px;
+}
+
+.fixed-palette-meta h3 {
+  margin: 0 0 8px;
+  color: #9e4655;
+  font-size: 15px;
+}
+
+.fixed-palette-meta p {
+  margin: 0;
+  color: #655a56;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.keyword-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.keyword-row span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #8b3a4a;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .tip-section p {

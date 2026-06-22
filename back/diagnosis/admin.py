@@ -8,15 +8,24 @@ from .models import (
     DiagnosisRecommendedProduct,
     DiagnosisRepresentativeColor,
     DiagnosisResult,
+    MakeupGenerationJob,
     PersonalColor,
+    PersonalColorPalette,
 )
 
 
 @admin.register(PersonalColor)
 class PersonalColorAdmin(admin.ModelAdmin):
-    list_display = ('type_name', 'season', 'base_temperature', 'tone')
-    search_fields = ('type_name',)
+    list_display = ('type_name', 'tone_key', 'season', 'base_temperature', 'tone')
+    search_fields = ('type_name', 'tone_key')
     list_filter = ('season', 'base_temperature', 'tone')
+
+
+@admin.register(PersonalColorPalette)
+class PersonalColorPaletteAdmin(admin.ModelAdmin):
+    list_display = ('tone_key', 'tone_name', 'season', 'temperature', 'is_placeholder', 'updated_at')
+    list_filter = ('season', 'temperature', 'is_placeholder')
+    search_fields = ('tone_key', 'tone_name')
 
 
 @admin.register(ColorRecommendation)
@@ -57,14 +66,18 @@ class DiagnosisResultAdmin(admin.ModelAdmin):
         'id',
         'user',
         'personal_color',
+        'tone_key',
+        'status',
         'confidence_score',
+        'palette_status',
+        'makeup_generation_status',
         'diagnosed_at',
         'is_demo',
         'makeover_style_count',
         'recommended_product_count',
     )
-    list_filter = ('is_demo', 'personal_color__season', 'personal_color__base_temperature', 'personal_color__tone')
-    search_fields = ('user__username', 'user__nickname', 'korean_name', 'english_name')
+    list_filter = ('status', 'palette_status', 'makeup_generation_status', 'is_demo', 'personal_color__season', 'personal_color__base_temperature', 'personal_color__tone')
+    search_fields = ('user__username', 'user__nickname', 'korean_name', 'english_name', 'tone_key')
     inlines = [
         DiagnosisRepresentativeColorInline,
         DiagnosisColorPaletteInline,
@@ -85,3 +98,10 @@ admin.site.register(DiagnosisColorPalette)
 admin.site.register(DiagnosisMakeoverStyle)
 admin.site.register(DiagnosisRecommendedProduct)
 admin.site.register(DiagnosisRecommendedLens)
+
+
+@admin.register(MakeupGenerationJob)
+class MakeupGenerationJobAdmin(admin.ModelAdmin):
+    list_display = ('id', 'diagnosis', 'status', 'created_at', 'updated_at')
+    list_filter = ('status',)
+    search_fields = ('diagnosis__tone_key', 'diagnosis__user__username')

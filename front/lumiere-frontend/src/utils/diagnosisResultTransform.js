@@ -15,16 +15,51 @@ const coolWarmToPercent = (value) => {
 }
 
 const normalizeColorChip = (color, order = 0) => ({
-  name: color?.name || `컬러 ${order + 1}`,
+  name: color?.nameKo || color?.name || `컬러 ${order + 1}`,
   hex: color?.hex || '#E7D8D7',
-  description: color?.description || '',
+  description: color?.description || color?.reason || '',
+  usage: color?.usage || '',
   order: color?.order ?? order,
 })
 
 const normalizeColorGroup = (items) => asArray(items).map(normalizeColorChip)
 
 const getToneKey = (raw) => {
-  return raw?.toneKey || raw?.tone_key || raw?.type || raw?.personal_color_code || raw?.personal_color?.code || ''
+  return (
+    raw?.toneKey ||
+    raw?.tone_key ||
+    raw?.diagnosis_json?.toneKey ||
+    raw?.palette?.toneKey ||
+    raw?.palette_snapshot?.toneKey ||
+    raw?.type ||
+    raw?.personal_color_code ||
+    raw?.personal_color?.tone_key ||
+    raw?.personal_color?.code ||
+    ''
+  )
+}
+
+const getFixedPalette = (raw) => raw.palette || raw.palette_snapshot || null
+
+const normalizeFixedPaletteGroups = (palette, raw) => {
+  if (!palette) {
+    return {
+      best: normalizeColorGroup(raw.palettes?.best || raw.color_palettes?.best),
+      neutral: normalizeColorGroup(raw.palettes?.neutral || raw.color_palettes?.neutral),
+      accent: normalizeColorGroup(raw.palettes?.accent || raw.color_palettes?.accent),
+      try: normalizeColorGroup(raw.palettes?.try || raw.color_palettes?.try),
+      worst: normalizeColorGroup(raw.palettes?.worst || raw.color_palettes?.worst),
+    }
+  }
+
+  const groups = palette.palettes || {}
+  return {
+    best: normalizeColorGroup(groups.best || palette.bestColors || palette.best_colors),
+    neutral: normalizeColorGroup(groups.neutral || palette.neutralColors || palette.neutral_colors),
+    accent: normalizeColorGroup(groups.accent || palette.accentColors || palette.accent_colors),
+    try: normalizeColorGroup(groups.try || palette.tryColors || palette.try_colors),
+    worst: normalizeColorGroup(groups.worst || palette.worstColors || palette.worst_colors),
+  }
 }
 
 const normalizeDate = (value) => {
@@ -92,42 +127,46 @@ const normalizeRadarChart = (raw, metrics) => {
   }
 }
 
-const normalizeMakeupGuide = (raw) => {
-  const guide = raw.makeupColorGuide || raw.makeup_color_guide || {}
+const normalizeMakeupGuide = (raw, fixedPalette) => {
+  const guide = raw.makeupColorGuide || raw.makeup_color_guide || fixedPalette?.makeupColorGuide || {}
   const eye = guide.eye || {}
+  const roles = eye.roles || {}
+  const roleColors = (key, fallback) => normalizeColorGroup(fallback || (roles[key] ? [roles[key]] : []))
+  const lip = guide.lip || {}
+  const blush = guide.blush || guide.cheek || {}
 
   return {
     base: {
       title: guide.base?.title || '베이스 컬러 가이드',
-      description: guide.base?.description || '',
-      shadeRange: asArray(guide.base?.shadeRange || guide.base?.shade_range),
+      description: guide.base?.description || guide.base?.guide || '',
+      shadeRange: asArray(guide.base?.shadeRange || guide.base?.shade_range || guide.base?.recommended),
       chips: normalizeColorGroup(guide.base?.chips),
       avoid: asArray(guide.base?.avoid),
     },
     eye: {
-      description: eye.description || '',
-      highlighter: normalizeColorGroup(eye.highlighter),
-      base: normalizeColorGroup(eye.base),
-      shading: normalizeColorGroup(eye.shading),
-      point: normalizeColorGroup(eye.point),
+      description: eye.description || eye.guide || '',
+      highlighter: roleColors('highlighter', eye.highlighter),
+      base: roleColors('base', eye.base),
+      shading: roleColors('shading', eye.shading),
+      point: roleColors('point', eye.point),
     },
     lip: {
-      title: guide.lip?.title || '립 컬러 가이드',
-      description: guide.lip?.description || '',
-      chips: normalizeColorGroup(guide.lip?.chips),
-      avoid: asArray(guide.lip?.avoid),
+      title: lip.title || '립 컬러 가이드',
+      description: lip.description || lip.guide || '',
+      chips: normalizeColorGroup(lip.chips),
+      avoid: asArray(lip.avoid),
     },
     blush: {
-      title: guide.blush?.title || '블러셔 컬러 가이드',
-      description: guide.blush?.description || '',
-      chips: normalizeColorGroup(guide.blush?.chips),
-      avoid: asArray(guide.blush?.avoid),
+      title: blush.title || '블러셔 컬러 가이드',
+      description: blush.description || blush.guide || '',
+      chips: normalizeColorGroup(blush.chips),
+      avoid: asArray(blush.avoid),
     },
   }
 }
 
-const normalizeStyleGuide = (raw) => {
-  const source = raw.styleGuide || raw.style_guide || {}
+const normalizeStyleGuide = (raw, fixedPalette) => {
+  const source = raw.styleGuide || raw.style_guide || fixedPalette?.styleGuide || {}
 
   return {
     lens: normalizeColorGroup(source.lens || source.lenses || source.lens_colors),
@@ -143,7 +182,9 @@ export const normalizeDiagnosisResult = (raw) => {
   if (!raw) return null
 
   const toneKey = getToneKey(raw)
-  const personalColorCode = String(toneKey || '').replace(/_/g, '-')
+  const personalColorCode = String(toneKey || '')
+  const fixedPalette = getFixedPalette(raw)
+  const colorPalettes = normalizeFixedPaletteGroups(fixedPalette, raw)
   const profileImageUrl =
     raw.profileImageUrl ||
     raw.profile_image_url ||
@@ -156,35 +197,42 @@ export const normalizeDiagnosisResult = (raw) => {
     personal_color_code: personalColorCode,
     personal_color: raw.personal_color || {
       code: personalColorCode,
-      korean_name: raw.titleKo || raw.korean_name,
+      korean_name: fixedPalette?.toneName || raw.titleKo || raw.korean_name,
       english_name: raw.titleEn || raw.english_name,
     },
-    korean_name: raw.titleKo || raw.korean_name || raw.personal_color?.korean_name || '퍼스널 컬러',
+    tone_key: personalColorCode,
+    korean_name: fixedPalette?.toneName || raw.titleKo || raw.korean_name || raw.personal_color?.korean_name || '퍼스널 컬러',
     english_name: raw.titleEn || raw.english_name || raw.personal_color?.english_name || '',
     confidence: clampPercent(raw.confidence ?? raw.confidence_score),
     confidence_score: clampPercent(raw.confidence_score ?? raw.confidence),
     diagnosed_at: normalizeDate(raw.diagnosedAt || raw.diagnosed_at || raw.created_at),
-    summary: raw.description || raw.summary || '',
-    keywords: asArray(raw.keywords),
+    summary: raw.summary || fixedPalette?.summary || raw.description || '',
+    keywords: asArray(raw.keywords?.length ? raw.keywords : fixedPalette?.keywords),
     profile_image_url: profileImageUrl,
     uploaded_image_url: raw.uploaded_image_url || raw.uploadedImageUrl || '',
     generated_makeup_image_url: raw.genAiImageUrl || raw.generated_makeup_image_url || '',
-    image_features: normalizeImageFeatures(raw.imageFeatures || raw.image_features),
-    representative_colors: normalizeColorGroup(raw.representativeColors || raw.representative_colors),
-    color_palettes: {
-      best: normalizeColorGroup(raw.palettes?.best || raw.color_palettes?.best),
-      neutral: normalizeColorGroup(raw.palettes?.neutral || raw.color_palettes?.neutral),
-      accent: normalizeColorGroup(raw.palettes?.accent || raw.color_palettes?.accent),
-      worst: normalizeColorGroup(raw.palettes?.worst || raw.color_palettes?.worst),
-    },
+    image_features: normalizeImageFeatures(raw.imageFeatures || raw.image_features || fixedPalette?.imageFeatures),
+    representative_colors: fixedPalette
+      ? normalizeColorGroup(fixedPalette.representativeColors || fixedPalette.bestColors || fixedPalette.best_colors).slice(0, 6)
+      : normalizeColorGroup(raw.representativeColors || raw.representative_colors),
+    color_palettes: colorPalettes,
     skin_metrics: metrics,
     radar_chart: normalizeRadarChart(raw, metrics),
     makeover_styles: normalizeMakeoverStyles(raw),
-    makeup_color_guide: normalizeMakeupGuide(raw),
-    style_guide: normalizeStyleGuide(raw),
+    makeup_color_guide: normalizeMakeupGuide(raw, fixedPalette),
+    style_guide: normalizeStyleGuide(raw, fixedPalette),
     recommended_products: asArray(raw.recommended_products),
     recommended_lenses: asArray(raw.recommended_lenses),
-    tip: raw.tip || '',
+    palette: fixedPalette,
+    palette_status: raw.palette_status || (fixedPalette?.isPlaceholder ? 'preparing' : ''),
+    analysis: raw.analysis || raw.diagnosis_json?.analysis || null,
+    evidence: raw.evidence || raw.diagnosis_json?.evidence || null,
+    cautions: asArray(raw.cautions || raw.diagnosis_json?.cautions),
+    makeup_generation_status: raw.makeup_generation_status || (raw.generated_makeup_image_url ? 'complete' : 'none'),
+    styling_keywords: asArray(fixedPalette?.stylingKeywords || fixedPalette?.styling_keywords),
+    recommended_product_tone_range:
+      fixedPalette?.recommendedProductToneRange || fixedPalette?.recommended_product_tone_range || {},
+    tip: raw.tip || fixedPalette?.resultTip || '',
     is_demo: Boolean(raw.is_demo || raw.id?.startsWith?.('mock-')),
     is_mock: Boolean(raw.is_mock || raw.id?.startsWith?.('mock-')),
   }

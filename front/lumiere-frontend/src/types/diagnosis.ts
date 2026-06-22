@@ -1,7 +1,7 @@
 export type Season = 'spring' | 'summer' | 'autumn' | 'fall' | 'winter'
 export type Temperature = 'warm' | 'cool'
 export type Tone = 'BRIGHT' | 'LIGHT' | 'MUTE' | 'DEEP' | 'bright' | 'light' | 'muted' | 'deep'
-export type PaletteGroup = 'best' | 'neutral' | 'accent' | 'worst'
+export type PaletteGroup = 'best' | 'neutral' | 'accent' | 'try' | 'worst'
 
 export interface DiagnosisColorItem {
   name: string

@@ -65,8 +65,19 @@
                 카메라로 촬영해 주세요
               </p>
 
-              <button class="primary-btn">📷 카메라로 촬영</button>
-              <button class="outline-btn">⇧ 갤러리에서 선택</button>
+              <input
+                ref="fileInput"
+                class="file-input"
+                type="file"
+                accept="image/jpeg,image/png"
+                @change="handleFileChange"
+              />
+              <button class="primary-btn" type="button" :disabled="submitting" @click="openFilePicker">
+                📷 카메라 / 갤러리에서 선택
+              </button>
+              <button v-if="selectedFile" class="outline-btn" type="button" :disabled="submitting" @click="clearSelectedFile">
+                다른 사진으로 변경
+              </button>
 
               <small>JPG, PNG 파일만 업로드 가능 (최대 10MB)</small>
             </div>
@@ -76,10 +87,11 @@
             <h2>업로드한 이미지 미리보기</h2>
 
             <div class="preview-image">
-              <div class="face-placeholder">🙂</div>
+              <img v-if="previewUrl" :src="previewUrl" alt="업로드 이미지 미리보기" class="preview-photo" />
+              <div v-else class="face-placeholder">🙂</div>
             </div>
 
-            <button class="outline-btn full">다른 사진으로 변경 ↻</button>
+            <button class="outline-btn full" type="button" :disabled="submitting" @click="openFilePicker">다른 사진으로 변경 ↻</button>
           </div>
         </div>
 
@@ -116,9 +128,11 @@
           </div>
         </div>
 
-        <RouterLink to="/loading" class="analysis-btn">
-          분석 시작하기 →
-        </RouterLink>
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+        <button type="button" class="analysis-btn" :disabled="!selectedFile || submitting" @click="submitDiagnosis">
+          {{ submitting ? 'AI 분석 중...' : '분석 시작하기 →' }}
+        </button>
 
         <p class="privacy">🔒 업로드된 이미지는 AI 분석 후 즉시 삭제되며 저장되지 않습니다.</p>
       </section>
@@ -127,7 +141,85 @@
 </template>
 
 <script setup>
+import { onBeforeUnmount, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+import { createDiagnosis } from '@/services/diagnosisApi'
+import { useRequireLogin } from '@/composables/useRequireLogin'
+
+const router = useRouter()
+const { requireLogin } = useRequireLogin()
+
+const fileInput = ref(null)
+const selectedFile = ref(null)
+const previewUrl = ref('')
+const submitting = ref(false)
+const errorMessage = ref('')
+
+const openFilePicker = () => {
+  fileInput.value?.click()
+}
+
+const revokePreview = () => {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = ''
+  }
+}
+
+const handleFileChange = (event) => {
+  const file = event.target.files?.[0]
+  errorMessage.value = ''
+  if (!file) return
+
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    clearSelectedFile()
+    errorMessage.value = 'JPG 또는 PNG 이미지만 업로드할 수 있습니다.'
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    clearSelectedFile()
+    errorMessage.value = '10MB 이하의 이미지를 업로드해 주세요.'
+    return
+  }
+
+  revokePreview()
+  selectedFile.value = file
+  previewUrl.value = URL.createObjectURL(file)
+}
+
+const clearSelectedFile = () => {
+  selectedFile.value = null
+  revokePreview()
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+const submitDiagnosis = async () => {
+  if (!selectedFile.value || submitting.value) return
+
+  if (!requireLogin({
+    message: 'AI 퍼스널컬러 진단은 로그인 후 이용할 수 있습니다.',
+    redirect: '/upload',
+  })) {
+    return
+  }
+
+  submitting.value = true
+  errorMessage.value = ''
+
+  try {
+    const result = await createDiagnosis(selectedFile.value)
+    router.push(`/diagnosis/results/${result.id}`)
+  } catch (error) {
+    const detail = error?.response?.data?.detail
+    errorMessage.value = detail || '진단 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    submitting.value = false
+  }
+}
+
+onBeforeUnmount(revokePreview)
 </script>
 
 <style scoped>
@@ -319,6 +411,17 @@ h2 {
   color: #777;
 }
 
+.file-input {
+  display: none;
+}
+
+.primary-btn:disabled,
+.outline-btn:disabled,
+.analysis-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
 .preview-image {
   height: 286px;
   border-radius: 12px;
@@ -338,6 +441,14 @@ h2 {
   align-items: center;
   justify-content: center;
   font-size: 70px;
+}
+
+.preview-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
 }
 
 .full {
@@ -399,6 +510,7 @@ h2 {
 }
 
 .analysis-btn {
+  border: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -410,6 +522,15 @@ h2 {
   color: white;
   text-decoration: none;
   font-weight: 700;
+}
+
+.error-message {
+  max-width: 560px;
+  margin: 22px auto 0;
+  color: #b44352;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .privacy {

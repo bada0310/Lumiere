@@ -56,7 +56,7 @@ watch(
 )
 
 const status = computed(() => {
-  if (props.generationStatus === 'loading') return 'loading'
+  if (['loading', 'queued', 'running', 'pending'].includes(props.generationStatus)) return 'loading'
   if (props.generationStatus === 'failed' || hasImageError.value) return 'failed'
   if (props.generatedUrl) return 'complete'
   return 'empty'
