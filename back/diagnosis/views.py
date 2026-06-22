@@ -1,12 +1,19 @@
+from copy import deepcopy
+
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from diagnosis.ai_clients.openai_compatible import AIClientConfigurationError, AIClientResponseError
-from diagnosis.services.workflow import ImageQualityError, PaletteNotReadyError, run_personal_color_diagnosis
+from diagnosis.domain.tone_keys import build_tone_name
+from diagnosis.services.ai_diagnosis import diagnose_personal_color
+from diagnosis.services.palettes import apply_palette_snapshot_to_diagnosis, serialize_palette
+from diagnosis.services.workflow import get_or_create_personal_color
 
-from .models import DiagnosisResult
+from .models import DiagnosisResult, PersonalColorPalette
 from .serializers import DiagnosisResultSerializer
 
 
@@ -33,32 +40,30 @@ class DiagnosisAnalyzeView(APIView):
             )
 
         try:
-            result = run_personal_color_diagnosis(request.user, uploaded_image)
-        except ImageQualityError as exc:
-            quality = exc.result
-            return Response(
-                {'code': quality.code, 'detail': quality.message, 'metrics': quality.metrics},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            result = create_ai_diagnosis_result(request.user, uploaded_image)
         except AIClientConfigurationError as exc:
             return Response(
                 {'code': 'ai_not_configured', 'detail': str(exc)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
-        except (AIClientResponseError, ValidationError) as exc:
+        except AIClientResponseError as exc:
             return Response(
                 {'code': 'invalid_ai_response', 'detail': str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        except PaletteNotReadyError as exc:
+        except ValidationError as exc:
             return Response(
-                {'code': 'palette_not_ready', 'detail': str(exc)},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                {'code': 'invalid_diagnosis', 'detail': str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except PaletteMissingError as exc:
+            return Response(
+                {'code': 'palette_missing', 'detail': str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        response_status = status.HTTP_202_ACCEPTED if result.status == DiagnosisResult.Status.LOW_CONFIDENCE else status.HTTP_201_CREATED
         result = self._with_related(result.pk)
-        return Response(DiagnosisResultSerializer(result, context={'request': request}).data, status=response_status)
+        return Response(DiagnosisResultSerializer(result, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     def _with_related(self, pk):
         return (
@@ -66,6 +71,156 @@ class DiagnosisAnalyzeView(APIView):
             .prefetch_related(*DIAGNOSIS_PREFETCH)
             .get(pk=pk)
         )
+
+
+class PaletteMissingError(ValueError):
+    pass
+
+
+def create_ai_diagnosis_result(user, uploaded_image):
+    diagnosis_json = diagnose_personal_color(uploaded_image)
+    tone_key = diagnosis_json['tone_key']
+    palette = (
+        PersonalColorPalette.objects.select_related('personal_color')
+        .filter(tone_key=tone_key, is_placeholder=False)
+        .first()
+    )
+    if not palette:
+        raise PaletteMissingError('해당 tone_key에 대한 팔레트가 없습니다.')
+
+    palette_data = deepcopy(palette.data) if palette.data else serialize_palette(palette)
+    personal_color = palette.personal_color or get_or_create_personal_color(tone_key, _workflow_payload(diagnosis_json), palette_data)
+
+    with transaction.atomic():
+        diagnosis = DiagnosisResult(
+            user=user,
+            personal_color=personal_color,
+            status=DiagnosisResult.Status.COMPLETED,
+            tone_key=tone_key,
+            personal_color_code=tone_key,
+            korean_name=palette_data.get('toneName') or palette.tone_name or build_tone_name(tone_key),
+            english_name=_english_name(tone_key),
+            confidence_score=diagnosis_json['confidence'],
+            diagnosed_at=timezone.localdate(),
+            summary=diagnosis_json.get('summary', ''),
+            diagnosis_json=diagnosis_json,
+            palette_snapshot=palette_data,
+            palette_status=DiagnosisResult.PaletteStatus.READY,
+            keywords=palette_data.get('keywords') or [],
+            image_features=_image_features(diagnosis_json.get('features') or {}),
+            skin_metrics=_skin_metrics(diagnosis_json.get('features') or {}),
+            radar_chart=_radar_chart(diagnosis_json.get('features') or {}),
+            style_guide=_style_guide(palette_data),
+            makeup_generation_status=DiagnosisResult.MakeupGenerationStatus.NONE,
+        )
+        if hasattr(uploaded_image, 'seek'):
+            uploaded_image.seek(0)
+        diagnosis.uploaded_image = uploaded_image
+        diagnosis.full_clean()
+        diagnosis.save()
+        apply_palette_snapshot_to_diagnosis(diagnosis, palette_data)
+
+    return diagnosis
+
+
+def _workflow_payload(diagnosis_json):
+    features = diagnosis_json.get('features') or {}
+    return {
+        'toneKey': diagnosis_json['tone_key'],
+        'confidence': diagnosis_json['confidence'] / 100,
+        'summary': diagnosis_json.get('summary', ''),
+        'analysis': features,
+    }
+
+
+def _image_features(features):
+    return [
+        {
+            'key': key,
+            'title': title,
+            'description': str(features.get(key, '')),
+            'icon': icon,
+        }
+        for key, title, icon in [
+            ('temperature', '온도감', 'sparkle'),
+            ('brightness', '명도', 'cloud'),
+            ('chroma', '채도', 'diamond'),
+            ('contrast', '대비감', 'circle'),
+        ]
+    ]
+
+
+def _skin_metrics(features):
+    brightness = _degree(features.get('brightness'))
+    chroma = _degree(features.get('chroma'))
+    contrast = _degree(features.get('contrast'))
+    temperature = _temperature_degree(features.get('temperature'))
+    return {
+        'brightness': brightness,
+        'saturation': chroma,
+        'clarity': max(0, min(100, 100 - chroma + 20)),
+        'contrast': contrast,
+        'cool_warm': temperature,
+        'softness': max(0, min(100, 100 - contrast + 10)),
+        'gloss': 50,
+    }
+
+
+def _radar_chart(features):
+    metrics = _skin_metrics(features)
+    return {
+        'brightness': metrics['brightness'],
+        'saturation': metrics['saturation'],
+        'clarity': metrics['clarity'],
+        'contrast': metrics['contrast'],
+        'softness': metrics['softness'],
+        'coolness': metrics['cool_warm'],
+    }
+
+
+def _style_guide(palette_data):
+    if palette_data.get('styleGuide'):
+        return {
+            **palette_data['styleGuide'],
+            'styling_keywords': palette_data.get('stylingKeywords') or palette_data.get('keywords') or [],
+            'recommended_product_tone_range': palette_data.get('recommendedProductToneRange') or {},
+        }
+
+    return {
+        'styling_keywords': palette_data.get('stylingKeywords') or palette_data.get('keywords') or [],
+        'recommended_product_tone_range': palette_data.get('recommendedProductToneRange') or {},
+        'fashion': [
+            {
+                'name': item.get('nameKo') or item.get('name'),
+                'hex': item.get('hex'),
+                'description': item.get('description') or item.get('reason') or '',
+            }
+            for item in palette_data.get('bestColors') or palette_data.get('palettes', {}).get('best', [])
+        ],
+    }
+
+
+def _degree(value):
+    return {
+        'low': 25,
+        'low_to_medium': 38,
+        'medium_low': 40,
+        'medium': 55,
+        'medium_high': 70,
+        'high': 85,
+    }.get(value, 50)
+
+
+def _temperature_degree(value):
+    return {
+        'warm': 20,
+        'neutral': 50,
+        'cool': 82,
+    }.get(value, 50)
+
+
+def _english_name(tone_key):
+    return ' '.join(part.title() for part in tone_key.split('_'))
 
 
 class DiagnosisResultListCreateView(generics.ListCreateAPIView):

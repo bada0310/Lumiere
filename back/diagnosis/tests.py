@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -8,14 +9,15 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
+from diagnosis.ai_clients.openai_compatible import AIClientConfigurationError
 from diagnosis.domain.palette_seed_data import PALETTE_SEED_DATA, validate_palette_seed_data
 from diagnosis.domain.tone_keys import CANONICAL_TONE_KEYS
 from diagnosis.domain.tone_key_normalizer import ToneKeyError, normalize_tone_key
 from diagnosis.models import DiagnosisResult, PersonalColor, PersonalColorPalette
+from diagnosis.services.ai_diagnosis import diagnose_personal_color
 from diagnosis.services.makeup_generation import build_makeup_generation_prompt
 from diagnosis.services.multimodal_diagnosis import validate_diagnosis_payload
 from diagnosis.services.palettes import get_palette_for_tone_key, serialize_palette
-from diagnosis.services.workflow import ImageQualityError
 
 
 class ToneKeyNormalizerTests(TestCase):
@@ -53,6 +55,68 @@ class DiagnosisPayloadValidationTests(TestCase):
 
         with self.assertRaises(ValidationError):
             validate_diagnosis_payload(payload)
+
+
+class AIDiagnosisServiceTests(TestCase):
+    @override_settings(OPENAI_MODEL='gpt-4.1')
+    def test_calls_openai_with_image_data_url_and_without_stream(self):
+        class FakeCompletions:
+            def __init__(self):
+                self.kwargs = None
+
+            async def create(self, **kwargs):
+                self.kwargs = kwargs
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(
+                                content=json.dumps(
+                                    {
+                                        'tone_key': 'summer-cool-mute',
+                                        'confidence': 0.85,
+                                        'summary': 'AI summary',
+                                        'features': {
+                                            'temperature': 'cool',
+                                            'brightness': 'medium',
+                                            'chroma': 'low',
+                                            'contrast': 'medium',
+                                        },
+                                    }
+                                )
+                            )
+                        )
+                    ]
+                )
+
+        class FakeClient:
+            def __init__(self):
+                self.chat = SimpleNamespace(completions=FakeCompletions())
+                self.closed = False
+
+            async def close(self):
+                self.closed = True
+
+        fake_client = FakeClient()
+        upload = SimpleUploadedFile('face.png', b'image-bytes', content_type='image/png')
+
+        with patch('diagnosis.services.ai_diagnosis._create_client', return_value=fake_client):
+            result = diagnose_personal_color(upload)
+
+        kwargs = fake_client.chat.completions.kwargs
+        self.assertEqual(kwargs['model'], 'gpt-4.1')
+        self.assertNotIn('stream', kwargs)
+        self.assertEqual(kwargs['response_format'], {'type': 'json_object'})
+        self.assertTrue(kwargs['messages'][1]['content'][1]['image_url']['url'].startswith('data:image/png;base64,'))
+        self.assertEqual(result['tone_key'], 'summer_cool_mute')
+        self.assertEqual(result['confidence'], 85)
+        self.assertTrue(fake_client.closed)
+
+    @override_settings(OPENAI_API_KEY='')
+    def test_requires_openai_api_key(self):
+        upload = SimpleUploadedFile('face.jpg', b'image-bytes', content_type='image/jpeg')
+
+        with self.assertRaises(AIClientConfigurationError):
+            diagnose_personal_color(upload)
 
 
 class PaletteServiceTests(TestCase):
@@ -170,31 +234,93 @@ class DiagnosisAnalyzeApiTests(TestCase):
             glossiness_degree=50,
             contrast_degree=25,
         )
+        self.palette_data = {
+            'toneKey': 'summer_cool_mute',
+            'toneName': '여름 쿨 뮤트',
+            'keywords': ['soft', 'cool'],
+            'palettes': {
+                'best': [{'name': 'Soft Rose', 'nameKo': '소프트 로즈', 'hex': '#CFA0AC'}],
+                'neutral': [],
+                'accent': [],
+                'try': [],
+                'worst': [{'name': 'Orange Brown', 'nameKo': '오렌지 브라운', 'hex': '#A65A35'}],
+            },
+            'makeupColorGuide': {},
+            'styleGuide': {},
+            'recommendedProductToneRange': {},
+        }
+        self.palette = PersonalColorPalette.objects.create(
+            tone_key='summer_cool_mute',
+            data=self.palette_data,
+            tone_name='여름 쿨 뮤트',
+            season='summer',
+            temperature='cool',
+            brightness='medium',
+            chroma='low_to_medium',
+            contrast='low',
+            keywords=['soft', 'cool'],
+            is_placeholder=False,
+            personal_color=self.personal_color,
+        )
 
     def test_analyze_endpoint_returns_created_result(self):
-        diagnosis = DiagnosisResult.objects.create(
-            user=self.user,
-            personal_color=self.personal_color,
-            tone_key='summer_cool_mute',
-            personal_color_code='summer_cool_mute',
-            confidence_score=82,
-            palette_snapshot={'toneKey': 'summer_cool_mute', 'toneName': '여름 쿨 뮤트'},
-        )
         upload = SimpleUploadedFile('face.jpg', b'fake-image', content_type='image/jpeg')
+        ai_payload = {
+            'tone_key': 'summer_cool_mute',
+            'confidence': 85,
+            'summary': 'AI summary',
+            'features': {
+                'temperature': 'cool',
+                'brightness': 'medium',
+                'chroma': 'low',
+                'contrast': 'medium',
+            },
+        }
 
-        with patch('diagnosis.views.run_personal_color_diagnosis', return_value=diagnosis):
+        with patch('diagnosis.views.diagnose_personal_color', return_value=ai_payload):
             response = self.client.post('/api/diagnosis/analyze/', {'image': upload}, format='multipart')
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['tone_key'], 'summer_cool_mute')
         self.assertEqual(response.data['palette']['toneKey'], 'summer_cool_mute')
+        self.assertEqual(response.data['confidence'], 85)
+        self.assertEqual(response.data['summary'], 'AI summary')
+        self.assertEqual(response.data['diagnosis_json'], ai_payload)
+        diagnosis = DiagnosisResult.objects.get(pk=response.data['id'])
+        self.assertEqual(diagnosis.palette_snapshot, self.palette_data)
+        self.assertEqual(diagnosis.makeup_generation_status, DiagnosisResult.MakeupGenerationStatus.NONE)
 
-    def test_analyze_endpoint_returns_quality_error(self):
+    def test_analyze_endpoint_returns_palette_missing(self):
         upload = SimpleUploadedFile('face.jpg', b'fake-image', content_type='image/jpeg')
-        quality = SimpleNamespace(code='no_face', message='얼굴이 감지되지 않았습니다.', metrics={})
+        ai_payload = {
+            'tone_key': 'winter_cool_bright',
+            'confidence': 80,
+            'summary': 'AI summary',
+            'features': {
+                'temperature': 'cool',
+                'brightness': 'high',
+                'chroma': 'high',
+                'contrast': 'high',
+            },
+        }
 
-        with patch('diagnosis.views.run_personal_color_diagnosis', side_effect=ImageQualityError(quality)):
+        with patch('diagnosis.views.diagnose_personal_color', return_value=ai_payload):
             response = self.client.post('/api/diagnosis/analyze/', {'image': upload}, format='multipart')
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data['code'], 'no_face')
+        self.assertEqual(response.data['code'], 'palette_missing')
+
+    def test_analyze_endpoint_returns_ai_configuration_error(self):
+        upload = SimpleUploadedFile('face.jpg', b'fake-image', content_type='image/jpeg')
+
+        with patch('diagnosis.views.diagnose_personal_color', side_effect=AIClientConfigurationError('OPENAI_API_KEY is not configured.')):
+            response = self.client.post('/api/diagnosis/analyze/', {'image': upload}, format='multipart')
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data['code'], 'ai_not_configured')
+
+    def test_analyze_endpoint_requires_image(self):
+        response = self.client.post('/api/diagnosis/analyze/', {}, format='multipart')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['code'], 'image_required')
