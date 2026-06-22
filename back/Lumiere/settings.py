@@ -14,6 +14,11 @@ from datetime import timedelta
 import os
 from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,10 +39,17 @@ def load_env_file(path):
             os.environ.setdefault(key, value)
 
 
-load_env_file(BASE_DIR / '.env')
+if load_dotenv:
+    load_dotenv(BASE_DIR / '.env')
+else:
+    load_env_file(BASE_DIR / '.env')
 
 if os.getenv('API_KEY') and not os.getenv('OPENAI_API_KEY'):
     os.environ['OPENAI_API_KEY'] = os.getenv('API_KEY')
+
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_BASE_URL = os.getenv('OPENAI_BASE_URL', 'https://gms.ssafy.io/gmsapi/api.openai.com/v1')
+OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4.1')
 
 
 # Quick-start development settings - unsuitable for production
