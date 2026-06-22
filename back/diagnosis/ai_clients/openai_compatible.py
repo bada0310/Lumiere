@@ -1,8 +1,7 @@
 import base64
 import json
 import os
-
-
+from django.conf import settings
 class AIClientConfigurationError(RuntimeError):
     pass
 
@@ -15,7 +14,7 @@ class OpenAICompatibleClient:
     def __init__(self):
         api_key = os.getenv('OPENAI_API_KEY') or os.getenv('OPENAI_COMPATIBLE_API_KEY')
         base_url = os.getenv('OPENAI_BASE_URL') or os.getenv('OPENAI_COMPATIBLE_BASE_URL')
-        self.model = os.getenv('OPENAI_DIAGNOSIS_MODEL', 'gpt-4o-mini')
+        self.model = getattr(settings, 'AI_DIAGNOSIS_MODEL', None) or settings.OPENAI_MODEL
         self.mock_enabled = os.getenv('OPENAI_DIAGNOSIS_MOCK', '').lower() in {'1', 'true', 'yes'}
 
         if self.mock_enabled:
