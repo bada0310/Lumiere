@@ -47,10 +47,19 @@ else:
 if os.getenv('API_KEY') and not os.getenv('OPENAI_API_KEY'):
     os.environ['OPENAI_API_KEY'] = os.getenv('API_KEY')
 
+
+def env_flag(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {'1', 'true', 'yes', 'on'}
+
+
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 OPENAI_BASE_URL = os.getenv('OPENAI_BASE_URL', 'https://gms.ssafy.io/gmsapi/api.openai.com/v1')
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4.1')
-
+AI_DIAGNOSIS_MODEL = os.getenv('AI_DIAGNOSIS_MODEL') or OPENAI_MODEL
+OPENAI_DIAGNOSIS_MOCK = env_flag('OPENAI_DIAGNOSIS_MOCK')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -60,6 +69,7 @@ SECRET_KEY = 'django-insecure-%4xdnn79bgj-znfo^6^5z30bcrtew945)0^f9%#i*_^vel+hk#
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+OPENAI_DIAGNOSIS_FALLBACK_ON_ERROR = env_flag('OPENAI_DIAGNOSIS_FALLBACK_ON_ERROR', DEBUG)
 
 ALLOWED_HOSTS = []
 
