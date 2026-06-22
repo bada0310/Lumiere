@@ -1,21 +1,31 @@
 import base64
 import inspect
 import json
+import logging
+from io import BytesIO
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from PIL import Image, ImageOps
 
 from diagnosis.ai_clients.openai_compatible import AIClientConfigurationError, AIClientResponseError
 from diagnosis.domain.tone_key_normalizer import ToneKeyError, normalize_tone_key
 from diagnosis.domain.tone_keys import CANONICAL_TONE_KEYS
 
+logger = logging.getLogger(__name__)
 
 REQUIRED_RESPONSE_KEYS = {'tone_key', 'confidence', 'summary', 'features'}
 REQUIRED_FEATURE_KEYS = {'temperature', 'brightness', 'chroma', 'contrast'}
 DEFAULT_MIME_TYPE = 'image/jpeg'
+AI_IMAGE_MIME_TYPE = 'image/jpeg'
+AI_IMAGE_MAX_EDGE = 768
+AI_IMAGE_JPEG_QUALITY = 80
 
 
 def diagnose_personal_color(image_file):
+    if getattr(settings, 'OPENAI_DIAGNOSIS_MOCK', False):
+        return _mock_diagnosis()
+
     return async_to_sync(_diagnose_personal_color_async)(image_file)
 
 
@@ -24,8 +34,29 @@ async def _diagnose_personal_color_async(image_file):
     client = _create_client()
     try:
         response = await client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=[
+            **_build_chat_completion_kwargs(data_url),
+        )
+    except Exception as exc:
+        if _should_fallback_on_ai_error():
+            logger.warning('AI diagnosis request failed; using mock fallback: %s', exc)
+            return _mock_diagnosis()
+        raise AIClientResponseError(f'AI diagnosis request failed: {exc}') from exc
+    finally:
+        await _close_client(client)
+
+    try:
+        return _parse_response(response)
+    except AIClientResponseError as exc:
+        if _should_fallback_on_ai_error():
+            logger.warning('AI diagnosis response was invalid; using mock fallback: %s', exc)
+            return _mock_diagnosis()
+        raise
+
+
+def _build_chat_completion_kwargs(data_url):
+    kwargs = {
+        'model': settings.AI_DIAGNOSIS_MODEL,
+        'messages': [
                 {
                     'role': 'system',
                     'content': (
@@ -40,17 +71,18 @@ async def _diagnose_personal_color_async(image_file):
                         {'type': 'image_url', 'image_url': {'url': data_url}},
                     ],
                 },
-            ],
-            response_format={'type': 'json_object'},
-            temperature=0.1,
-            max_tokens=1024,
-        )
-    except Exception as exc:
-        raise AIClientResponseError(f'AI diagnosis request failed: {exc}') from exc
-    finally:
-        await _close_client(client)
+        ],
+        'response_format': {'type': 'json_object'},
+    }
 
-    return _parse_response(response)
+    if _supports_custom_temperature(settings.AI_DIAGNOSIS_MODEL):
+        kwargs['temperature'] = 0.1
+
+    return kwargs
+
+
+def _supports_custom_temperature(model):
+    return not str(model or '').lower().startswith('gpt-5')
 
 
 def _create_client():
@@ -95,8 +127,23 @@ def _image_file_to_data_url(image_file):
         raise AIClientResponseError('Uploaded image is empty.')
 
     mime_type = getattr(image_file, 'content_type', None) or DEFAULT_MIME_TYPE
+    image_bytes, mime_type = _prepare_image_bytes_for_ai(image_bytes, mime_type)
     encoded = base64.b64encode(image_bytes).decode('ascii')
     return f'data:{mime_type};base64,{encoded}'
+
+
+def _prepare_image_bytes_for_ai(image_bytes, mime_type):
+    try:
+        image = Image.open(BytesIO(image_bytes))
+    except Exception:
+        return image_bytes, mime_type
+
+    image = ImageOps.exif_transpose(image).convert('RGB')
+    image.thumbnail((AI_IMAGE_MAX_EDGE, AI_IMAGE_MAX_EDGE))
+
+    output = BytesIO()
+    image.save(output, format='JPEG', quality=AI_IMAGE_JPEG_QUALITY, progressive=False)
+    return output.getvalue(), AI_IMAGE_MIME_TYPE
 
 
 def _build_prompt():
@@ -190,3 +237,21 @@ def _normalize_confidence(value):
         raise AIClientResponseError('AI response confidence must be between 0 and 100.')
 
     return round(confidence)
+
+
+def _should_fallback_on_ai_error():
+    return bool(getattr(settings, 'OPENAI_DIAGNOSIS_FALLBACK_ON_ERROR', False))
+
+
+def _mock_diagnosis():
+    return {
+        'tone_key': 'summer_cool_mute',
+        'confidence': 82,
+        'summary': 'Development fallback diagnosis result. External AI analysis is unavailable.',
+        'features': {
+            'temperature': 'cool',
+            'brightness': 'medium',
+            'chroma': 'low',
+            'contrast': 'medium',
+        },
+    }

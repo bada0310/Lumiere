@@ -14,15 +14,19 @@ export const getLatestDiagnosis = async () => {
   return response.data
 }
 
+export const getDiagnosisResults = async () => {
+  const response = await axios.get(`${API_BASE_URL}/api/diagnosis/results/`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
 export const createDiagnosis = async (imageFile) => {
   const formData = new FormData()
   formData.append('image', imageFile)
 
   const response = await axios.post(`${API_BASE_URL}/api/diagnosis/analyze/`, formData, {
-    headers: {
-      ...authHeaders(),
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: authHeaders(),
   })
   return response.data
 }
@@ -38,3 +42,4 @@ export const getDemoDiagnosis = async () => {
   const response = await axios.get(`${API_BASE_URL}/api/diagnosis/demo/`)
   return response.data
 }
+

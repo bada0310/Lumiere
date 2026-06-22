@@ -1,8 +1,8 @@
 <template>
   <form @submit.prevent="handleLogin" class="login-form">
     <div class="input-group">
-      <label>이메일</label>
-      <input type="email" v-model.trim="email" placeholder="이메일을 입력해주세요" required />
+      <label>아이디</label>
+      <input type="text" v-model.trim="username" placeholder="아이디를 입력해주세요" required />
     </div>
 
     <div class="input-group">
@@ -23,16 +23,16 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 
-// ★ 부모(LoginView)에게 신호를 보내기 위한 설정
 const emit = defineEmits(['goToFindPassword'])
 
-const email = ref('')
+// email 대신 username 사용
+const username = ref('')
 const password = ref('')
 const route = useRoute()
 
 const handleLogin = async () => { 
   const loginData = {
-    username: email.value, // 장고의 규칙을 위해 username으로 포장
+    username: username.value, // 입력받은 진짜 아이디를 보냄
     password: password.value
   }
 
@@ -51,11 +51,10 @@ const handleLogin = async () => {
 
   } catch (error) {
     console.error("로그인 실패:", error.response?.data)
-    alert('이메일 또는 비밀번호가 올바르지 않습니다.')
+    alert('아이디 또는 비밀번호가 올바르지 않습니다.')
   }
 }
 
-// 텍스트 클릭 시 부모에게 이벤트 발송
 const goToFindPassword = () => {
   emit('goToFindPassword')
 }

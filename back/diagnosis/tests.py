@@ -1,4 +1,6 @@
+import base64
 import json
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -58,7 +60,7 @@ class DiagnosisPayloadValidationTests(TestCase):
 
 
 class AIDiagnosisServiceTests(TestCase):
-    @override_settings(OPENAI_MODEL='gpt-4.1')
+    @override_settings(OPENAI_MODEL='gpt-4.1', AI_DIAGNOSIS_MODEL='gpt-4.1')
     def test_calls_openai_with_image_data_url_and_without_stream(self):
         class FakeCompletions:
             def __init__(self):
@@ -111,12 +113,71 @@ class AIDiagnosisServiceTests(TestCase):
         self.assertEqual(result['confidence'], 85)
         self.assertTrue(fake_client.closed)
 
+    @override_settings(AI_DIAGNOSIS_MODEL='gpt-5.5')
+    def test_gpt5_models_use_default_temperature(self):
+        from diagnosis.services.ai_diagnosis import _build_chat_completion_kwargs
+
+        kwargs = _build_chat_completion_kwargs('data:image/jpeg;base64,abc')
+
+        self.assertEqual(kwargs['model'], 'gpt-5.5')
+        self.assertNotIn('temperature', kwargs)
+
+    def test_image_data_url_is_resized_for_ai_request(self):
+        from PIL import Image
+
+        from diagnosis.services.ai_diagnosis import AI_IMAGE_MAX_EDGE, _image_file_to_data_url
+
+        source = BytesIO()
+        Image.new('RGB', (1200, 2100), 'white').save(source, format='JPEG')
+        upload = SimpleUploadedFile('face.jpg', source.getvalue(), content_type='image/jpeg')
+
+        data_url = _image_file_to_data_url(upload)
+        header, encoded = data_url.split(',', 1)
+        resized = Image.open(BytesIO(base64.b64decode(encoded)))
+
+        self.assertEqual(header, 'data:image/jpeg;base64')
+        self.assertLessEqual(max(resized.size), AI_IMAGE_MAX_EDGE)
+
     @override_settings(OPENAI_API_KEY='')
     def test_requires_openai_api_key(self):
         upload = SimpleUploadedFile('face.jpg', b'image-bytes', content_type='image/jpeg')
 
         with self.assertRaises(AIClientConfigurationError):
             diagnose_personal_color(upload)
+
+    @override_settings(OPENAI_API_KEY='', OPENAI_DIAGNOSIS_MOCK=True)
+    def test_mock_diagnosis_bypasses_openai_configuration(self):
+        upload = SimpleUploadedFile('face.jpg', b'image-bytes', content_type='image/jpeg')
+
+        result = diagnose_personal_color(upload)
+
+        self.assertEqual(result['tone_key'], 'summer_cool_mute')
+        self.assertEqual(result['confidence'], 82)
+        self.assertEqual(set(result['features']), {'temperature', 'brightness', 'chroma', 'contrast'})
+
+    @override_settings(OPENAI_DIAGNOSIS_MOCK=False, OPENAI_DIAGNOSIS_FALLBACK_ON_ERROR=True)
+    def test_ai_request_error_can_fall_back_to_mock_diagnosis(self):
+        class FakeCompletions:
+            async def create(self, **kwargs):
+                raise RuntimeError('gateway unavailable')
+
+        class FakeClient:
+            def __init__(self):
+                self.chat = SimpleNamespace(completions=FakeCompletions())
+                self.closed = False
+
+            async def close(self):
+                self.closed = True
+
+        fake_client = FakeClient()
+        upload = SimpleUploadedFile('face.jpg', b'image-bytes', content_type='image/jpeg')
+
+        with self.assertLogs('diagnosis.services.ai_diagnosis', level='WARNING'):
+            with patch('diagnosis.services.ai_diagnosis._create_client', return_value=fake_client):
+                result = diagnose_personal_color(upload)
+
+        self.assertEqual(result['tone_key'], 'summer_cool_mute')
+        self.assertTrue(fake_client.closed)
 
 
 class PaletteServiceTests(TestCase):
@@ -289,6 +350,44 @@ class DiagnosisAnalyzeApiTests(TestCase):
         diagnosis = DiagnosisResult.objects.get(pk=response.data['id'])
         self.assertEqual(diagnosis.palette_snapshot, self.palette_data)
         self.assertEqual(diagnosis.makeup_generation_status, DiagnosisResult.MakeupGenerationStatus.NONE)
+
+    def test_analyze_endpoint_keeps_multiple_results_for_same_user(self):
+        ai_payload = {
+            'tone_key': 'summer_cool_mute',
+            'confidence': 85,
+            'summary': 'AI summary',
+            'features': {
+                'temperature': 'cool',
+                'brightness': 'medium',
+                'chroma': 'low',
+                'contrast': 'medium',
+            },
+        }
+
+        with patch('diagnosis.views.diagnose_personal_color', return_value=ai_payload):
+            first_response = self.client.post(
+                '/api/diagnosis/analyze/',
+                {'image': SimpleUploadedFile('face-1.jpg', b'fake-image-1', content_type='image/jpeg')},
+                format='multipart',
+            )
+            second_response = self.client.post(
+                '/api/diagnosis/analyze/',
+                {'image': SimpleUploadedFile('face-2.jpg', b'fake-image-2', content_type='image/jpeg')},
+                format='multipart',
+            )
+
+        self.assertEqual(first_response.status_code, 201)
+        self.assertEqual(second_response.status_code, 201)
+        self.assertEqual(DiagnosisResult.objects.filter(user=self.user).count(), 2)
+
+        list_response = self.client.get('/api/diagnosis/results/')
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(len(list_response.data), 2)
+        self.assertEqual(
+            {item['id'] for item in list_response.data},
+            {first_response.data['id'], second_response.data['id']},
+        )
 
     def test_analyze_endpoint_returns_palette_missing(self):
         upload = SimpleUploadedFile('face.jpg', b'fake-image', content_type='image/jpeg')

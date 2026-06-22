@@ -1,4 +1,4 @@
-# mac
+# macOS
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -14,17 +14,27 @@ ehthumbs_vista.db
 *.msm
 *.msp
 *.lnk
-# Virtual Environments (가상환경 폴더)
+
+# Virtual environments
 venv/
 .venv/
 env/
-.env/  # 보통 API 키나 데이터베이스(RDS 등) 접속 정보를 저장하는 환경 변수 파일
+.env/
 
-# Environment Variables (환경 변수 파일)
+# Environment variables
 .env
 .env.*
 !.env.example
-# vscode
+
+# Django local state and generated files
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+media/
+staticfiles/
+
+# VS Code
 .vscode/
 *.code-workspace
 !.vscode/settings.json
@@ -35,33 +45,26 @@ env/
 .history/
 *.vsix
 
-# python
+# Python
 __pycache__/
 *.pyc
 
+# Local build and scratch files
 **/cph/
 *.cph/
-
 *.dSYM/
-
 *.out
 *.o
 *.exe
 *.obj
-
 input.txt
 output.txt
 error.txt
 *.swp
 
-### Java ###
-# Compiled class file
+# Java
 *.class
-
-# Log file
 *.log
-
-# Package Files #
 *.jar
 *.war
 *.nar
@@ -70,5 +73,5 @@ error.txt
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# JVM crash logs
 hs_err_pid*
