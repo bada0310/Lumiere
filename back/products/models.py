@@ -1,7 +1,6 @@
-from django.db import models
-
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 
 
 class Product(models.Model):
@@ -13,20 +12,147 @@ class Product(models.Model):
         LENS = 'LENS', '렌즈'
         ETC = 'ETC', '기타'
 
+    class ToneTag(models.TextChoices):
+        SPRING_LIGHT = 'SPRING_LIGHT', '봄 웜 라이트'
+        SPRING_BRIGHT = 'SPRING_BRIGHT', '봄 웜 브라이트'
+        SUMMER_LIGHT = 'SUMMER_LIGHT', '여름 쿨 라이트'
+        SUMMER_MUTE = 'SUMMER_MUTE', '여름 쿨 뮤트'
+        AUTUMN_MUTE = 'AUTUMN_MUTE', '가을 웜 뮤트'
+        AUTUMN_DEEP = 'AUTUMN_DEEP', '가을 웜 딥'
+        WINTER_BRIGHT = 'WINTER_BRIGHT', '겨울 쿨 브라이트'
+        WINTER_DEEP = 'WINTER_DEEP', '겨울 쿨 딥'
+        UNKNOWN = 'UNKNOWN', '미분류'
+
+    class Finish(models.TextChoices):
+        MATTE = 'MATTE', '매트'
+        GLOSSY = 'GLOSSY', '글로시'
+        VELVET = 'VELVET', '벨벳'
+        SHIMMER = 'SHIMMER', '쉬머'
+        NATURAL = 'NATURAL', '내추럴'
+        UNKNOWN = 'UNKNOWN', '미분류'
+
+    class ColorFamily(models.TextChoices):
+        PINK = 'PINK', '핑크'
+        ROSE = 'ROSE', '로즈'
+        CORAL = 'CORAL', '코랄'
+        RED = 'RED', '레드'
+        BERRY = 'BERRY', '베리'
+        LAVENDER = 'LAVENDER', '라벤더'
+        BEIGE = 'BEIGE', '베이지'
+        BROWN = 'BROWN', '브라운'
+        GRAY = 'GRAY', '그레이'
+        IVORY = 'IVORY', '아이보리'
+        ETC = 'ETC', '기타'
+
+    # 기본 상품 정보
     brand = models.CharField(max_length=80)
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=300)
+
     category = models.CharField(
         max_length=20,
         choices=Category.choices,
         default=Category.ETC,
     )
-    image_url = models.URLField(blank=True)
-    product_url = models.URLField(blank=True)
+
+    image_url = models.URLField(max_length=1000, blank=True)
+    product_url = models.URLField(max_length=1000, blank=True)
     description = models.TextField(blank=True)
+
+    # 네이버 쇼핑 API 원본 정보
+    price = models.PositiveIntegerField(default=0)
+    mall_name = models.CharField(max_length=100, blank=True)
+    naver_product_id = models.CharField(max_length=100, blank=True)
+    source_query = models.CharField(max_length=200, blank=True)
+
+    naver_category1 = models.CharField(max_length=100, blank=True)
+    naver_category2 = models.CharField(max_length=100, blank=True)
+    naver_category3 = models.CharField(max_length=100, blank=True)
+    naver_category4 = models.CharField(max_length=100, blank=True)
+
+    # 추천/필터용 태그 정보
+    texture = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='예: 립틴트, 립글로스, 아이팔레트, 쿠션, 블러셔, 컬러렌즈',
+    )
+
+    finish = models.CharField(
+        max_length=20,
+        choices=Finish.choices,
+        default=Finish.UNKNOWN,
+    )
+
+    tone_tag = models.CharField(
+        max_length=30,
+        choices=ToneTag.choices,
+        default=ToneTag.UNKNOWN,
+    )
+
+    color_family = models.CharField(
+        max_length=20,
+        choices=ColorFamily.choices,
+        default=ColorFamily.ETC,
+    )
+
+    # 상품 이미지/색상 분석 결과
+    hex_code = models.CharField(max_length=20, blank=True)
+
+    rgb_r = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(255)],
+    )
+    rgb_g = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(255)],
+    )
+    rgb_b = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(255)],
+    )
+
+    brightness = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='명도: 밝을수록 높음',
+    )
+    saturation = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='채도: 선명할수록 높음',
+    )
+    coolness = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='쿨톤 점수',
+    )
+    warmth = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='웜톤 점수',
+    )
+    depth = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='딥한 정도: 어두울수록 높음',
+    )
+    softness = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='탁도/부드러움: 회색기나 부드러움이 클수록 높음',
+    )
+    contrast = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='대비감',
+    )
+
+    # 추천 결과
     match_score = models.PositiveSmallIntegerField(
         default=0,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
+    reason = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -52,7 +178,7 @@ class Review(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     content = models.TextField()
-    image_url = models.URLField(blank=True)
+    image_url = models.URLField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
