@@ -16,6 +16,7 @@ const normalizeUser = (user) => {
     nickname: user.nickname || user.username || '',
     email: user.email || '',
     profileImageUrl: user.profile_image_url || null,
+    requiresPasswordConfirmation: Boolean(user.requires_password_confirmation),
   }
 }
 

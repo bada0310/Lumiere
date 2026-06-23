@@ -337,6 +337,7 @@ export const normalizeDiagnosisResult = (raw) => {
       raw.style_guide?.recommended_product_tone_range ||
       {},
     tip: raw.tip || fixedPalette?.resultTip || '',
+    is_primary: Boolean(raw.is_primary),
     is_demo: Boolean(raw.is_demo || raw.id?.startsWith?.('mock-')),
     is_mock: Boolean(raw.is_mock || raw.id?.startsWith?.('mock-')),
   }

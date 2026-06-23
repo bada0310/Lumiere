@@ -13,6 +13,12 @@ const normalizeToneKey = (value = '') => {
     .replaceAll('-', '_')
 }
 
+const normalizeApiToneKey = (value = '') => {
+  return String(value || '')
+    .trim()
+    .replaceAll('-', '_')
+}
+
 export const TONE_PROFILE_PRESETS = {
   SPRING_LIGHT: {
     toneTag: 'SPRING_LIGHT',
@@ -98,6 +104,7 @@ export const TONE_PROFILE_PRESETS = {
 
 const getPresetByDiagnosis = (diagnosis = {}) => {
   const rawKey =
+    diagnosis.tone_key ||
     diagnosis.toneTag ||
     diagnosis.tone_tag ||
     diagnosis.personal_color_code ||
@@ -113,26 +120,43 @@ export const buildDiagnosisColorProfile = (diagnosis = {}) => {
   const preset = getPresetByDiagnosis(diagnosis)
   const skinMetrics = diagnosis.skin_metrics || {}
   const radarChart = diagnosis.radar_chart || {}
+  const axisProfile = diagnosis.axis_profile || diagnosis.diagnosis_json?.axis_profile || {}
+  const rangeProfile = diagnosis.range_profile || diagnosis.diagnosis_json?.range_profile || preset.rangeProfile || {}
+  const rawToneKey =
+    diagnosis.tone_key ||
+    diagnosis.toneTag ||
+    diagnosis.tone_tag ||
+    diagnosis.personal_color_code ||
+    diagnosis.personal_color?.code ||
+    preset.toneTag
 
   const coolWarm = Number(skinMetrics.cool_warm)
   const hasCoolWarm = Number.isFinite(coolWarm)
-  const coolness = hasCoolWarm ? clampPercent(coolWarm, preset.coolness) : preset.coolness
-  const warmth = hasCoolWarm ? clampPercent(100 - coolWarm, preset.warmth) : preset.warmth
+  const coolness = clampPercent(axisProfile.coolness ?? (hasCoolWarm ? coolWarm : preset.coolness), preset.coolness)
+  const warmth = clampPercent(axisProfile.warmth ?? (hasCoolWarm ? 100 - coolWarm : preset.warmth), preset.warmth)
 
   return {
     source: diagnosis.is_mock ? 'mock-diagnosis' : 'ai-diagnosis',
     diagnosisId: diagnosis.id || '',
-    toneTag: preset.toneTag,
-    toneName: diagnosis.korean_name || diagnosis.personal_color?.korean_name || preset.toneName,
+    toneTag: normalizeApiToneKey(rawToneKey) || preset.toneTag,
+    toneName: diagnosis.tone_label || diagnosis.korean_name || diagnosis.personal_color?.korean_name || preset.toneName,
+    secondToneTag: normalizeApiToneKey(diagnosis.second_tone_key || diagnosis.diagnosis_json?.second_tone_key || ''),
+    secondToneName: diagnosis.second_tone_label || diagnosis.diagnosis_json?.second_tone_label || '',
     englishName: diagnosis.english_name || diagnosis.personal_color?.english_name || '',
     confidence: clampPercent(diagnosis.confidence ?? diagnosis.confidence_score),
-    brightness: clampPercent(skinMetrics.brightness ?? radarChart.brightness, preset.brightness),
-    saturation: clampPercent(skinMetrics.saturation ?? radarChart.saturation, preset.saturation),
+    brightness: clampPercent(axisProfile.brightness ?? skinMetrics.brightness ?? radarChart.brightness, preset.brightness),
+    saturation: clampPercent(axisProfile.saturation ?? skinMetrics.saturation ?? radarChart.saturation, preset.saturation),
     coolness,
     warmth,
-    softness: clampPercent(skinMetrics.softness ?? radarChart.softness, preset.softness),
-    contrast: clampPercent(skinMetrics.contrast ?? radarChart.contrast, preset.contrast),
+    depth: clampPercent(axisProfile.depth, 100 - preset.brightness),
+    softness: clampPercent(axisProfile.softness ?? skinMetrics.softness ?? radarChart.softness, preset.softness),
+    contrast: clampPercent(axisProfile.contrast ?? skinMetrics.contrast ?? radarChart.contrast, preset.contrast),
     clarity: clampPercent(skinMetrics.clarity ?? radarChart.clarity, 50),
+    axisProfile,
+    rangeProfile,
+    range_profile: rangeProfile,
+    recommendedColorFamilies: diagnosis.recommended_color_families || diagnosis.diagnosis_json?.recommended_color_families || [],
+    cautionColorFamilies: diagnosis.caution_color_families || diagnosis.diagnosis_json?.caution_color_families || [],
     representativeColors: Array.isArray(diagnosis.representative_colors) ? diagnosis.representative_colors : [],
     diagnosedAt: diagnosis.diagnosed_at || diagnosis.created_at || new Date().toISOString(),
   }
@@ -143,6 +167,10 @@ export const saveDiagnosisColorProfile = (diagnosis) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
   localStorage.setItem('selectedReferenceTone', profile.toneTag)
   return profile
+}
+
+export const clearDiagnosisColorProfile = () => {
+  localStorage.removeItem(STORAGE_KEY)
 }
 
 export const readUserColorProfile = () => {
@@ -187,8 +215,8 @@ export const getWarmCoolPosition = (item) => {
 
 export const getChartPoint = (item) => {
   return {
-    x: getWarmCoolPosition(item),
-    y: clampPercent(item.brightness),
+    x: clampPercent(item.coolness),
+    y: clampPercent(100 - clampPercent(item.brightness)),
     size: Math.max(9, Math.min(24, Math.round(clampPercent(item.saturation) / 5))),
     color: item.hexCode || item.hex_code || item.hex || '#c65367',
   }

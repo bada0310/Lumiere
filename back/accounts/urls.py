@@ -12,6 +12,7 @@ urlpatterns = [
     path('signup/', views.SignupView.as_view(), name='signup'),
     path('user/', views.CurrentUserView.as_view(), name='user_info'),
     path('user/update/', views.CurrentUserUpdateView.as_view(), name='user_update'),
+    path('user/delete/', views.CurrentUserDeleteView.as_view(), name='user_delete'),
     path('check-username/', views.CheckUsernameView.as_view(), name='check_username'),
     path('check-nickname/', views.CheckNicknameView.as_view(), name='check_nickname'),
     path('find-password/', views.FindPasswordView.as_view(), name='find_password'),

@@ -54,6 +54,33 @@ class CommunityApiTests(APITestCase):
         self.assertEqual(unliked.status_code, status.HTTP_200_OK)
         self.assertEqual(PostLike.objects.count(), 0)
 
+    def test_authenticated_user_can_list_my_posts_with_pagination(self):
+        other_user = get_user_model().objects.create_user(
+            username='other_writer',
+            password='password1234',
+            nickname='other_writer_nick',
+        )
+        for index in range(3):
+            Post.objects.create(
+                author=self.user,
+                title=f'My post {index}',
+                content='content',
+                category=Post.Category.FREE,
+            )
+        Post.objects.create(
+            author=other_user,
+            title='Other post',
+            content='content',
+            category=Post.Category.FREE,
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get('/api/community/posts/mine/?page=1&page_size=2')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['results']), 2)
+
     def test_authenticated_user_can_create_comment_on_post(self):
         post = Post.objects.create(
             author=self.user,

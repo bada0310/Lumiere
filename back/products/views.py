@@ -1,10 +1,14 @@
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Prefetch, Q
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Product, Review
-from .serializers import ProductSerializer, ReviewSerializer
+from diagnosis.domain.tone_profiles import build_tone_result_payload
+from diagnosis.services.primary import get_primary_diagnosis_for_user
+from products.models import Product, ProductOffer, ProductOption, ProductOptionToneScore, Review
+from products.serializers import ProductSerializer, ReviewSerializer
+from products.services.recommendation import build_user_tone_profile, calculate_option_match
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
@@ -14,25 +18,102 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
+def product_queryset(request, apply_filters=True):
+    offer_queryset = ProductOffer.objects.order_by('price', 'id')
+    tone_score_queryset = ProductOptionToneScore.objects.order_by('-match_score', 'target_tone', 'id')
+    option_queryset = (
+        ProductOption.objects.select_related('product')
+        .prefetch_related(
+            Prefetch('offers', queryset=offer_queryset),
+            Prefetch('tone_scores', queryset=tone_score_queryset),
+        )
+        .order_by('option_no', 'option_name', 'id')
+    )
+    queryset = (
+        Product.objects.filter(canonical_key__isnull=False)
+        .annotate(
+            review_count=Count('reviews', distinct=True),
+            average_rating=Avg('reviews__rating'),
+        )
+        .prefetch_related(Prefetch('options', queryset=option_queryset))
+    )
+    if not apply_filters:
+        return queryset
+
+    category = request.query_params.get('category')
+    keyword = request.query_params.get('q')
+
+    if category:
+        queryset = queryset.filter(category=category)
+    if keyword:
+        queryset = queryset.filter(Q(name__icontains=keyword) | Q(brand__icontains=keyword))
+    return queryset
+
+
+def user_tone_profile_from_request(request):
+    tone_key = request.query_params.get('tone_key')
+    second_tone_key = request.query_params.get('second_tone_key')
+    axis_profile = None
+    range_profile = None
+
+    if not tone_key and request.user.is_authenticated:
+        try:
+            diagnosis = get_primary_diagnosis_for_user(request.user)
+        except Exception:
+            diagnosis = None
+        if diagnosis:
+            profile_payload = build_tone_result_payload(
+                diagnosis.tone_key or diagnosis.personal_color_code,
+                (diagnosis.diagnosis_json or {}).get('second_tone_key'),
+            )
+            tone_key = profile_payload['tone_key']
+            second_tone_key = profile_payload['second_tone_key']
+            axis_profile = profile_payload['axis_profile']
+            range_profile = profile_payload['range_profile']
+
+    return build_user_tone_profile(
+        tone_key=tone_key,
+        second_tone_key=second_tone_key,
+        axis_profile=axis_profile,
+        range_profile=range_profile,
+    )
+
+
+def sort_products_by_best_option(products, user_profile):
+    def best_score(product):
+        options = list(getattr(product, '_prefetched_objects_cache', {}).get('options', []) or [])
+        if not options:
+            return 0
+        return max(
+            calculate_option_match(option, user_profile, product.category)['match_score']
+            for option in options
+        )
+
+    return sorted(products, key=best_score, reverse=True)
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        queryset = Product.objects.annotate(
-            review_count=Count('reviews', distinct=True),
-            average_rating=Avg('reviews__rating'),
-        )
-        category = self.request.query_params.get('category')
-        keyword = self.request.query_params.get('q')
+        return product_queryset(self.request)
 
-        if category:
-            queryset = queryset.filter(category=category)
-        if keyword:
-            queryset = queryset.filter(
-                Q(name__icontains=keyword) | Q(brand__icontains=keyword)
-            )
-        return queryset
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user_tone_profile'] = user_tone_profile_from_request(self.request)
+        context['option_match_cache'] = {}
+        return context
+
+    def list(self, request, *args, **kwargs):
+        user_profile = user_tone_profile_from_request(request)
+        products = sort_products_by_best_option(list(self.get_queryset()), user_profile)
+        serializer = self.get_serializer(
+            products,
+            many=True,
+            context={**self.get_serializer_context(), 'user_tone_profile': user_profile},
+        )
+        return Response(serializer.data)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -46,33 +127,25 @@ class ReviewViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(product_id=product_id)
         return queryset
 
+
 @api_view(['GET'])
 def product_list(request):
-    queryset = Product.objects.annotate(
-        review_count=Count('reviews', distinct=True),
-        average_rating=Avg('reviews__rating'),
+    user_profile = user_tone_profile_from_request(request)
+    products = sort_products_by_best_option(list(product_queryset(request)), user_profile)
+    serializer = ProductSerializer(
+        products,
+        many=True,
+        context={'request': request, 'user_tone_profile': user_profile, 'option_match_cache': {}},
     )
+    return Response(serializer.data)
 
-    if not queryset.exists():
-        products = [
-            {
-                "id": 1,
-                "brand": "롬앤",
-                "name": "쥬시 래스팅 틴트",
-                "category": "립틴트",
-                "match_score": 92,
-                "image": "https://image.oliveyoung.co.kr/uploads/images/goods/10/0000/0018/A00000018056701ko.jpg"
-            },
-            {
-                "id": 2,
-                "brand": "페리페라",
-                "name": "잉크 무드 글로이 틴트",
-                "category": "립틴트",
-                "match_score": 88,
-                "image": "https://image.oliveyoung.co.kr/uploads/images/goods/10/0000/0019/A00000019723101ko.jpg"
-            },
-        ]
-        return Response(products)
 
-    serializer = ProductSerializer(queryset, many=True)
+@api_view(['GET'])
+def product_detail(request, product_id):
+    user_profile = user_tone_profile_from_request(request)
+    product = get_object_or_404(product_queryset(request, apply_filters=False), pk=product_id)
+    serializer = ProductSerializer(
+        product,
+        context={'request': request, 'user_tone_profile': user_profile, 'option_match_cache': {}},
+    )
     return Response(serializer.data)

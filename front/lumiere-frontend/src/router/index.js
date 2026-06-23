@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/Home/HomeView.vue'
 
 import LoginView from '@/views/accounts/LoginView.vue'
+import MyPageListView from '@/views/accounts/MyPageListView.vue'
 import MyPageView from '@/views/accounts/MyPageView.vue'
 
 import UploadView from '@/views/diagnosis/UploadView.vue'
@@ -10,7 +11,7 @@ import LoadingView from '@/views/diagnosis/LoadingView.vue'
 import PersonalColorResultView from '@/views/diagnosis/PersonalColorResultView.vue'
 
 import ProductRecommendView from '@/views/products/ProductRecommendView.vue'
-import ProductDetailView from '@/views/products/ProductDetailView.vue'
+import ProductColorMatchingPage from '@/views/products/ProductColorMatchingPage.vue'
 
 import AnalysisView from '@/views/Analysis/AnalysisView.vue'
 import CommunityView from '@/views/community/CommunityView.vue'
@@ -18,18 +19,17 @@ import CommunityCreateView from '@/views/community/CommunityCreateView.vue'
 import CommunityDetailView from '@/views/community/CommunityDetailView.vue'
 import { isAuthenticated } from '@/utils/auth'
 
+const authMessage = '로그인 후 이용할 수 있어요.'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
 
   routes: [
-    // 홈
     {
       path: '/',
       name: 'home',
       component: HomeView,
     },
-
-    // 계정
     {
       path: '/login',
       name: 'login',
@@ -41,11 +41,49 @@ const router = createRouter({
       component: MyPageView,
       meta: {
         requiresAuth: true,
-        authMessage: '마이페이지는 로그인 후 이용할 수 있어요.',
+        authMessage,
       },
     },
-
-    // AI 퍼스널컬러 진단 흐름
+    {
+      path: '/mypage/diagnoses',
+      name: 'mypage-diagnoses',
+      component: MyPageListView,
+      meta: {
+        requiresAuth: true,
+        listType: 'diagnoses',
+        authMessage,
+      },
+    },
+    {
+      path: '/mypage/liked-options',
+      name: 'mypage-liked-options',
+      component: MyPageListView,
+      meta: {
+        requiresAuth: true,
+        listType: 'liked-options',
+        authMessage,
+      },
+    },
+    {
+      path: '/mypage/url-analyses',
+      name: 'mypage-url-analyses',
+      component: MyPageListView,
+      meta: {
+        requiresAuth: true,
+        listType: 'url-analyses',
+        authMessage,
+      },
+    },
+    {
+      path: '/mypage/posts',
+      name: 'mypage-posts',
+      component: MyPageListView,
+      meta: {
+        requiresAuth: true,
+        listType: 'posts',
+        authMessage,
+      },
+    },
     {
       path: '/upload',
       name: 'upload',
@@ -56,10 +94,6 @@ const router = createRouter({
       name: 'loading',
       component: LoadingView,
     },
-
-    // 진단 결과 화면
-    // /result       → 방금 진단한 결과
-    // /result/101   → 마이페이지에서 과거 진단 다시보기
     {
       path: '/result/:id?',
       name: 'result',
@@ -80,37 +114,31 @@ const router = createRouter({
       name: 'diagnosis-result-detail',
       component: PersonalColorResultView,
     },
-
-    // 추천 제품 목록
     {
       path: '/products',
       name: 'products',
       component: ProductRecommendView,
     },
-
-    // 제품 옵션 상세
-    // /product-detail/101 → ProductOption id 기준 상세
     {
       path: '/product-detail/:id?',
       name: 'product-detail',
-      component: ProductDetailView,
+      component: ProductColorMatchingPage,
     },
-
-    // URL 제품 색상 분석
+    {
+      path: '/products/:id/color-matching',
+      name: 'product-color-matching',
+      component: ProductColorMatchingPage,
+    },
     {
       path: '/product-analysis',
       name: 'product-analysis',
       component: AnalysisView,
     },
-
-    // 마이페이지에서 URL 분석 기록 다시보기
     {
       path: '/analysis/result/:id',
       name: 'analysis-result',
       component: AnalysisView,
     },
-
-    // 커뮤니티
     {
       path: '/community',
       name: 'community',

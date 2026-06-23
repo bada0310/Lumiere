@@ -3,6 +3,8 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from Lumiere.api_pagination import list_response
+
 from .models import Comment, CommentLike, Post, PostLike
 from .serializers import CommentSerializer, PostSerializer
 
@@ -48,12 +50,24 @@ class PostViewSet(viewsets.ModelViewSet):
 
         return queryset.distinct()
 
+    def list(self, request, *args, **kwargs):
+        return list_response(request, self.get_queryset(), self.get_serializer_class())
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         Post.objects.filter(pk=instance.pk).update(view_count=instance.view_count + 1)
         instance.refresh_from_db()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def mine(self, request):
+        queryset = self.get_queryset().filter(author=request.user)
+        return list_response(request, queryset, self.get_serializer_class())
 
     @action(
         detail=True,
