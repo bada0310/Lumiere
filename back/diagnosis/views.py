@@ -17,6 +17,7 @@ from diagnosis.services.makeup_generation import (
     enqueue_makeover_generation,
     get_makeover_payload,
     retry_makeover_style_generation,
+    start_makeover_worker,
 )
 from diagnosis.services.palettes import apply_palette_snapshot_to_diagnosis, serialize_palette
 from diagnosis.services.primary import (
@@ -362,6 +363,7 @@ class DiagnosisMakeoverView(APIView):
             )
 
         enqueue_makeover_generation(diagnosis)
+        start_makeover_worker(limit=5)
         diagnosis = self._get_diagnosis(request, pk)
         return Response(get_makeover_payload(diagnosis, request=request), status=status.HTTP_202_ACCEPTED)
 
@@ -386,6 +388,7 @@ class DiagnosisMakeoverRetryView(APIView):
         )
         try:
             retry_makeover_style_generation(diagnosis, style_key)
+            start_makeover_worker(limit=1)
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -1,41 +1,62 @@
 import base64
 import os
+import threading
 from urllib.request import urlopen
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.db import close_old_connections
+
+
+_worker_lock = threading.Lock()
+_worker_thread = None
 
 
 DEFAULT_MAKEOVER_STYLES = [
     {
         'key': 'natural_daily',
-        'name': '내추럴 데일리룩',
-        'description': '피부결과 혈색을 자연스럽게 살린 데일리 메이크업',
-        'direction': 'natural daily makeup, sheer warm base, soft definition, wearable everyday look',
+        'name': '내추럴 데일리메이크업',
+        'description': '피부결과 혈색을 은은하게 살린 자연스러운 메이크업',
+        'direction': (
+            'natural daily makeup with visible but soft cosmetics: even semi-matte base, '
+            'warm beige-brown eye shadow, thin brown eyeliner, peach beige blush, MLBB lip color'
+        ),
     },
     {
         'key': 'pure_daily',
-        'name': '청순 데일리룩',
-        'description': '맑고 부드러운 눈매와 은은한 립을 중심으로 한 룩',
-        'direction': 'clean pure daily makeup, soft under-eye brightness, gentle lip and blush',
+        'name': '청순 데일리메이크업',
+        'description': '맑은 눈매와 투명한 혈색을 중심으로 한 메이크업',
+        'direction': (
+            'pure daily makeup with clear cosmetic details: bright under-eye area, '
+            'soft rose-pink blush, translucent pink lip tint, delicate curled-lash effect, minimal liner'
+        ),
     },
     {
         'key': 'romantic',
-        'name': '로맨틱 룩',
-        'description': '톤에 맞는 립과 블러셔로 분위기를 더한 룩',
-        'direction': 'romantic makeup, harmonious blush and lip, soft eye depth, polished finish',
+        'name': '로맨틱 메이크업',
+        'description': '톤에 맞는 립과 블러셔로 분위기를 더한 메이크업',
+        'direction': (
+            'romantic makeup with clearly visible rose or mauve cosmetics: fuller gradient lip, '
+            'noticeable cheek blush, softly blended pink-mauve eye shadow, gentle shimmer highlight'
+        ),
     },
     {
         'key': 'chic',
-        'name': '시크 룩',
-        'description': '정돈된 음영과 선명한 포인트를 살린 룩',
-        'direction': 'chic makeup, refined shading, defined liner, controlled point color',
+        'name': '시크 메이크업',
+        'description': '정돈된 음영과 선명한 포인트를 살린 메이크업',
+        'direction': (
+            'chic makeup with defined cosmetics: clean contour, taupe-brown eye shadow, '
+            'sharp dark eyeliner, muted rose-brown lip, restrained blush'
+        ),
     },
     {
         'key': 'smoky',
-        'name': '스모키 룩',
-        'description': '톤에 맞는 깊은 음영으로 눈매를 또렷하게 만든 룩',
-        'direction': 'soft smoky makeup, deeper eye shading, natural skin, no harsh transformation',
+        'name': '스모키 메이크업',
+        'description': '톤에 맞는 깊은 음영으로 눈매를 또렷하게 만든 메이크업',
+        'direction': (
+            'soft smoky makeup with obvious eye makeup: deeper charcoal-brown shadow around eyes, '
+            'smudged eyeliner, subtle contour, muted deep lip color, polished evening finish'
+        ),
     },
 ]
 
@@ -69,12 +90,16 @@ def enqueue_makeover_generation(diagnosis):
             style.error_message = ''
             style.save(update_fields=['status', 'error_message'])
 
-        has_active_job = MakeupGenerationJob.objects.filter(
+        prompt = build_makeup_generation_prompt(diagnosis, style_data)
+        active_job = MakeupGenerationJob.objects.filter(
             diagnosis=diagnosis,
             style_key=style.key,
             status__in=[MakeupGenerationJob.Status.QUEUED, MakeupGenerationJob.Status.RUNNING],
-        ).exists()
-        if has_active_job:
+        ).order_by('created_at').first()
+        if active_job:
+            if active_job.status == MakeupGenerationJob.Status.QUEUED and active_job.prompt != prompt:
+                active_job.prompt = prompt
+                active_job.save(update_fields=['prompt', 'updated_at'])
             continue
 
         jobs.append(
@@ -82,7 +107,7 @@ def enqueue_makeover_generation(diagnosis):
                 diagnosis=diagnosis,
                 style_key=style.key,
                 status=MakeupGenerationJob.Status.QUEUED,
-                prompt=build_makeup_generation_prompt(diagnosis, style_data),
+                prompt=prompt,
             )
         )
 
@@ -153,10 +178,14 @@ def build_makeup_generation_prompt(diagnosis, style=None):
 
     return '\n'.join(
         [
-            'Edit the uploaded face photo for a personal color makeup preview.',
-            'Preserve the person identity, face shape, facial features, skin texture, expression, pose, and framing.',
-            'Do not change age, gender presentation, hairstyle length, background, face structure, or facial proportions.',
-            'Apply only natural makeup color and finish changes.',
+            'Create a semi-realistic beauty illustration for a personal color makeup preview, based on the uploaded face photo.',
+            'Use the uploaded photo as a reference for face angle, broad facial proportions, expression, and framing.',
+            'Render the result like a polished realistic makeup chart, not a raw camera photo and not a simple filter.',
+            'Do not change age, gender presentation, hairstyle length, face structure, or facial proportions.',
+            'Simplify distracting background details into a clean studio-like beauty result background.',
+            'Apply realistic makeup only. Do not make this look like a camera filter or simple color grading.',
+            'The makeup style must be visibly different: show cosmetic placement on lips, cheeks, eyelids, and eyeliner.',
+            'Use medium intensity so the makeup is clear on a result card, while keeping the person photorealistic.',
             f"Style direction: {style_direction}",
             f"Personal color toneKey: {diagnosis.tone_key or diagnosis.personal_color_code}",
             f"Base guide: {prompt_seed.get('base') or palette.get('baseMakeupGuide') or makeup.get('base', {}).get('guide', '')}",
@@ -165,7 +194,7 @@ def build_makeup_generation_prompt(diagnosis, style=None):
             f"Eye colors: {', '.join(eye_colors)}",
             f"Avoid colors: {', '.join(avoid_colors)}",
             'Use only these fixed palette directions. Do not invent new color families.',
-            'Keep the result photorealistic and subtle enough for a beauty consultation result page.',
+            'Keep the result suitable for a beauty consultation result page: realistic, polished, and clearly made-up.',
         ]
     )
 
@@ -188,6 +217,33 @@ def process_next_makeup_job():
     if not job:
         return None
     return process_makeup_job(job)
+
+
+def start_makeover_worker(limit=5):
+    global _worker_thread
+
+    with _worker_lock:
+        if _worker_thread and _worker_thread.is_alive():
+            return False
+
+        _worker_thread = threading.Thread(
+            target=_process_makeover_jobs_in_background,
+            args=(limit,),
+            daemon=True,
+        )
+        _worker_thread.start()
+        return True
+
+
+def _process_makeover_jobs_in_background(limit):
+    close_old_connections()
+    try:
+        for _ in range(limit):
+            job = process_next_makeup_job()
+            if not job:
+                break
+    finally:
+        close_old_connections()
 
 
 def process_makeup_job(job):

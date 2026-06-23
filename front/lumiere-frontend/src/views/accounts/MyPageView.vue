@@ -354,13 +354,14 @@ const wishlist = computed(() => {
     .slice(0, PREVIEW_LIMIT)
     .map((item) => {
       const product = item.product || {}
+      const snapshot = item.snapshot || {}
       return {
         id: item.id,
-        productId: product.id || item.product_id,
-        brand: item.brand || product.brand || '브랜드 없음',
-        name: item.name || product.name || '제품명 없음',
-        option: item.option || '',
-        image: item.image_url || product.image || product.image_url || '',
+        productId: product.id || item.product_id || snapshot.productId || snapshot.parentId,
+        brand: item.brand || product.brand || snapshot.brand || '브랜드 없음',
+        name: item.name || product.name || snapshot.groupName || snapshot.name || '제품명 없음',
+        option: item.option || snapshot.option || '',
+        image: item.image_url || product.image || product.image_url || snapshot.imageUrl || '',
       }
     })
 })

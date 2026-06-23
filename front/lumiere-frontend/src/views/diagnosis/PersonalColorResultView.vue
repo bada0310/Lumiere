@@ -45,24 +45,33 @@
 
         <section class="hero-grid">
           <article class="summary-panel">
-            <p class="eyebrow">나의 퍼스널 컬러</p>
-            <h1>{{ resultName }}</h1>
-            <p class="eng">{{ resultEnglishName }}</p>
-            <p class="summary">{{ resultSummary }}</p>
-
-            <div class="meta-grid">
-              <div class="confidence-card">
-                <span>AI 신뢰도</span>
-                <strong>{{ confidence }}%</strong>
+            <div class="summary-panel-layout">
+              <div class="source-profile-card">
+                <img :src="primaryResultImageUrl" :alt="sourceImageUrl ? '진단에 사용한 원본 이미지' : `${resultName} 대표 이미지`" />
+                <span>{{ sourceImageUrl ? '진단 원본 이미지' : '결과 대표 이미지' }}</span>
               </div>
-              <div class="date-card">
-                <span>진단일</span>
-                <strong>{{ resultDate }}</strong>
-              </div>
-            </div>
 
-            <div class="tags" aria-label="스타일 키워드">
-              <span v-for="tag in keywords" :key="tag">{{ tag }}</span>
+              <div class="summary-copy">
+                <p class="eyebrow">나의 퍼스널 컬러</p>
+                <h1>{{ resultName }}</h1>
+                <p class="eng">{{ resultEnglishName }}</p>
+                <p class="summary">{{ resultSummary }}</p>
+
+                <div class="meta-grid">
+                  <div class="confidence-card">
+                    <span>AI 신뢰도</span>
+                    <strong>{{ confidence }}%</strong>
+                  </div>
+                  <div class="date-card">
+                    <span>진단일</span>
+                    <strong>{{ resultDate }}</strong>
+                  </div>
+                </div>
+
+                <div class="tags" aria-label="스타일 키워드">
+                  <span v-for="tag in keywords" :key="tag">{{ tag }}</span>
+                </div>
+              </div>
             </div>
           </article>
 
@@ -79,11 +88,6 @@
             <p class="profile-caption">
               toneKey <strong>{{ diagnosisResult.personal_color_code || '-' }}</strong> 기준의 고정 대표 이미지입니다.
             </p>
-
-            <div v-if="sourceImageUrl" class="secondary-image">
-              <img :src="sourceImageUrl" alt="진단에 사용한 원본 이미지" />
-              <span>진단 원본 이미지</span>
-            </div>
           </article>
         </section>
 
@@ -258,6 +262,8 @@
             :styles="makeoverStyles"
             :status="makeoverStatus"
             :selected-key="selectedLookKey"
+            :makeup-guide="makeupGuide"
+            :tone-key="diagnosisResult.personal_color_code"
             :loading="makeoverLoading"
             :error="makeoverError"
             @start="startMakeovers"
@@ -284,22 +290,47 @@
 
             <div v-if="stylingKeywords.length || productToneRangeText" class="fixed-palette-meta">
               <div v-if="stylingKeywords.length">
-                <h3>스타일 키워드</h3>
+                <h3>커뮤니티 스타일 키워드</h3>
                 <div class="keyword-row">
-                  <span v-for="keyword in stylingKeywords" :key="keyword">{{ keyword }}</span>
+                  <button
+                    v-for="keyword in stylingKeywords"
+                    :key="keyword"
+                    type="button"
+                    @click="openCommunityTag(keyword)"
+                  >
+                    #{{ normalizeHashKeyword(keyword) }}
+                  </button>
                 </div>
               </div>
 
-              <div v-if="productToneRangeText">
+              <div v-if="productToneRangeItems.length" class="tone-range-box">
                 <h3>추천 제품 색상 범위</h3>
-                <p>{{ productToneRangeText }}</p>
+                <div class="tone-range-grid">
+                  <div v-for="item in productToneRangeItems" :key="item.label">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </div>
+                </div>
               </div>
             </div>
           </article>
 
           <article class="section-card tip-section">
             <h2>컬러 선택 팁</h2>
-            <p>{{ diagnosisResult.tip || defaultTip }}</p>
+            <div class="tip-chip-row" aria-label="추천 컬러칩">
+              <span
+                v-for="color in colorTipChips"
+                :key="`${color.name}-${color.hex}`"
+                :style="{ backgroundColor: color.hex }"
+                :title="`${color.name} ${color.hex}`"
+              ></span>
+            </div>
+            <div class="tip-list">
+              <div v-for="tip in colorTipItems" :key="tip.title" class="tip-item">
+                <strong>{{ tip.title }}</strong>
+                <p>{{ tip.description }}</p>
+              </div>
+            </div>
           </article>
         </section>
 
@@ -312,12 +343,13 @@
             AI 메이크오버 보기
             <span>스타일 이미지 영역으로 이동합니다.</span>
           </button>
-          <button type="button" class="cta-btn" :class="{ saved: isSaved }" @click="saveResult">
-            {{ isSaved ? '결과 저장 완료' : '결과 저장하기' }}
+          <button type="button" class="cta-btn" :class="{ saved: isSaved }" :disabled="savingResult" @click="saveResult">
+            {{ savingResult ? '저장 중...' : isSaved ? '결과 저장 완료' : '결과 저장하기' }}
             <span>저장하면 마이페이지에서 다시 볼 수 있어요.</span>
           </button>
         </section>
 
+        <p v-if="saveFeedback" class="save-feedback">{{ saveFeedback }}</p>
         <p v-if="diagnosisResult.is_mock" class="save-notice">
           개발 환경의 mock 결과는 localStorage에 저장됩니다.
         </p>
@@ -347,6 +379,7 @@ import {
   getLatestDiagnosis,
   getMakeoverStatus,
   retryMakeoverStyle,
+  setPrimaryDiagnosis,
   startMakeoverGeneration,
 } from '@/services/diagnosisApi'
 import { useRequireLogin } from '@/composables/useRequireLogin'
@@ -385,6 +418,8 @@ const loading = ref(false)
 const errorMessage = ref('')
 const selectedLookKey = ref('')
 const isSaved = ref(false)
+const savingResult = ref(false)
+const saveFeedback = ref('')
 const makeoverRef = ref(null)
 const profileImageErrored = ref(false)
 const makeoverState = ref({ status: 'none', styles: [], error: '' })
@@ -434,17 +469,64 @@ const makeoverStyles = computed(() => asArray(makeoverState.value.styles?.length
 const makeoverStatus = computed(() => makeoverState.value.status || diagnosisResult.value?.ai_makeover?.status || 'none')
 const makeoverError = computed(() => makeoverState.value.error || '')
 const sourceImageUrl = computed(() => diagnosisResult.value?.processed_image_url || diagnosisResult.value?.uploaded_image_url || '')
-const safeProfileImageUrl = computed(() => (profileImageErrored.value ? FALLBACK_TONE_IMAGE : getDiagnosisProfileImageUrl(diagnosisResult.value)))
+const safeProfileImageUrl = computed(() =>
+  profileImageErrored.value ? FALLBACK_TONE_IMAGE : getDiagnosisProfileImageUrl(diagnosisResult.value) || FALLBACK_TONE_IMAGE,
+)
+const primaryResultImageUrl = computed(() => sourceImageUrl.value || safeProfileImageUrl.value || FALLBACK_TONE_IMAGE)
 
-const productToneRangeText = computed(() => {
+const productToneRangeItems = computed(() => {
   const range = diagnosisResult.value?.recommended_product_tone_range || {}
-  const parts = [
-    range.temperature && `온도감 ${range.temperature}`,
-    asArray(range.brightness).length && `명도 ${range.brightness.join(', ')}`,
-    asArray(range.chroma).length && `채도 ${range.chroma.join(', ')}`,
-    asArray(range.hue).length && `색상 ${range.hue.join(', ')}`,
-  ].filter(Boolean)
-  return parts.join(' / ')
+  return [
+    { label: '온도감', value: range.temperature },
+    { label: '명도', value: asArray(range.brightness).join(', ') },
+    { label: '채도', value: asArray(range.chroma).join(', ') },
+    { label: '추천 색상', value: asArray(range.hue).join(', ') },
+  ].filter((item) => item.value)
+})
+const productToneRangeText = computed(() => productToneRangeItems.value.map((item) => `${item.label} ${item.value}`).join(' / '))
+
+const normalizeHashKeyword = (keyword) => String(keyword || '').replace(/^#/, '').replace(/\s+/g, '')
+const colorTipChips = computed(() => {
+  const chips = [
+    ...representativeColors.value,
+    ...paletteItems('best'),
+    ...paletteItems('neutral'),
+  ]
+  const seen = new Set()
+  return chips
+    .filter((color) => color?.hex)
+    .filter((color) => {
+      const key = `${color.name}-${color.hex}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 7)
+})
+
+const colorTipItems = computed(() => {
+  const range = diagnosisResult.value?.recommended_product_tone_range || {}
+  const chroma = asArray(range.chroma).join(', ') || '피부 톤과 비슷한 채도'
+  const hue = asArray(range.hue).join(', ') || '추천 팔레트 안의 색상'
+  const baseTip = diagnosisResult.value?.tip || defaultTip
+  return [
+    {
+      title: '컬러 방향',
+      description: `${hue} 계열을 얼굴 가까이에 두면 진단된 장점이 더 잘 보여요. 채도가 너무 높거나 노란기가 강한 컬러는 얼굴이 칙칙해보일 수 있어요.`,
+    },
+    {
+      title: '채도와 명도',
+      description: `${chroma} 범위처럼 너무 튀기보다 피부 밝기와 자연스럽게 이어지는 색을 고르면 안정적이에요.`,
+    },
+    {
+      title: '텍스처',
+      description: '립과 블러셔는 얇게 올라가는 쉬어/벨벳/새틴 질감이 좋아요. 과한 펄감이나 두껍게 덮이는 제형은 소량으로 테스트해보세요.',
+    },
+    {
+      title: '한 줄 팁',
+      description: baseTip,
+    },
+  ]
 })
 
 const isMakeoverActive = computed(() => {
@@ -582,7 +664,8 @@ const applyDiagnosisResult = (raw) => {
     normalized?.makeover_styles?.[0]?.key ||
     ''
   profileImageErrored.value = false
-  isSaved.value = Boolean(normalized?.is_mock && getSavedMockDiagnosisResult()?.id === normalized.id)
+  isSaved.value = Boolean(normalized?.is_primary || (normalized?.is_mock && getSavedMockDiagnosisResult()?.id === normalized.id))
+  saveFeedback.value = ''
   saveDiagnosisColorProfile(normalized)
 }
 
@@ -753,9 +836,27 @@ const changeMockType = (event) => {
 }
 
 const goToProducts = () => {
+  const profile = saveDiagnosisColorProfile(diagnosisResult.value)
   router.push({
     path: '/products',
-    query: { source: 'diagnosis' },
+    query: {
+      source: 'diagnosis',
+      tone_key: profile.toneTag,
+      diagnosis_id: diagnosisResult.value?.id || undefined,
+    },
+  })
+}
+
+const openCommunityTag = (keyword) => {
+  const tag = normalizeHashKeyword(keyword)
+  if (!tag) return
+
+  router.push({
+    name: 'community',
+    query: {
+      category: 'popular-product-tags',
+      tag,
+    },
   })
 }
 
@@ -763,7 +864,7 @@ const scrollToMakeover = () => {
   makeoverRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-const saveResult = () => {
+const saveResult = async () => {
   if (
     !requireLogin({
       message: '진단 결과 저장은 로그인 후 이용할 수 있어요.',
@@ -773,12 +874,36 @@ const saveResult = () => {
     return
   }
 
-  if (diagnosisResult.value?.is_mock) {
-    saveMockDiagnosisResult(diagnosisResult.value)
-  }
+  if (!diagnosisResult.value || savingResult.value) return
 
-  isSaved.value = true
-  alert('진단 결과를 저장했어요. 마이페이지에서 다시 확인할 수 있어요.')
+  savingResult.value = true
+  saveFeedback.value = ''
+
+  try {
+    saveDiagnosisColorProfile(diagnosisResult.value)
+
+    if (diagnosisResult.value?.is_mock) {
+      saveMockDiagnosisResult(diagnosisResult.value)
+    } else if (diagnosisId.value) {
+      const updated = await setPrimaryDiagnosis(diagnosisId.value)
+      if (updated) {
+        applyDiagnosisResult(updated)
+      } else {
+        diagnosisResult.value = {
+          ...diagnosisResult.value,
+          is_primary: true,
+        }
+      }
+    }
+
+    isSaved.value = true
+    saveFeedback.value = '현재 진단 결과가 이 페이지에서 바로 저장되었어요. 마이페이지와 추천 기준에 반영됩니다.'
+  } catch (error) {
+    console.error('진단 결과 저장 실패:', error)
+    saveFeedback.value = '저장 중 문제가 발생했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    savingResult.value = false
+  }
 }
 
 watch(
@@ -925,6 +1050,45 @@ onUnmounted(stopMakeoverPolling)
   padding: 34px;
 }
 
+.summary-panel-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+}
+
+.source-profile-card {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.source-profile-card img {
+  width: min(100%, 280px);
+  aspect-ratio: 4 / 5;
+  border-radius: 24px;
+  object-fit: cover;
+  display: block;
+  background: #f8eeee;
+  box-shadow:
+    0 20px 38px rgba(95, 58, 52, 0.16),
+    0 0 0 8px #fffaf7;
+}
+
+.source-profile-card span {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #9e4655;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.summary-copy {
+  min-width: 0;
+}
+
 .eyebrow,
 .section-title-block span {
   color: #7c6964;
@@ -1043,30 +1207,6 @@ onUnmounted(stopMakeoverPolling)
   font-size: 12px;
   line-height: 1.55;
   text-align: center;
-}
-
-.secondary-image {
-  display: grid;
-  grid-template-columns: 52px 1fr;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  border: 1px solid #eaded8;
-  border-radius: 10px;
-  background: #fffaf7;
-}
-
-.secondary-image img {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-.secondary-image span {
-  color: #6f625e;
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .feature-grid,
@@ -1372,18 +1512,19 @@ onUnmounted(stopMakeoverPolling)
 .style-grid {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 12px;
 }
 
 .fixed-palette-meta {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: 18px;
+  padding: 18px;
   border: 1px solid #eaded8;
-  border-radius: 10px;
-  background: #fffaf7;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 247, 0.98), rgba(255, 240, 241, 0.72));
   display: grid;
-  gap: 14px;
+  gap: 18px;
 }
 
 .fixed-palette-meta h3 {
@@ -1405,20 +1546,98 @@ onUnmounted(stopMakeoverPolling)
   gap: 8px;
 }
 
-.keyword-row span {
+.keyword-row button {
+  border: 1px solid #e9c1c8;
   padding: 7px 10px;
   border-radius: 999px;
   background: #fff0f1;
   color: #8b3a4a;
   font-size: 12px;
   font-weight: 800;
+  cursor: pointer;
 }
 
-.tip-section p {
-  margin: 16px 0 0;
+.keyword-row button:hover {
+  background: #c65367;
+  border-color: #c65367;
+  color: #fff;
+}
+
+.tone-range-box {
+  padding-top: 2px;
+}
+
+.tone-range-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tone-range-grid div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #eaded8;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.tone-range-grid span,
+.tone-range-grid strong {
+  display: block;
+}
+
+.tone-range-grid span {
+  color: #9e4655;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.tone-range-grid strong {
+  margin-top: 5px;
+  color: #403633;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.tip-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.tip-chip-row span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(90, 58, 54, 0.08);
+}
+
+.tip-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tip-item {
+  padding: 14px;
+  border: 1px solid #eaded8;
+  border-radius: 10px;
+  background: #fffaf7;
+}
+
+.tip-item strong {
+  color: #9e4655;
+  font-size: 13px;
+}
+
+.tip-item p {
+  margin: 6px 0 0;
   color: #655a56;
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 .cta-grid {
@@ -1464,6 +1683,11 @@ onUnmounted(stopMakeoverPolling)
   background: #fff0f1;
 }
 
+.cta-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
 .cta-btn:focus-visible,
 .state-card button:focus-visible,
 .mock-switcher select:focus-visible {
@@ -1472,14 +1696,21 @@ onUnmounted(stopMakeoverPolling)
 }
 
 .save-notice,
+.save-feedback,
 .empty-text {
   margin: 16px 0 0;
   color: #8e7e79;
   font-size: 13px;
 }
 
-.save-notice {
+.save-notice,
+.save-feedback {
   text-align: center;
+}
+
+.save-feedback {
+  color: #8b3a4a;
+  font-weight: 800;
 }
 
 @media (max-width: 1180px) {
@@ -1523,6 +1754,7 @@ onUnmounted(stopMakeoverPolling)
   }
 
   .meta-grid,
+  .summary-panel-layout,
   .feature-list,
   .palette-section,
   .makeup-grid,

@@ -27,17 +27,21 @@
 
       <div class="hero-image">
         <div class="model-card">
-          <div class="tone-logo" :aria-label="`${summaryToneName} 퍼스널컬러 로고`">
-            <div class="tone-logo-mark">
-              <span
-                v-for="(color, index) in summaryColors"
-                :key="`${color}-${index}`"
-                :style="{ background: color }"
-              ></span>
+          <div class="tone-prism" :aria-label="`${summaryToneName} 퍼스널컬러 팔레트`">
+            <div class="tone-prism__mark">
+              <span class="tone-prism__letter">L</span>
+              <div class="tone-prism__spectrum">
+                <span
+                  v-for="(color, index) in summaryColors"
+                  :key="`${color}-${index}`"
+                  :style="{ background: color }"
+                ></span>
+              </div>
             </div>
-            <div class="tone-logo-copy">
-              <span>Personal Color</span>
-              <strong>Lumière</strong>
+
+            <div class="tone-prism__copy">
+              <span>Personal Color Palette</span>
+              <strong>{{ hasDiagnosis ? summaryToneName : 'Lumière' }}</strong>
             </div>
           </div>
 
@@ -391,83 +395,69 @@ onMounted(() => {
   justify-content: center;
 }
 
-.tone-logo {
-  width: 230px;
-  min-height: 230px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 50%;
-  background: rgba(255, 250, 247, 0.76);
-  box-shadow:
-    inset 0 0 0 14px rgba(255, 255, 255, 0.34),
-    0 22px 44px rgba(90, 50, 40, 0.12);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.tone-prism {
+  width: 238px;
+  padding: 24px;
+  border: 1px solid rgba(222, 204, 198, 0.76);
+  border-radius: 18px;
+  background: rgba(255, 252, 250, 0.82);
+  box-shadow: 0 22px 44px rgba(90, 50, 40, 0.1);
+  display: grid;
   gap: 18px;
   backdrop-filter: blur(8px);
 }
 
-.tone-logo-mark {
-  position: relative;
-  width: 122px;
-  height: 122px;
-  border-radius: 50%;
+.tone-prism__mark {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 14px;
+  align-items: stretch;
+  min-height: 118px;
 }
 
-.tone-logo-mark span {
-  position: absolute;
-  width: 68px;
-  height: 68px;
-  border: 5px solid rgba(255, 255, 255, 0.76);
-  border-radius: 50%;
-  box-shadow: 0 9px 18px rgba(90, 50, 40, 0.08);
-}
-
-.tone-logo-mark span:nth-child(1) {
-  left: 27px;
-  top: 0;
-}
-
-.tone-logo-mark span:nth-child(2) {
-  right: 0;
-  top: 31px;
-}
-
-.tone-logo-mark span:nth-child(3) {
-  right: 18px;
-  bottom: 0;
-}
-
-.tone-logo-mark span:nth-child(4) {
-  left: 18px;
-  bottom: 0;
-}
-
-.tone-logo-mark span:nth-child(5) {
-  left: 0;
-  top: 31px;
-}
-
-.tone-logo-copy {
-  text-align: center;
-}
-
-.tone-logo-copy span {
-  display: block;
-  color: #c65367;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 7px;
-}
-
-.tone-logo-copy strong {
+.tone-prism__letter {
+  border: 1px solid rgba(200, 176, 169, 0.66);
+  border-radius: 14px;
+  background: #fffaf7;
+  color: #b64f61;
   font-family: var(--font-title-serif) !important;
-  color: #2b2523;
-  font-size: 30px;
+  font-size: 58px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 -10px 22px rgba(198, 83, 103, 0.08);
+}
+
+.tone-prism__spectrum {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(14px, 1fr));
+  gap: 6px;
+}
+
+.tone-prism__spectrum span {
+  min-width: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 -14px 20px rgba(69, 43, 45, 0.08),
+    0 10px 18px rgba(90, 50, 40, 0.08);
+}
+
+.tone-prism__copy span {
+  display: block;
+  color: #9c5f65;
+  font-size: 11px;
+  font-weight: 900;
   letter-spacing: 0;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.tone-prism__copy strong {
+  display: block;
+  color: #2b2523;
+  font-size: 22px;
+  line-height: 1.32;
 }
 
 .model-overlay {

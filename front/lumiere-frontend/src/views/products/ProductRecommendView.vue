@@ -178,6 +178,7 @@
             type="button"
             class="heart"
             :class="{ active: isGroupLiked(product) }"
+            :disabled="isGroupLiking(product)"
             @click.stop="toggleLike(product)"
           >
             {{ isGroupLiked(product) ? '♥' : '♡' }}
@@ -370,8 +371,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { makeDetailPayload, makeProductGroups } from './productCatalog'
 import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { getLikedProductOptions, toggleLikedProductOption } from '@/services/engagementApi'
 import { getProducts } from '@/services/productApi'
 import {
+  TONE_PROFILE_PRESETS,
   calculateProductMatchScore,
   getChartPoint,
   getMetricLabels,
@@ -391,6 +394,7 @@ const selectedFilters = ref([])
 const sortOption = ref('scoreDesc')
 const likedOnly = ref(false)
 const likedGroupKeys = ref(new Set())
+const likingGroupKeys = ref(new Set())
 const isFilterModalOpen = ref(false)
 const draftCategory = ref('lip')
 const draftFilters = ref([])
@@ -401,6 +405,8 @@ const userColorProfile = ref(readUserColorProfile())
 const hasDiagnosisProfile = ref(hasSavedUserColorProfile())
 const brandPanelLimit = 15
 const isBrandPanelExpanded = ref(false)
+const routeToneKey = computed(() => String(route.query.tone_key || route.query.tone || '').trim())
+const isDiagnosisRecommendation = computed(() => route.query.source === 'diagnosis' || Boolean(routeToneKey.value))
 
 const allCategoryTab = {
   key: 'all',
@@ -473,7 +479,7 @@ const selectedCategoryLabel = computed(() => {
 })
 
 const visibleCategoryTabs = computed(() => {
-  return keyword.value ? [allCategoryTab, ...categoryTabs] : categoryTabs
+  return keyword.value || isDiagnosisRecommendation.value ? [allCategoryTab, ...categoryTabs] : categoryTabs
 })
 
 const heroDescription = computed(() => {
@@ -481,6 +487,10 @@ const heroDescription = computed(() => {
     return selectedCategory.value === 'all'
       ? `"${keyword.value}"와 관련된 전체 추천 옵션을 보여드려요.`
       : `"${keyword.value}" 검색 결과 중 ${selectedCategoryLabel.value} 카테고리 옵션을 보여드려요.`
+  }
+
+  if (isDiagnosisRecommendation.value) {
+    return `${recommendationBasis.value.toneName} 진단 결과에 맞는 제품을 먼저 모아 보여드려요.`
   }
 
   return `${selectedCategoryLabel.value} 카테고리에서 ${recommendationBasis.value.toneName} 기준에 가까운 옵션을 먼저 보여드려요.`
@@ -565,8 +575,16 @@ const brandTotalCount = computed(() => {
 const filteredProducts = computed(() => {
   let result = [...productGroups.value]
 
-  if (!keyword.value || selectedCategory.value !== 'all') {
+  if (selectedCategory.value !== 'all') {
     result = result.filter((product) => product.categoryKey === selectedCategory.value)
+  }
+
+  const toneTag = productToneTagFromToneKey(routeToneKey.value)
+  if (toneTag) {
+    result = result.filter((product) => {
+      const options = product.options?.length ? product.options : [product]
+      return options.some((option) => String(option.toneTag || option.tone_tag || '').toUpperCase() === toneTag)
+    })
   }
 
   if (likedOnly.value) {
@@ -615,6 +633,64 @@ const filteredProducts = computed(() => {
 
 const normalizeText = (value) => {
   return String(value || '').toLowerCase().replace(/\s/g, '')
+}
+
+const normalizeToneKey = (value) => {
+  return String(value || '').trim().toUpperCase().replaceAll('-', '_')
+}
+
+const productToneTagFromToneKey = (value) => {
+  const key = normalizeToneKey(value)
+  if (!key) return ''
+
+  const directMap = {
+    SPRING_LIGHT: 'SPRING_LIGHT',
+    SPRING_WARM_LIGHT: 'SPRING_LIGHT',
+    SPRING_COOL_LIGHT: 'SPRING_LIGHT',
+    SPRING_BRIGHT: 'SPRING_BRIGHT',
+    SPRING_WARM_BRIGHT: 'SPRING_BRIGHT',
+    SPRING_COOL_BRIGHT: 'SPRING_BRIGHT',
+    SUMMER_LIGHT: 'SUMMER_LIGHT',
+    SUMMER_COOL_LIGHT: 'SUMMER_LIGHT',
+    SUMMER_WARM_LIGHT: 'SUMMER_LIGHT',
+    SUMMER_MUTE: 'SUMMER_MUTE',
+    SUMMER_COOL_MUTE: 'SUMMER_MUTE',
+    SUMMER_WARM_MUTE: 'SUMMER_MUTE',
+    AUTUMN_MUTE: 'AUTUMN_MUTE',
+    AUTUMN_WARM_MUTE: 'AUTUMN_MUTE',
+    AUTUMN_COOL_MUTE: 'AUTUMN_MUTE',
+    FALL_MUTE: 'AUTUMN_MUTE',
+    FALL_WARM_MUTE: 'AUTUMN_MUTE',
+    AUTUMN_DEEP: 'AUTUMN_DEEP',
+    AUTUMN_WARM_DEEP: 'AUTUMN_DEEP',
+    AUTUMN_COOL_DEEP: 'AUTUMN_DEEP',
+    FALL_DEEP: 'AUTUMN_DEEP',
+    FALL_WARM_DEEP: 'AUTUMN_DEEP',
+    WINTER_BRIGHT: 'WINTER_BRIGHT',
+    WINTER_COOL_BRIGHT: 'WINTER_BRIGHT',
+    WINTER_WARM_BRIGHT: 'WINTER_BRIGHT',
+    WINTER_DEEP: 'WINTER_DEEP',
+    WINTER_COOL_DEEP: 'WINTER_DEEP',
+    WINTER_WARM_DEEP: 'WINTER_DEEP',
+  }
+  if (directMap[key]) return directMap[key]
+  if (key.includes('SPRING')) return key.includes('BRIGHT') || key.includes('CLEAR') ? 'SPRING_BRIGHT' : 'SPRING_LIGHT'
+  if (key.includes('SUMMER')) return key.includes('MUTE') || key.includes('SOFT') ? 'SUMMER_MUTE' : 'SUMMER_LIGHT'
+  if (key.includes('AUTUMN') || key.includes('FALL')) return key.includes('DEEP') || key.includes('DARK') ? 'AUTUMN_DEEP' : 'AUTUMN_MUTE'
+  if (key.includes('WINTER')) return key.includes('DEEP') || key.includes('DARK') ? 'WINTER_DEEP' : 'WINTER_BRIGHT'
+  return ''
+}
+
+const profileFromToneKey = (value) => {
+  const key = normalizeToneKey(value)
+  if (!key) return null
+  const productToneTag = productToneTagFromToneKey(key)
+  const preset = TONE_PROFILE_PRESETS[key] || TONE_PROFILE_PRESETS[productToneTag]
+  if (!preset) return null
+  return {
+    ...preset,
+    toneTag: key,
+  }
 }
 
 const isLensProduct = (item) => {
@@ -806,29 +882,32 @@ const getMetricFilterKeys = (metrics) => {
 
 const normalizeProduct = (item, index) => {
   const categoryKey = findCategoryKey(item)
+  const options = Array.isArray(item.options) ? item.options : []
+  const bestOption = item.best_option || options[0] || null
+  const hasRealOption = Boolean(options.length && bestOption?.id)
 
   const brand = item.brand || item.product_brand || '브랜드 미상'
   const name = item.name || item.product_name || '추천 상품'
-  const option = item.option_name || item.option || item.color_name || item.texture || ''
+  const option = bestOption?.option_name || item.option_name || item.option || item.color_name || item.texture || ''
   const rawScore = clampScore(item.match_score ?? item.similarity_score ?? item.score ?? 90 - index)
   const popularityScore = Number(item.popularity_score || item.popularityScore || item.review_count || 0)
 
-  const imageUrl = item.image_url || item.image || item.thumbnail || item.thumbnail_url || ''
-  const productUrl = item.product_url || item.link || ''
+  const imageUrl = bestOption?.image_url || item.image_url || item.image || item.thumbnail || item.thumbnail_url || ''
+  const productUrl = bestOption?.representative_offer?.product_url || item.product_url || item.link || ''
 
-  const hexCode = item.hex_code || item.hex || item.rep_hex_code || item.color_hex || getDefaultColors(categoryKey)[0]
+  const hexCode = bestOption?.hex_code || item.hex_code || item.hex || item.rep_hex_code || item.color_hex || getDefaultColors(categoryKey)[0]
 
   const metrics = {
-    rgbR: toNumber(item.rgb_r),
-    rgbG: toNumber(item.rgb_g),
-    rgbB: toNumber(item.rgb_b),
-    brightness: toNumber(item.brightness, 65),
-    saturation: toNumber(item.saturation, 30),
-    coolness: toNumber(item.coolness, 85),
-    warmth: toNumber(item.warmth, 15),
-    depth: toNumber(item.depth, 20),
-    softness: toNumber(item.softness, 18),
-    contrast: toNumber(item.contrast, 35),
+    rgbR: toNumber(bestOption?.rgb_r ?? item.rgb_r),
+    rgbG: toNumber(bestOption?.rgb_g ?? item.rgb_g),
+    rgbB: toNumber(bestOption?.rgb_b ?? item.rgb_b),
+    brightness: toNumber(bestOption?.brightness ?? item.brightness, 65),
+    saturation: toNumber(bestOption?.saturation ?? item.saturation, 30),
+    coolness: toNumber(bestOption?.coolness ?? item.coolness, 85),
+    warmth: toNumber(bestOption?.warmth ?? item.warmth, 15),
+    depth: toNumber(bestOption?.depth ?? item.depth, 20),
+    softness: toNumber(bestOption?.softness ?? item.softness, 18),
+    contrast: toNumber(bestOption?.contrast ?? item.contrast, 35),
   }
 
   const score = calculateProductMatchScore(userColorProfile.value, metrics) || rawScore
@@ -871,6 +950,9 @@ const normalizeProduct = (item, index) => {
 
   return {
     id: item.id || item.product_option_id || item.option_id || index + 1,
+    productId: Number(item.product_id || item.product?.id || item.id || 0),
+    parentId: Number(item.product_id || item.product?.id || item.id || 0),
+    optionId: hasRealOption ? Number(bestOption.id) : null,
     brand,
     name,
     option,
@@ -909,11 +991,39 @@ const normalizeProduct = (item, index) => {
   }
 }
 
+const asArray = (data) => {
+  if (Array.isArray(data)) return data
+  return data?.results || []
+}
+
+const loadLikedOptions = async () => {
+  if (!localStorage.getItem('access_token')) {
+    likedGroupKeys.value = new Set()
+    return
+  }
+
+  try {
+    const response = await getLikedProductOptions({ page: 1, page_size: 50 })
+    const nextKeys = new Set(
+      asArray(response)
+        .map((item) => item.group_key)
+        .filter(Boolean),
+    )
+    likedGroupKeys.value = nextKeys
+  } catch (error) {
+    console.warn('찜한 제품 옵션 목록을 불러오지 못했습니다.', error)
+  }
+}
+
 const fetchProducts = async () => {
   isLoading.value = true
 
   try {
-    const response = await getProducts(keyword.value ? { q: keyword.value } : {})
+    const params = {
+      ...(keyword.value ? { q: keyword.value } : {}),
+      ...(routeToneKey.value ? { tone_key: routeToneKey.value } : {}),
+    }
+    const response = await getProducts(params)
     const data = Array.isArray(response)
       ? response
       : response.results || response.products || []
@@ -1041,8 +1151,49 @@ const isGroupLiked = (product) => {
   return likedGroupKeys.value.has(product.groupKey)
 }
 
-const toggleLike = (product) => {
+const isGroupLiking = (product) => {
+  return likingGroupKeys.value.has(product.groupKey)
+}
+
+const buildLikedOptionPayload = (product) => {
+  const representative = product.representative || product
+  const productId = Number(representative.productId || representative.parentId || product.productId || product.parentId)
+  const optionId = Number(representative.optionId || product.optionId)
+  const payload = {
+    product_id: productId,
+    option_id: String(optionId || representative.option || product.option || product.groupKey || ''),
+    group_key: product.groupKey || representative.groupKey || '',
+    brand: product.brand || representative.brand || '',
+    name: product.name || representative.name || '',
+    option: representative.option || product.option || '',
+    image_url: representative.imageUrl || product.imageUrl || '',
+    product_url: representative.productUrl || product.productUrl || '',
+    snapshot: {
+      ...representative,
+      groupKey: product.groupKey,
+      groupName: product.name,
+      optionCount: product.optionCount,
+    },
+  }
+
+  if (Number.isFinite(optionId) && optionId > 0) {
+    payload.product_option_id = optionId
+  }
+
+  return payload
+}
+
+const toggleLike = async (product) => {
+  if (!localStorage.getItem('access_token')) {
+    alert('로그인 후 찜할 수 있어요.')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+
+  if (isGroupLiking(product)) return
+
   const nextKeys = new Set(likedGroupKeys.value)
+  const previousKeys = new Set(likedGroupKeys.value)
 
   if (nextKeys.has(product.groupKey)) {
     nextKeys.delete(product.groupKey)
@@ -1051,6 +1202,29 @@ const toggleLike = (product) => {
   }
 
   likedGroupKeys.value = nextKeys
+
+  const nextLikingKeys = new Set(likingGroupKeys.value)
+  nextLikingKeys.add(product.groupKey)
+  likingGroupKeys.value = nextLikingKeys
+
+  try {
+    const response = await toggleLikedProductOption(buildLikedOptionPayload(product))
+    const syncedKeys = new Set(likedGroupKeys.value)
+    if (response.is_liked) {
+      syncedKeys.add(product.groupKey)
+    } else {
+      syncedKeys.delete(product.groupKey)
+    }
+    likedGroupKeys.value = syncedKeys
+  } catch (error) {
+    likedGroupKeys.value = previousKeys
+    console.error('찜 상태를 저장하지 못했습니다.', error)
+    alert('찜 상태를 저장하지 못했습니다.')
+  } finally {
+    const doneKeys = new Set(likingGroupKeys.value)
+    doneKeys.delete(product.groupKey)
+    likingGroupKeys.value = doneKeys
+  }
 }
 
 const toggleLikedMode = () => {
@@ -1078,11 +1252,17 @@ const goDetail = (product, option = product.representative) => {
 }
 
 onMounted(async () => {
-  userColorProfile.value = readUserColorProfile()
-  hasDiagnosisProfile.value = hasSavedUserColorProfile()
+  userColorProfile.value = profileFromToneKey(routeToneKey.value) || readUserColorProfile()
+  hasDiagnosisProfile.value = hasSavedUserColorProfile() || Boolean(routeToneKey.value)
   await syncLatestDiagnosisProfile()
+  await loadLikedOptions()
 
-  if (keyword.value) {
+  if (routeToneKey.value) {
+    userColorProfile.value = profileFromToneKey(routeToneKey.value) || userColorProfile.value
+    hasDiagnosisProfile.value = true
+  }
+
+  if (keyword.value || isDiagnosisRecommendation.value) {
     selectedCategory.value = 'all'
   }
 
@@ -1090,9 +1270,13 @@ onMounted(async () => {
 })
 
 watch(
-  () => [route.query.keyword, route.query.q],
+  () => [route.query.keyword, route.query.q, route.query.tone_key, route.query.tone],
   (value) => {
-    if (value?.[0] || value?.[1]) {
+    if (value?.[2] || value?.[3]) {
+      userColorProfile.value = profileFromToneKey(value[2] || value[3]) || readUserColorProfile()
+      hasDiagnosisProfile.value = true
+    }
+    if (value?.[0] || value?.[1] || value?.[2] || value?.[3]) {
       selectedCategory.value = 'all'
       likedOnly.value = false
     }
@@ -1608,6 +1792,11 @@ watch(
 
 .heart.active {
   color: #c65367;
+}
+
+.heart:disabled {
+  cursor: wait;
+  opacity: 0.58;
 }
 
 .product-img {

@@ -40,18 +40,42 @@
         </form>
       </div>
 
-      <button class="icon-button" type="button" aria-label="알림">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-          <path d="M10 21h4" />
-        </svg>
-      </button>
+      <div class="notification-wrap">
+        <button
+          class="icon-button"
+          type="button"
+          aria-label="알림"
+          :aria-expanded="isNotificationOpen"
+          @click="toggleNotifications"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+            <path d="M10 21h4" />
+          </svg>
+          <span v-if="notificationCount" class="action-badge">{{ notificationCount }}</span>
+        </button>
 
-      <button class="icon-button hide-mobile" type="button" aria-label="찜한 제품">
+        <div v-if="isNotificationOpen" class="notification-panel">
+          <strong>알림</strong>
+          <button
+            v-for="notice in notificationItems"
+            :key="notice.key"
+            type="button"
+            class="notification-item"
+            @click="goNotice(notice)"
+          >
+            <span>{{ notice.title }}</span>
+            <small>{{ notice.description }}</small>
+          </button>
+        </div>
+      </div>
+
+      <RouterLink class="icon-button hide-mobile" :to="{ name: 'mypage-liked-options' }" aria-label="찜한 제품">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.1-7.1l.4.4.4-.4a5 5 0 0 1 7.1 7.1Z" />
         </svg>
-      </button>
+        <span v-if="likedCount" class="action-badge">{{ likedCount }}</span>
+      </RouterLink>
 
       <button v-if="!isLoggedIn" class="login-btn" type="button" @click="router.push('/login')">
         로그인
@@ -89,6 +113,8 @@ import { useRouter } from 'vue-router'
 import UserAvatar from '@/components/user/UserAvatar.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useResolvedProfileImage } from '@/composables/useResolvedProfileImage'
+import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { getLikedProductOptions } from '@/services/engagementApi'
 
 const router = useRouter()
 const { currentUser, loadCurrentUser, clearCurrentUser } = useCurrentUser()
@@ -96,11 +122,55 @@ const { resolvedProfileImageUrl, loadLatestDiagnosisForProfile, clearResolvedPro
   useResolvedProfileImage(currentUser)
 
 const isSearchOpen = ref(false)
+const isNotificationOpen = ref(false)
 const searchKeyword = ref('')
 const searchInput = ref(null)
+const latestDiagnosis = ref(null)
+const likedCount = ref(0)
 
 const isLoggedIn = computed(() => Boolean(localStorage.getItem('access_token')))
 const userName = computed(() => currentUser.value?.nickname || currentUser.value?.username || '사용자')
+const notificationItems = computed(() => {
+  if (!isLoggedIn.value) {
+    return [
+      {
+        key: 'login',
+        title: '로그인이 필요해요',
+        description: '진단 결과와 찜 목록 알림은 로그인 후 확인할 수 있어요.',
+        route: { name: 'login' },
+      },
+    ]
+  }
+
+  const items = []
+  if (latestDiagnosis.value) {
+    items.push({
+      key: 'diagnosis',
+      title: '퍼스널컬러 요약 준비 완료',
+      description: `${latestDiagnosis.value.korean_name || latestDiagnosis.value.tone_label || '진단 결과'} 기준 추천을 확인할 수 있어요.`,
+      route: latestDiagnosis.value.id
+        ? { name: 'diagnosis-result-detail', params: { diagnosisId: latestDiagnosis.value.id } }
+        : { name: 'mypage-diagnoses' },
+    })
+  } else {
+    items.push({
+      key: 'diagnosis-empty',
+      title: '아직 진단 결과가 없어요',
+      description: '사진을 업로드하면 홈과 추천제품에 내 톤이 반영돼요.',
+      route: { name: 'upload' },
+    })
+  }
+
+  items.push({
+    key: 'likes',
+    title: likedCount.value ? `찜한 제품 ${likedCount.value}개` : '찜한 제품이 없어요',
+    description: likedCount.value ? '마이페이지에서 저장한 제품 옵션을 다시 볼 수 있어요.' : '추천제품에서 하트를 눌러 제품을 저장해보세요.',
+    route: { name: 'mypage-liked-options' },
+  })
+
+  return items
+})
+const notificationCount = computed(() => notificationItems.value.length)
 
 const toggleSearch = async () => {
   isSearchOpen.value = !isSearchOpen.value
@@ -114,6 +184,15 @@ const toggleSearch = async () => {
 const closeSearch = () => {
   isSearchOpen.value = false
   searchKeyword.value = ''
+}
+
+const toggleNotifications = () => {
+  isNotificationOpen.value = !isNotificationOpen.value
+}
+
+const goNotice = (notice) => {
+  isNotificationOpen.value = false
+  if (notice.route) router.push(notice.route)
 }
 
 const submitSearch = () => {
@@ -146,6 +225,17 @@ onMounted(async () => {
   } catch (error) {
     console.error('사용자 정보를 가져오지 못했습니다.', error)
     logout()
+  }
+
+  try {
+    const [diagnosis, likedOptions] = await Promise.all([
+      getLatestDiagnosis(),
+      getLikedProductOptions({ page: 1, page_size: 1 }),
+    ])
+    latestDiagnosis.value = diagnosis
+    likedCount.value = Array.isArray(likedOptions) ? likedOptions.length : Number(likedOptions?.count || 0)
+  } catch (error) {
+    console.warn('헤더 알림 정보를 가져오지 못했습니다.', error)
   }
 })
 </script>
@@ -305,6 +395,7 @@ onMounted(async () => {
 
 .icon-button,
 .user-dropdown summary {
+  position: relative;
   width: 34px;
   height: 34px;
   border: 0;
@@ -315,6 +406,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .icon-button:hover,
@@ -332,6 +424,78 @@ onMounted(async () => {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.action-badge {
+  position: absolute;
+  right: -3px;
+  top: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 2px solid #fffaf7;
+  border-radius: 999px;
+  background: #c65367;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.notification-wrap {
+  position: relative;
+}
+
+.notification-panel {
+  position: absolute;
+  right: -8px;
+  top: 44px;
+  z-index: 35;
+  width: 286px;
+  padding: 12px;
+  border: 1px solid #eaded8;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(75, 45, 38, 0.12);
+  display: grid;
+  gap: 8px;
+}
+
+.notification-panel > strong {
+  color: #2b2523;
+  font-size: 14px;
+}
+
+.notification-item {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #f1e4de;
+  border-radius: 10px;
+  background: #fffaf7;
+  color: #443b39;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  border-color: #e3bac0;
+  background: #fff0f1;
+}
+
+.notification-item span {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.notification-item small {
+  display: block;
+  margin-top: 4px;
+  color: #7b6d68;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .login-btn {

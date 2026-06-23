@@ -89,8 +89,8 @@ const normalizeImageFeatures = (features) =>
 const defaultMakeoverStyles = () => [
   {
     key: 'natural_daily',
-    name: '내추럴 데일리룩',
-    description: '피부결과 혈색을 자연스럽게 살린 데일리 메이크업',
+    name: '내추럴 데일리메이크업',
+    description: '피부결과 혈색을 은은하게 살린 자연스러운 메이크업',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -99,8 +99,8 @@ const defaultMakeoverStyles = () => [
   },
   {
     key: 'pure_daily',
-    name: '청순 데일리룩',
-    description: '맑고 부드러운 눈매와 은은한 립을 중심으로 한 룩',
+    name: '청순 데일리메이크업',
+    description: '맑은 눈매와 투명한 혈색을 중심으로 한 메이크업',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -109,8 +109,8 @@ const defaultMakeoverStyles = () => [
   },
   {
     key: 'romantic',
-    name: '로맨틱 룩',
-    description: '톤에 맞는 립과 블러셔로 분위기를 더한 룩',
+    name: '로맨틱 메이크업',
+    description: '톤에 맞는 립과 블러셔로 분위기를 더한 메이크업',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -119,8 +119,8 @@ const defaultMakeoverStyles = () => [
   },
   {
     key: 'chic',
-    name: '시크 룩',
-    description: '정돈된 음영과 선명한 포인트를 살린 룩',
+    name: '시크 메이크업',
+    description: '정돈된 음영과 선명한 포인트를 살린 메이크업',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -129,8 +129,8 @@ const defaultMakeoverStyles = () => [
   },
   {
     key: 'smoky',
-    name: '스모키 룩',
-    description: '톤에 맞는 깊은 음영으로 눈매를 또렷하게 만든 룩',
+    name: '스모키 메이크업',
+    description: '톤에 맞는 깊은 음영으로 눈매를 또렷하게 만든 메이크업',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -138,6 +138,18 @@ const defaultMakeoverStyles = () => [
     is_default: false,
   },
 ]
+
+const mergeDefaultMakeoverStyles = (styles = []) => {
+  const normalized = asArray(styles)
+  const styleMap = new Map(normalized.map((style) => [style.key, style]))
+
+  return defaultMakeoverStyles().map((defaultStyle) => ({
+    ...defaultStyle,
+    ...(styleMap.get(defaultStyle.key) || {}),
+    name: defaultStyle.name,
+    description: defaultStyle.description,
+  }))
+}
 
 const normalizeMakeoverStyles = (raw) => {
   const mockItems = asArray(raw.makeoverImages).map((item, index) => ({
@@ -150,9 +162,9 @@ const normalizeMakeoverStyles = (raw) => {
     order: item.order ?? index + 1,
     is_default: Boolean(item.is_default || index === 0),
   }))
-  if (mockItems.length) return mockItems
+  if (mockItems.length) return mergeDefaultMakeoverStyles(mockItems)
 
-  return asArray(raw.makeover_styles || raw.ai_makeover?.styles).map((item, index) => ({
+  const apiItems = asArray(raw.makeover_styles || raw.ai_makeover?.styles).map((item, index) => ({
     key: item.key || item.id || `style-${index}`,
     name: item.name || item.styleName || `스타일 ${index + 1}`,
     description: item.description || '',
@@ -162,6 +174,7 @@ const normalizeMakeoverStyles = (raw) => {
     order: item.order ?? index + 1,
     is_default: Boolean(item.is_default || index === 0),
   }))
+  return mergeDefaultMakeoverStyles(apiItems)
 }
 
 const normalizeSkinMetrics = (raw) => {
