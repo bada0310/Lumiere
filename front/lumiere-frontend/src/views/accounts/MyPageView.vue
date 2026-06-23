@@ -40,7 +40,7 @@
             </div>
 
             <button type="button" @click="goToDiagnosis" class="rediagnosis-btn">
-              다시 진단하기
+              진단하기
             </button>
           </div>
         </div>

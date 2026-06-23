@@ -85,29 +85,26 @@
         <div class="example-grid">
           <div class="example-box">
             <h3>좋은 사진 조건</h3>
-            <div class="example-list">
-              <div class="good-img"></div>
-              <div class="good-img"></div>
-              <div class="good-img"></div>
-              <div class="good-img"></div>
+            <div class="condition-grid">
+              <div v-for="item in goodPhotoConditions" :key="item.title" class="condition-card good">
+                <span aria-hidden="true">{{ item.icon }}</span>
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.description }}</p>
+              </div>
             </div>
-            <p class="good-text">정면, 밝은 자연광, 필터 없는 사진이 가장 안정적이에요.</p>
+            <p class="condition-note good-text">피부 본연의 색이 드러나는 밝고 차분한 사진이 가장 안정적이에요.</p>
           </div>
 
           <div class="example-box">
             <h3>피하면 좋은 조건</h3>
-            <div class="example-list">
-              <div class="bad-img"></div>
-              <div class="bad-img"></div>
-              <div class="bad-img"></div>
-              <div class="bad-img"></div>
+            <div class="condition-grid">
+              <div v-for="item in badPhotoConditions" :key="item.title" class="condition-card bad">
+                <span aria-hidden="true">{{ item.icon }}</span>
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.description }}</p>
+              </div>
             </div>
-            <div class="bad-labels">
-              <span>어두운 조명</span>
-              <span>측면 사진</span>
-              <span>강한 보정</span>
-              <span>색조 렌즈</span>
-            </div>
+            <p class="condition-note bad-text">조명색, 배경색, 머리카락 그림자가 얼굴 색을 바꾸면 분석 정확도가 낮아져요.</p>
           </div>
         </div>
 
@@ -144,6 +141,20 @@ const guideItems = [
   { icon: 'N', title: '필터 없이', description: '보정이나 필터를 적용하지 않은 사진이 좋아요.' },
   { icon: '□', title: '얼굴 노출', description: '안경, 모자, 진한 색조 렌즈는 가능하면 빼주세요.' },
   { icon: '⌁', title: '헤어라인 확인', description: '이마와 얼굴 윤곽이 보이면 더 정확해요.' },
+]
+
+const goodPhotoConditions = [
+  { icon: '☼', title: '균일한 자연광', description: '창가의 부드러운 빛처럼 얼굴 전체가 고르게 밝은 사진' },
+  { icon: '□', title: '무채색 배경', description: '흰색, 회색, 베이지처럼 피부색에 영향을 덜 주는 배경' },
+  { icon: '◎', title: '정면 얼굴', description: '이마부터 턱선까지 얼굴 윤곽이 또렷하게 보이는 구도' },
+  { icon: '⌁', title: '정리된 머리카락', description: '앞머리와 옆머리가 볼, 이마, 턱을 가리지 않는 상태' },
+]
+
+const badPhotoConditions = [
+  { icon: '◐', title: '색이 강한 조명', description: '노란 조명, 푸른 조명, 역광처럼 피부 톤을 바꾸는 빛' },
+  { icon: '▣', title: '원색 배경', description: '빨강, 초록, 파랑 벽지나 커튼처럼 얼굴에 색이 반사되는 배경' },
+  { icon: '✦', title: '메이크업/보정', description: '진한 베이스, 색조 렌즈, 필터, 피부 보정이 들어간 사진' },
+  { icon: '⌁', title: '얼굴을 가린 머리', description: '그림자나 머리카락이 이마, 볼, 턱선을 덮는 사진' },
 ]
 
 const openFilePicker = () => {
@@ -503,40 +514,76 @@ h2 {
   margin-bottom: 18px;
 }
 
-.example-list {
+.condition-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
 
-.good-img,
-.bad-img {
-  height: 100px;
+.condition-card {
+  min-height: 132px;
   border-radius: 10px;
+  padding: 16px 14px;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.good-img {
-  background: linear-gradient(135deg, #f7d8d8, #fff1ea);
+.condition-card span {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 15px;
 }
 
-.bad-img {
-  background: linear-gradient(135deg, #d8c2ba, #ffe3dc);
-}
-
-.good-text {
-  margin-top: 16px;
-  color: #4d8b61;
+.condition-card strong {
+  color: #2d2524;
   font-size: 14px;
 }
 
-.bad-labels {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-top: 10px;
+.condition-card p {
+  margin: 0;
+  color: #6b625f;
   font-size: 12px;
-  color: #555;
-  text-align: center;
+  line-height: 1.45;
+}
+
+.condition-card.good {
+  background: linear-gradient(135deg, #fffaf4, #f7fbf4);
+  border-color: #e7ead8;
+}
+
+.condition-card.good span {
+  background: #eef6e8;
+  color: #678748;
+}
+
+.condition-card.bad {
+  background: linear-gradient(135deg, #fff4f1, #f7f0ed);
+  border-color: #ead8d1;
+}
+
+.condition-card.bad span {
+  background: #f8e1dc;
+  color: #b35a4b;
+}
+
+.condition-note {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.good-text {
+  color: #4d8b61;
+}
+
+.bad-text {
+  color: #9b5a4f;
 }
 
 .analysis-btn {
@@ -593,8 +640,7 @@ h2 {
     width: 64px;
   }
 
-  .bad-labels,
-  .example-list {
+  .condition-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }

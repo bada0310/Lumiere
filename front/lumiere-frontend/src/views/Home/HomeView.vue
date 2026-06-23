@@ -27,29 +27,45 @@
 
       <div class="hero-image">
         <div class="model-card">
-          <div class="model-face">Beauty<br />Image</div>
+          <div class="tone-logo" :aria-label="`${summaryToneName} 퍼스널컬러 로고`">
+            <div class="tone-logo-mark">
+              <span
+                v-for="(color, index) in summaryColors"
+                :key="`${color}-${index}`"
+                :style="{ background: color }"
+              ></span>
+            </div>
+            <div class="tone-logo-copy">
+              <span>Personal Color</span>
+              <strong>Lumière</strong>
+            </div>
+          </div>
+
+          <div class="model-overlay">
+            <span>{{ hasDiagnosis ? 'My Tone' : 'Lumière' }}</span>
+            <strong>{{ summaryToneName }}</strong>
+          </div>
         </div>
 
         <div class="summary-card">
           <p class="summary-title">내 퍼스널컬러 요약</p>
-          <h3>여름 쿨 라이트</h3>
-          <p class="eng">Summer Cool Light</p>
+          <h3>{{ summaryToneName }}</h3>
+          <p class="eng">{{ summaryToneEnglish }}</p>
 
           <div class="chips">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
+            <span
+              v-for="color in summaryColors"
+              :key="color"
+              :style="{ background: color }"
+            ></span>
           </div>
 
           <p class="summary-desc">
-            맑고 부드러운 파스텔 톤이 잘 어울려요.
-            은은한 핑크, 라벤더, 라이트 블루 계열이 가장 잘 어울립니다.
+            {{ summaryDescription }}
           </p>
 
-          <button @click="$router.push('/result')">
-            상세 결과 보기
+          <button @click="goToSummaryResult">
+            {{ hasDiagnosis ? '상세 결과 보기' : '진단하고 요약 받기' }}
           </button>
         </div>
       </div>
@@ -110,17 +126,24 @@
             <div class="flip-card-inner">
               
               <div class="flip-card-front">
-                <div class="product-img"></div>
+                <div class="product-img" :class="product.imageClass">
+                  <img
+                    v-if="product.imageUrl"
+                    :src="product.imageUrl"
+                    :alt="product.name"
+                    loading="lazy"
+                  />
+                  <div v-else class="product-art"></div>
+                </div>
                 <p class="brand">{{ product.brand }}</p>
                 <h4>{{ product.name }}</h4>
-                <p class="score">추천도 {{ product.score }}%</p>
               </div>
 
               <div class="flip-card-back">
                 <div class="ai-badge">✨ AI's Pick</div>
                 <h4>{{ product.name }}</h4>
                 <p class="reason">{{ product.reason }}</p>
-                <button class="detail-btn" @click="$router.push(`/product-detail`)">상세보기</button>
+                <button class="detail-btn" @click="goToProductDetail(product)">상세보기</button>
               </div>
 
             </div>
@@ -133,16 +156,141 @@
 </template>
 
 <script setup>
-const products = [
-  { brand: '롬앤', name: '쥬시 래스팅 틴트', score: 96, reason: '입술에 맑게 차오르는 쿨톤 광택이 예술이에요!' },
-  { brand: '클리오', name: '프로 아이 팔레트', score: 92, reason: '버릴 색상 하나 없는 데일리 음영의 정석입니다.' },
-  { brand: '에스쁘아', name: '비 글로우 쿠션', score: 94, reason: 'AI 분석 결과, 고객님의 피부결에 완벽 밀착됩니다.' },
-  { brand: '퓌', name: '블러셔 멜로우', score: 90, reason: '수채화처럼 맑게 발색되어 생기를 더해줘요.' },
-  { brand: '데이지크', name: '섀도우 팔레트', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
-  { brand: '데이지크', name: '섀도우 팔레트', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
-  { brand: '데이지크', name: '섀도우 팔레트', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
-  // 원하신다면 여기에 6번째, 7번째 제품을 계속 추가해 보세요! 스크롤이 생깁니다.
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+
+import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { normalizeDiagnosisResult } from '@/utils/diagnosisResultTransform'
+import { getSavedMockDiagnosisResult } from '@/utils/diagnosisMockStorage'
+
+const router = useRouter()
+
+const fallbackProducts = [
+  { brand: '롬앤', name: '쥬시 래스팅 틴트', category: 'LIP', score: 96, reason: '입술에 맑게 차오르는 쿨톤 광택이 예술이에요!' },
+  { brand: '클리오', name: '프로 아이 팔레트', category: 'EYE', score: 92, reason: '버릴 색상 하나 없는 데일리 음영의 정석입니다.' },
+  { brand: '에스쁘아', name: '비 글로우 쿠션', category: 'BASE', score: 94, reason: 'AI 분석 결과, 고객님의 피부결에 완벽 밀착됩니다.' },
+  { brand: '퓌', name: '블러셔 멜로우', category: 'CHEEK', score: 90, reason: '수채화처럼 맑게 발색되어 생기를 더해줘요.' },
+  { brand: '데이지크', name: '섀도우 팔레트', category: 'EYE', score: 89, reason: '은은한 펄감이 눈매를 한층 깊게 만들어줍니다.' },
 ]
+
+const products = ref(fallbackProducts.map((product, index) => normalizeHomeProduct(product, index)))
+const latestDiagnosis = ref(null)
+
+const hasDiagnosis = computed(() => Boolean(latestDiagnosis.value))
+
+const summaryToneName = computed(() => latestDiagnosis.value?.korean_name || '아직 진단 전')
+const summaryToneEnglish = computed(() => latestDiagnosis.value?.english_name || 'Find Your Personal Color')
+const summaryDescription = computed(() => {
+  if (latestDiagnosis.value?.summary) return latestDiagnosis.value.summary
+  if (!latestDiagnosis.value) {
+    return 'AI 진단을 완료하면 내 퍼스널컬러와 어울리는 컬러 팔레트가 이곳에 바로 표시돼요.'
+  }
+  return '진단 결과를 바탕으로 어울리는 색감과 메이크업 방향을 요약해드려요.'
+})
+const summaryColors = computed(() => {
+  const colors = latestDiagnosis.value?.representative_colors
+    ?.map((color) => color.hex)
+    .filter(Boolean)
+    .slice(0, 5)
+
+  return colors?.length
+    ? colors
+    : ['#efc7cf', '#e7c9d8', '#d6c5e3', '#c7c5df', '#d6e1e8']
+})
+function normalizeHomeProduct(item, index) {
+  const category = String(item.category || item.category_key || '').toUpperCase()
+  const imageClass = category.includes('EYE')
+    ? 'eye'
+    : category.includes('CHEEK')
+      ? 'cheek'
+      : category.includes('BASE')
+        ? 'base'
+        : 'lip'
+
+  return {
+    id: item.id || item.product_option_id || index + 1,
+    brand: item.brand || item.product_brand || '브랜드 미상',
+    name: item.name || item.product_name || '추천 상품',
+    score: Math.min(99, Math.max(70, Math.round(Number(item.match_score || item.score || 90 - index) || 90))),
+    reason: item.reason || item.match_reason || item.description || '내 톤과 가까운 색감으로 추천된 제품이에요.',
+    imageUrl: item.image_url || item.image || item.thumbnail || item.thumbnail_url || '',
+    imageClass,
+    raw: item,
+  }
+}
+
+const loadLatestDiagnosis = async () => {
+  const savedMock = normalizeDiagnosisResult(getSavedMockDiagnosisResult())
+  if (savedMock) latestDiagnosis.value = savedMock
+
+  if (!localStorage.getItem('access_token')) return
+
+  try {
+    const result = normalizeDiagnosisResult(await getLatestDiagnosis())
+    if (result) latestDiagnosis.value = result
+  } catch (error) {
+    console.warn('홈 퍼스널컬러 요약을 불러오지 못했어요:', error)
+  }
+}
+
+const loadPopularProducts = async () => {
+  try {
+    let response
+
+    try {
+      response = await axios.get('http://127.0.0.1:8000/api/products/')
+    } catch (apiError) {
+      console.warn('홈 인기 제품은 로컬 products_raw.json을 사용합니다:', apiError)
+      response = await axios.get('/products_raw.json')
+    }
+
+    const data = Array.isArray(response.data)
+      ? response.data
+      : response.data.results || response.data.products || []
+
+    const normalized = data
+      .filter((item) => !String(item.category || '').toUpperCase().includes('LENS'))
+      .sort((a, b) => Number(b.review_count || b.popularity_score || 0) - Number(a.review_count || a.popularity_score || 0))
+      .slice(0, 8)
+      .map(normalizeHomeProduct)
+
+    if (normalized.length) products.value = normalized
+  } catch (error) {
+    console.warn('홈 인기 추천 제품을 불러오지 못했어요:', error)
+  }
+}
+
+const goToSummaryResult = () => {
+  if (!latestDiagnosis.value) {
+    router.push('/upload')
+    return
+  }
+
+  if (latestDiagnosis.value.is_mock) {
+    router.push({
+      path: '/diagnosis/result',
+      query: {
+        mock: String(latestDiagnosis.value.personal_color_code || latestDiagnosis.value.type || '').replace(/-/g, '_'),
+      },
+    })
+    return
+  }
+
+  router.push(`/diagnosis/results/${latestDiagnosis.value.id}`)
+}
+
+const goToProductDetail = (product) => {
+  if (product.raw) {
+    localStorage.setItem('selectedProductOption', JSON.stringify(product.raw))
+  }
+  router.push(`/product-detail/${product.id}`)
+}
+
+onMounted(() => {
+  loadLatestDiagnosis()
+  loadPopularProducts()
+})
 </script>
 
 
@@ -229,20 +377,126 @@ const products = [
 }
 
 .model-card {
+  position: relative;
   width: 330px;
   height: 380px;
   border-radius: 24px;
-  background: linear-gradient(135deg, #f4cbbf, #fff3ec);
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.94), transparent 28%),
+    linear-gradient(135deg, #f7dfd9, #fff7f2 54%, #eadce7);
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(90, 50, 40, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.model-face {
-  font-size: 34px;
-  color: #c65367;
-  font-family: Georgia, serif;
+.tone-logo {
+  width: 230px;
+  min-height: 230px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  background: rgba(255, 250, 247, 0.76);
+  box-shadow:
+    inset 0 0 0 14px rgba(255, 255, 255, 0.34),
+    0 22px 44px rgba(90, 50, 40, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  backdrop-filter: blur(8px);
+}
+
+.tone-logo-mark {
+  position: relative;
+  width: 122px;
+  height: 122px;
+  border-radius: 50%;
+}
+
+.tone-logo-mark span {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  border: 5px solid rgba(255, 255, 255, 0.76);
+  border-radius: 50%;
+  box-shadow: 0 9px 18px rgba(90, 50, 40, 0.08);
+}
+
+.tone-logo-mark span:nth-child(1) {
+  left: 27px;
+  top: 0;
+}
+
+.tone-logo-mark span:nth-child(2) {
+  right: 0;
+  top: 31px;
+}
+
+.tone-logo-mark span:nth-child(3) {
+  right: 18px;
+  bottom: 0;
+}
+
+.tone-logo-mark span:nth-child(4) {
+  left: 18px;
+  bottom: 0;
+}
+
+.tone-logo-mark span:nth-child(5) {
+  left: 0;
+  top: 31px;
+}
+
+.tone-logo-copy {
   text-align: center;
+}
+
+.tone-logo-copy span {
+  display: block;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.tone-logo-copy strong {
+  font-family: var(--font-title-serif) !important;
+  color: #2b2523;
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.model-overlay {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 22px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 14px;
+  background: rgba(255, 250, 247, 0.76);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 26px rgba(90, 50, 40, 0.1);
+}
+
+.model-overlay span {
+  display: block;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.model-overlay strong {
+  display: block;
+  color: #2b2523;
+  font-size: 20px;
 }
 
 .summary-card {
@@ -277,23 +531,8 @@ const products = [
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #efc7cf;
-}
-
-.chips span:nth-child(2) {
-  background: #e7c9d8;
-}
-
-.chips span:nth-child(3) {
-  background: #d6c5e3;
-}
-
-.chips span:nth-child(4) {
-  background: #c7c5df;
-}
-
-.chips span:nth-child(5) {
-  background: #d6e1e8;
+  border: 1px solid rgba(92, 62, 58, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.42);
 }
 
 .summary-desc {
@@ -444,18 +683,74 @@ const products = [
 /* --- 앞면 디자인 --- */
 .flip-card-front {
   background: white;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-img {
+  position: relative;
   height: 120px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #f3c1c8, #fff1ec);
+  background: linear-gradient(135deg, #f8e1df, #fff6f1);
   margin-bottom: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+  background: #fff;
+}
+
+.product-art {
+  width: 100%;
+  height: 100%;
+}
+
+.product-img.lip .product-art {
+  background:
+    radial-gradient(ellipse at 42% 62%, rgba(190, 74, 94, 0.45) 0 26%, transparent 27%),
+    linear-gradient(90deg, transparent 42%, #b6576b 43% 55%, transparent 56%),
+    linear-gradient(135deg, #fff1eb, #f8d4d9);
+}
+
+.product-img.eye .product-art {
+  background:
+    radial-gradient(circle at 30% 45%, #c5a3b8 0 15%, transparent 16%),
+    radial-gradient(circle at 55% 45%, #d8bfd8 0 15%, transparent 16%),
+    radial-gradient(circle at 42% 70%, #b8a2c8 0 15%, transparent 16%),
+    linear-gradient(135deg, #fff1eb, #f3e5f2);
+}
+
+.product-img.cheek .product-art {
+  background:
+    radial-gradient(circle at 50% 55%, rgba(240, 145, 165, 0.62) 0 30%, transparent 31%),
+    radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.54) 0 12%, transparent 13%),
+    linear-gradient(135deg, #fff1eb, #f8dce2);
+}
+
+.product-img.base .product-art {
+  background:
+    radial-gradient(circle at 50% 48%, #f2d2c4 0 26%, transparent 27%),
+    linear-gradient(90deg, transparent 35%, #e8c3b0 36% 63%, transparent 64%),
+    linear-gradient(135deg, #fff7f1, #f3ded3);
 }
 
 .brand { color: #777; font-size: 13px; }
-.flip-card-front h4 { margin: 6px 0 14px; font-size: 15px; }
-.score { color: #c65367; font-weight: 700; font-size: 16px; }
+.flip-card-front h4 {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* --- 뒷면 디자인 --- */
 .flip-card-back {

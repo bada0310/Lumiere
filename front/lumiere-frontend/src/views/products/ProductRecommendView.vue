@@ -12,7 +12,7 @@
             <p>{{ hasDiagnosisProfile ? 'AI 진단 기준' : '추천 기준' }}</p>
             <strong>{{ recommendationBasis.toneName }}</strong>
             <RouterLink to="/upload">
-              {{ hasDiagnosisProfile ? '다시 진단하기 ›' : '피부 분석 후 맞춤 추천 보기 ›' }}
+              {{ hasDiagnosisProfile ? '진단하기 ›' : '피부 분석 후 맞춤 추천 보기 ›' }}
             </RouterLink>
           </div>
           <div class="profile"></div>
@@ -88,8 +88,9 @@
       <section class="brand-board" v-if="brandStats.length">
         <div class="brand-board-head">
           <div>
-            <h2>브랜드</h2>
-            <p>Total {{ brandTotalCount }}</p>
+            <span>Brand Palette</span>
+            <h2>브랜드 컬러 팔레트</h2>
+            <p>{{ selectedCategoryLabel }} 카테고리의 {{ brandTotalCount }}개 옵션을 브랜드별로 모았어요.</p>
           </div>
 
           <button type="button" @click="clearBrands" :disabled="selectedBrands.length === 0">
@@ -109,7 +110,7 @@
               @change="toggleBrand(brand.name)"
             />
             <span>{{ brand.name }}</span>
-            <small>{{ brand.count }}</small>
+            <small>{{ brand.count }} shades</small>
           </label>
         </div>
 
@@ -1357,44 +1358,59 @@ watch(
 
 .brand-board {
   margin: 0 0 24px;
-  border: 1px solid #a7c957;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #eaded8;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 247, 0.96), rgba(248, 238, 235, 0.92)),
+    rgba(255, 255, 255, 0.94);
   overflow: hidden;
+  box-shadow: 0 12px 28px rgba(88, 55, 45, 0.05);
 }
 
 .brand-board-head {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  align-items: stretch;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
   border-bottom: 1px solid #eaded8;
 }
 
 .brand-board-head > div {
-  padding: 20px 24px;
-  border-right: 1px solid #eaded8;
+  padding: 22px 26px 20px;
+}
+
+.brand-board-head span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #c65367;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .brand-board h2 {
-  margin: 0 0 8px;
-  font-size: 19px;
+  margin: 0 0 10px;
+  font-size: 21px;
+  letter-spacing: 0;
 }
 
 .brand-board p {
   margin: 0;
-  color: #91be3f;
-  font-weight: 900;
+  color: #766762;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .brand-board-head button {
-  justify-self: end;
-  align-self: end;
-  margin: 0 18px 16px 0;
+  flex: 0 0 auto;
+  margin: 0 22px 20px 0;
   height: 36px;
   padding: 0 14px;
-  border: none;
-  background: transparent;
-  color: #8e7e79;
+  border: 1px solid #e2c9c3;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #9a5964;
   font-weight: 800;
   cursor: pointer;
 }
@@ -1407,35 +1423,43 @@ watch(
 .brand-check-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 14px;
+  gap: 10px;
 }
 
 .brand-check-grid label {
-  min-height: 52px;
-  padding: 0 18px;
-  border-right: 1px solid #eaded8;
-  border-bottom: 1px solid #eaded8;
+  min-height: 58px;
+  padding: 0 14px;
+  border: 1px solid #eaded8;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 9px;
   align-items: center;
   color: #4d4441;
   font-weight: 800;
   cursor: pointer;
+  transition: 0.18s;
 }
 
-.brand-check-grid label:nth-child(5n) {
-  border-right: none;
+.brand-check-grid label:hover {
+  border-color: #d9b5b6;
+  box-shadow: 0 8px 18px rgba(122, 77, 70, 0.07);
+  transform: translateY(-1px);
 }
 
 .brand-check-grid label.active {
-  background: #f6fbef;
-  color: #5f8f16;
+  border-color: #c65367;
+  background: linear-gradient(135deg, #fff0f1, #fffaf7);
+  color: #8b3a4a;
+  box-shadow: inset 0 0 0 1px rgba(198, 83, 103, 0.12);
 }
 
 .brand-check-grid input {
   width: 15px;
   height: 15px;
-  accent-color: #91be3f;
+  accent-color: #c65367;
 }
 
 .brand-check-grid span {
@@ -1445,25 +1469,30 @@ watch(
 }
 
 .brand-check-grid small {
-  color: #9b8d88;
-  font-size: 12px;
+  min-width: 28px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fff4f1;
+  color: #9b6a65;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .brand-board-foot {
-  height: 46px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   border-top: 1px solid #eaded8;
-  background: #f7f7f7;
+  background: rgba(255, 250, 247, 0.7);
 }
 
 .brand-board-foot button {
   height: 100%;
   padding: 0 24px;
   border: none;
-  border-right: 1px solid #eaded8;
-  background: white;
-  color: #6b625f;
+  background: transparent;
+  color: #c65367;
   font-weight: 900;
   cursor: pointer;
 }
@@ -1980,23 +2009,17 @@ watch(
   }
 
   .brand-board-head {
-    grid-template-columns: 1fr;
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .brand-board-head > div {
-    border-right: none;
+  .brand-board-head button {
+    width: calc(100% - 52px);
+    margin: 0 26px 20px;
   }
 
   .brand-check-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .brand-check-grid label:nth-child(5n) {
-    border-right: 1px solid #eaded8;
-  }
-
-  .brand-check-grid label:nth-child(2n) {
-    border-right: none;
   }
 
   .sort {
