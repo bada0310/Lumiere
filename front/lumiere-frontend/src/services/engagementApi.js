@@ -43,6 +43,13 @@ export const getUrlAnalysisRecords = async (params = {}) => {
   return response.data
 }
 
+export const getUrlAnalysisRecord = async (id) => {
+  const response = await axios.get(`${API_BASE_URL}/api/engagements/url-analyses/${id}/`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
 export const createUrlAnalysisRecord = async (payload) => {
   const response = await axios.post(`${API_BASE_URL}/api/engagements/url-analyses/`, payload, {
     headers: authHeaders(),

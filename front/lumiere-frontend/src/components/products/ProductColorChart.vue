@@ -69,6 +69,30 @@
           <text x="0" y="0.3" text-anchor="middle" class="best-badge-text">BEST</text>
         </g>
       </g>
+
+      <g
+        v-for="point in pendingPoints"
+        :key="point.id"
+        class="point-group pending-group"
+        :class="{ selected: point.isSelected }"
+        :filter="point.isSelected ? 'url(#selectedShadow)' : null"
+        @click="selectOption(point.option)"
+      >
+        <circle
+          :cx="point.x"
+          :cy="point.y"
+          :r="point.isSelected ? 3.8 : 3.2"
+          class="dot pending"
+        />
+        <text
+          :x="point.labelX"
+          :y="point.labelY"
+          class="point-label pending"
+          :class="{ selected: point.isSelected }"
+        >
+          {{ point.label }}
+        </text>
+      </g>
     </svg>
   </div>
 </template>
@@ -106,7 +130,7 @@ const bestEllipse = computed(() => rangeToEllipse(rangeProfile.value.best))
 const goodEllipse = computed(() => rangeToEllipse(rangeProfile.value.good))
 
 const chartPoints = computed(() => {
-  return props.options.map((option, index) => {
+  return props.options.filter(hasMetricPosition).map((option, index) => {
     const x = clamp(option.coolness)
     const y = clamp(100 - clamp(option.brightness))
     const grade = gradeFor(option)
@@ -122,8 +146,30 @@ const chartPoints = computed(() => {
       labelY: Math.min(96, Math.max(5, y - 3.4)),
       badgeX: Math.min(91, Math.max(9, x + 8)),
       badgeY: Math.min(95, Math.max(7, y - 7)),
-      color: option.hex_code || option.hexCode || option.hex || '#c65367',
+      color: option.hex_code || option.hexCode || option.hex || '#d9d3cf',
       grade,
+      isSelected,
+    }
+  })
+})
+
+const pendingPoints = computed(() => {
+  const pendingOptions = props.options.filter((option) => !hasMetricPosition(option))
+  const total = Math.max(1, pendingOptions.length)
+  return pendingOptions.map((option, index) => {
+    const x = Math.round(((index + 1) / (total + 1)) * 88 + 6)
+    const y = 91
+    const isSelected = String(option.id) === selectedId.value
+    const label = String(option.option_no || option.display_name || option.option_name || index + 1).slice(0, 12)
+    return {
+      id: option.id || `pending-${index}`,
+      option,
+      x,
+      y,
+      label,
+      labelX: Math.min(94, Math.max(6, x + 3.8)),
+      labelY: Math.min(96, Math.max(5, y - 3.4)),
+      grade: 'PENDING',
       isSelected,
     }
   })
@@ -134,11 +180,28 @@ const selectOption = (option) => {
   emit('select', option)
 }
 
+const isPendingOption = (option) => {
+  const status = String(option?.analysis_status || option?.analysisStatus || '').toUpperCase()
+  const grade = String(option?.grade || '').toUpperCase()
+  return status === 'PENDING_COLOR_ANALYSIS' || grade === 'PENDING'
+}
+
+const hasMetricPosition = (option) => {
+  if (isPendingOption(option)) return false
+  const x = Number(option?.coolness)
+  const y = Number(option?.brightness)
+  return Number.isFinite(x) && Number.isFinite(y)
+}
+
 const gradeFor = (option) => {
-  const score = Number(option.match_score ?? option.matchScore ?? option.score ?? 0)
+  if (isPendingOption(option)) return 'PENDING'
   if (String(option.grade || '').toUpperCase()) {
     return String(option.grade).toUpperCase()
   }
+  const rawScore = option.match_score ?? option.matchScore ?? option.score
+  if (rawScore === null || rawScore === undefined || rawScore === '') return 'UNRATED'
+  const score = Number(rawScore)
+  if (!Number.isFinite(score)) return 'UNRATED'
   if (score >= 85) return 'BEST'
   if (score >= 70) return 'GOOD'
   if (score >= 55) return 'OK'
@@ -236,6 +299,12 @@ svg {
   stroke: #d6a400;
 }
 
+.dot.pending {
+  fill: #d9d3cf;
+  stroke: rgba(94, 74, 70, 0.55);
+  stroke-dasharray: 1.1 0.9;
+}
+
 .caution-ring {
   fill: rgba(255, 205, 66, 0.2);
   stroke: rgba(214, 164, 0, 0.6);
@@ -253,6 +322,10 @@ svg {
 
 .point-label.selected {
   fill: #c65367;
+}
+
+.point-label.pending {
+  fill: #6f6662;
 }
 
 .best-badge-bg {

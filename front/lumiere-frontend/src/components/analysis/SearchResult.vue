@@ -1,119 +1,114 @@
 <template>
   <div class="search-result-container">
-    
     <section class="result-section">
       <div class="section-header">
-        <span class="search-icon">🔍</span>
-        <h3 class="section-title">검색 결과 미리보기</h3>
+        <span class="search-icon" aria-hidden="true">P</span>
+        <h3 class="section-title">검색 결과 미리 보기</h3>
       </div>
 
-      <div class="product-grid">
-        <div v-for="product in products" :key="product.id" class="product-card">
+      <div v-if="loading" class="state-line">제품을 검색하는 중입니다.</div>
+      <div v-else-if="searched && !products.length" class="state-line">검색 결과가 없습니다.</div>
+
+      <div v-else class="product-grid">
+        <button
+          v-for="product in products"
+          :key="product.id"
+          type="button"
+          class="product-card"
+          :class="{ active: String(selectedProductId) === String(product.id) }"
+          @click="$emit('select-product', product)"
+        >
           <div class="image-wrapper">
-            <img :src="product.image || 'https://via.placeholder.com/150?text=Product'" :alt="product.name" class="product-img" />
+            <img :src="product.thumbnailUrl || 'https://via.placeholder.com/150?text=Product'" :alt="product.productName" class="product-img" />
           </div>
-          
+
           <div class="product-info">
-            <span class="category-tag">{{ product.category }}</span>
-            <p class="brand">{{ product.brand }}</p>
-            <p class="name">{{ product.name }}</p>
-            <p class="price">{{ product.price }}</p>
-            
+            <span class="category-tag">{{ product.category || 'PRODUCT' }}</span>
+            <p class="brand">{{ product.brandName || '브랜드 미상' }}</p>
+            <p class="name">{{ product.productName || '제품명 없음' }}</p>
+            <p class="price">옵션 {{ product.optionCount || 0 }}개</p>
+
             <div class="color-swatches">
-              <span 
-                v-for="(color, index) in product.colors" 
-                :key="index" 
-                class="swatch" 
+              <span
+                v-for="color in product.colors"
+                :key="color"
+                class="swatch"
                 :style="{ backgroundColor: color }"
               ></span>
             </div>
+            <span class="analysis-link">분석 보기 &gt;</span>
           </div>
-        </div>
+        </button>
       </div>
 
-      <button class="load-more-btn">
+      <button
+        v-if="keyword && products.length"
+        type="button"
+        class="load-more-btn"
+        @click="$emit('show-more')"
+      >
         더 많은 검색 결과 보기 &gt;
       </button>
     </section>
 
     <aside class="info-banner">
-      <h3 class="banner-title">Lumiere만의 특별한 분석</h3>
-      
+      <h3 class="banner-title">Lumiere의 컬러 분석</h3>
+
       <ul class="feature-list">
         <li>
-          <span class="feature-icon">☼</span>
+          <span class="feature-icon">1</span>
           <div class="feature-text">
             <strong>색상 옵션 추출</strong>
-            <p>제품 페이지에서 모든 색상 옵션을 자동으로 추출해요.</p>
+            <p>제품에 등록된 색상 옵션과 컬러 데이터를 한 화면에서 확인합니다.</p>
           </div>
         </li>
         <li>
-          <span class="feature-icon">⚖️</span>
+          <span class="feature-icon">2</span>
           <div class="feature-text">
-            <strong>피부톤과 비교</strong>
-            <p>당신의 퍼스널컬러와 가장 잘 어울리는 색상을 분석해요.</p>
+            <strong>퍼스널컬러 비교</strong>
+            <p>메인 퍼스널컬러 기준으로 BEST / GOOD / CAUTION을 분류합니다.</p>
           </div>
         </li>
         <li>
-          <span class="feature-icon">🌿</span>
+          <span class="feature-icon">3</span>
           <div class="feature-text">
-            <strong>맞춤 추천</strong>
-            <p>적합도 점수와 함께 추천 이유를 자세히 알려드려요.</p>
+            <strong>추천 이유 확인</strong>
+            <p>추천 점수와 옵션별 사용 팁을 아코디언으로 확인할 수 있습니다.</p>
           </div>
         </li>
       </ul>
     </aside>
-
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+defineProps({
+  products: {
+    type: Array,
+    default: () => [],
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  searched: {
+    type: Boolean,
+    default: false,
+  },
+  keyword: {
+    type: String,
+    default: '',
+  },
+  selectedProductId: {
+    type: [String, Number],
+    default: '',
+  },
+})
 
-// 💡 목업 이미지를 기반으로 한 더미(임시) 데이터입니다.
-// 실제 개발 시에는 부모 컴포넌트(AnalysisView.vue)에서 props로 데이터를 받아오도록 수정하면 됩니다.
-const products = ref([
-  {
-    id: 1,
-    category: '틴트',
-    brand: 'rom&nd',
-    name: '블러 퍼지 틴트 23 베어 그레이프',
-    price: '13,000원',
-    colors: ['#D98894', '#C76A78', '#A94858', '#8E3845', '#EAC1C8'],
-    image: '' // 비워두면 placeholder 이미지가 나옵니다.
-  },
-  {
-    id: 2,
-    category: '립스틱',
-    brand: '3CE',
-    name: '벨벳 립 컬러 DAFFODIL',
-    price: '17,900원',
-    colors: ['#C85A5A', '#A03C3C', '#E68282', '#641E1E', '#F0A0A0'],
-    image: ''
-  },
-  {
-    id: 3,
-    category: '블러셔',
-    brand: 'fwee',
-    name: '퓨어 블러셔 ND02 오디 모브',
-    price: '12,000원',
-    colors: ['#DCA0B4', '#C87896', '#E6C8D2', '#B45A78', '#F0DCE6'],
-    image: ''
-  },
-  {
-    id: 4,
-    category: '아이섀도우',
-    brand: 'CLIO',
-    name: '프로 아이 팔레트 13 피치 크러쉬',
-    price: '32,000원',
-    colors: ['#F5D2C8', '#E6A08C', '#C86450', '#AA3C28', '#821E0A'],
-    image: ''
-  }
-]);
+defineEmits(['select-product', 'show-more'])
 </script>
 
 <style scoped>
-/* 전체 컨테이너: 좌우 분할 레이아웃 */
 .search-result-container {
   display: flex;
   gap: 30px;
@@ -124,17 +119,8 @@ const products = ref([
   font-family: 'Pretendard', sans-serif;
 }
 
-@media (max-width: 992px) {
-  .search-result-container {
-    flex-direction: column; /* 화면이 작아지면 위아래로 배치 */
-  }
-}
-
-/* =========================================
-   1. 왼쪽: 검색 결과 리스트 영역
-   ========================================= */
 .result-section {
-  flex: 7; /* 좌측이 약 70% 비율 차지 */
+  flex: 7;
   background: #ffffff;
   border-radius: 20px;
   padding: 30px;
@@ -147,10 +133,19 @@ const products = ref([
   gap: 10px;
   margin-bottom: 20px;
 }
+
 .search-icon {
-  font-size: 1.2rem;
-  color: #888;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff0f4;
+  color: #b75a73;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
+
 .section-title {
   font-size: 1.1rem;
   font-weight: 700;
@@ -158,24 +153,40 @@ const products = ref([
   margin: 0;
 }
 
-/* 제품 그리드 (4열 배치) */
+.state-line {
+  border: 1px dashed #eaded8;
+  border-radius: 12px;
+  color: #8e7e79;
+  padding: 24px;
+  text-align: center;
+}
+
 .product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 15px;
   margin-bottom: 25px;
 }
-@media (max-width: 768px) {
-  .product-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
 
-/* 개별 제품 카드 */
 .product-card {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: white;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
+
+.product-card:hover,
+.product-card.active {
+  border-color: #b75a73;
+  box-shadow: 0 8px 18px rgba(183, 90, 115, 0.12);
+  transform: translateY(-1px);
+}
+
 .image-wrapper {
   background: #f8f8f8;
   border-radius: 12px;
@@ -183,6 +194,7 @@ const products = ref([
   margin-bottom: 12px;
   aspect-ratio: 1 / 1;
 }
+
 .product-img {
   width: 100%;
   height: 100%;
@@ -193,7 +205,9 @@ const products = ref([
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  padding: 0 4px 4px;
 }
+
 .category-tag {
   background: #f3f3f3;
   color: #888;
@@ -202,43 +216,52 @@ const products = ref([
   border-radius: 10px;
   margin-bottom: 6px;
 }
+
 .brand {
   font-size: 0.8rem;
   font-weight: 600;
   color: #333;
-  margin: 0 0 2px 0;
+  margin: 0 0 2px;
 }
+
 .name {
   font-size: 0.85rem;
   color: #555;
-  margin: 0 0 6px 0;
+  margin: 0 0 6px;
   line-height: 1.3;
-  /* 말줄임표 처리 (2줄 이상 시) */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
 .price {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #333;
-  margin: 0 0 10px 0;
+  margin: 0 0 10px;
 }
 
-/* 색상 동그라미 스와치 */
 .color-swatches {
   display: flex;
   gap: 4px;
+  min-height: 12px;
 }
+
 .swatch {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* 더보기 버튼 */
+.analysis-link {
+  margin-top: 10px;
+  color: #b75a73;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .load-more-btn {
   width: 100%;
   background: #f9f9f9;
@@ -250,17 +273,15 @@ const products = ref([
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .load-more-btn:hover {
   background: #f0f0f0;
   color: #333;
 }
 
-/* =========================================
-   2. 오른쪽: Lumiere만의 특별한 분석 안내 배너
-   ========================================= */
 .info-banner {
-  flex: 3; /* 우측이 약 30% 비율 차지 */
-  background: #fff8fa; /* 연한 핑크 배경 */
+  flex: 3;
+  background: #fff8fa;
   border-radius: 20px;
   padding: 30px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
@@ -271,7 +292,7 @@ const products = ref([
   font-size: 1.1rem;
   font-weight: 700;
   color: #333;
-  margin: 0 0 24px 0;
+  margin: 0 0 24px;
 }
 
 .feature-list {
@@ -282,24 +303,55 @@ const products = ref([
   flex-direction: column;
   gap: 20px;
 }
+
 .feature-list li {
   display: flex;
   gap: 12px;
 }
+
 .feature-icon {
-  font-size: 1.2rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff0f4;
+  color: #b75a73;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 900;
   margin-top: 2px;
+  flex: 0 0 auto;
 }
+
 .feature-text strong {
   display: block;
   font-size: 0.9rem;
   color: #333;
   margin-bottom: 4px;
 }
+
 .feature-text p {
   font-size: 0.8rem;
   color: #777;
   margin: 0;
   line-height: 1.4;
+}
+
+@media (max-width: 992px) {
+  .search-result-container {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

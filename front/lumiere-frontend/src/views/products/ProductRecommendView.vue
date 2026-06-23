@@ -368,9 +368,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
 import { makeDetailPayload, makeProductGroups } from './productCatalog'
 import { getLatestDiagnosis } from '@/services/diagnosisApi'
+import { getProducts } from '@/services/productApi'
 import {
   calculateProductMatchScore,
   getChartPoint,
@@ -396,7 +396,7 @@ const draftCategory = ref('lip')
 const draftFilters = ref([])
 const draftSortOption = ref('scoreDesc')
 const isLoading = ref(false)
-const keyword = computed(() => String(route.query.keyword || '').trim())
+const keyword = computed(() => String(route.query.keyword || route.query.q || '').trim())
 const userColorProfile = ref(readUserColorProfile())
 const hasDiagnosisProfile = ref(hasSavedUserColorProfile())
 const brandPanelLimit = 15
@@ -913,26 +913,17 @@ const fetchProducts = async () => {
   isLoading.value = true
 
   try {
-    let response
-
-    try {
-      response = await axios.get('http://127.0.0.1:8000/api/products/')
-    } catch (apiError) {
-      console.warn('API 상품 데이터 대신 로컬 products_raw.json을 사용합니다:', apiError)
-      response = await axios.get('/products_raw.json')
-    }
-
-    const data = Array.isArray(response.data)
-      ? response.data
-      : response.data.results || response.data.products || []
+    const response = await getProducts(keyword.value ? { q: keyword.value } : {})
+    const data = Array.isArray(response)
+      ? response
+      : response.results || response.products || []
 
     products.value = data
       .filter((item) => !isLensProduct(item))
       .map((item, index) => normalizeProduct(item, index))
 
-    console.log('백엔드 상품 데이터:', products.value)
   } catch (error) {
-    console.error('상품 데이터 불러오기 실패:', error)
+    console.error('상품 데이터를 불러오지 못했습니다.', error)
     products.value = []
   } finally {
     isLoading.value = false
@@ -1099,12 +1090,13 @@ onMounted(async () => {
 })
 
 watch(
-  () => route.query.keyword,
+  () => [route.query.keyword, route.query.q],
   (value) => {
-    if (value) {
+    if (value?.[0] || value?.[1]) {
       selectedCategory.value = 'all'
       likedOnly.value = false
     }
+    fetchProducts()
   },
 )
 </script>
