@@ -9,7 +9,8 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
-from rest_framework.test import APIClient
+from rest_framework import status
+from rest_framework.test import APIClient, APITestCase
 
 from diagnosis.ai_clients.openai_compatible import AIClientConfigurationError
 from diagnosis.domain.palette_seed_data import PALETTE_SEED_DATA, validate_palette_seed_data
@@ -59,6 +60,164 @@ class DiagnosisPayloadValidationTests(TestCase):
 
         with self.assertRaises(ValidationError):
             validate_diagnosis_payload(payload)
+
+
+class DiagnosisResultListApiTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='diagnosis_user',
+            password='password1234',
+            nickname='diagnosis_nick',
+        )
+        self.personal_color = PersonalColor.objects.create(
+            type_name='List Test Tone',
+            tone_key='list_test_tone',
+            base_temperature=PersonalColor.BaseTemperature.cool,
+            season=PersonalColor.SeasonChoice.summer,
+            tone=PersonalColor.ToneChoices.MUTE,
+            description='test',
+            temperature_degree=70,
+            brightness_degree=50,
+            saturation_degree=50,
+            turbidity_degree=50,
+            glossiness_degree=50,
+            contrast_degree=50,
+            best_pccs=[],
+            sub_pccs=[],
+        )
+
+    def test_list_supports_limit_and_pagination(self):
+        for index in range(3):
+            DiagnosisResult.objects.create(
+                user=self.user,
+                personal_color=self.personal_color,
+                confidence_score=70 + index,
+                tone_key=f'list_test_tone_{index}',
+            )
+        self.client.force_authenticate(self.user)
+
+        preview = self.client.get('/api/diagnosis/results/?limit=2')
+        page = self.client.get('/api/diagnosis/results/?page=1&page_size=2')
+
+        self.assertEqual(preview.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(preview.data), 2)
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        self.assertEqual(page.data['count'], 3)
+        self.assertEqual(len(page.data['results']), 2)
+
+    def test_set_primary_updates_user_primary_result(self):
+        current = DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=80,
+            tone_key='summer_cool_mute',
+            is_primary=True,
+        )
+        selected = DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=90,
+            tone_key='spring_warm_light',
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(f'/api/diagnosis/results/{selected.id}/set-primary/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], selected.id)
+        self.assertTrue(response.data['is_primary'])
+        current.refresh_from_db()
+        selected.refresh_from_db()
+        self.assertFalse(current.is_primary)
+        self.assertTrue(selected.is_primary)
+        self.assertEqual(response.data['message'], '메인 퍼스널컬러로 설정되었습니다.')
+
+    def test_unset_primary_allows_user_to_have_no_primary_result(self):
+        primary = DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=80,
+            tone_key='summer_cool_mute',
+            is_primary=True,
+        )
+        DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=90,
+            tone_key='spring_warm_light',
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(f'/api/diagnosis/results/{primary.id}/unset-primary/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], primary.id)
+        self.assertFalse(response.data['is_primary'])
+        self.assertEqual(response.data['message'], '메인 퍼스널컬러 설정이 취소되었습니다.')
+        self.assertFalse(DiagnosisResult.objects.filter(user=self.user, is_primary=True).exists())
+
+    def test_latest_endpoint_returns_primary_before_latest(self):
+        primary = DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=80,
+            tone_key='summer_cool_mute',
+            is_primary=True,
+        )
+        DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=90,
+            tone_key='spring_warm_light',
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get('/api/diagnosis/latest/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], primary.id)
+        self.assertTrue(response.data['is_primary'])
+
+    def test_latest_endpoint_returns_null_when_primary_is_not_set(self):
+        DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=90,
+            tone_key='spring_warm_light',
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get('/api/diagnosis/latest/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data)
+
+    def test_deleting_primary_does_not_reassign_latest_remaining_result(self):
+        primary = DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=80,
+            tone_key='summer_cool_mute',
+            is_primary=True,
+        )
+        remaining = DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            confidence_score=90,
+            tone_key='spring_warm_light',
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.delete(f'/api/diagnosis/results/{primary.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['deleted_id'], primary.id)
+        self.assertTrue(response.data['was_primary'])
+        self.assertIsNone(response.data['new_primary_id'])
+        self.assertEqual(response.data['message'], '진단 결과가 삭제되었습니다.')
+        self.assertFalse(DiagnosisResult.objects.filter(pk=primary.pk).exists())
+        remaining.refresh_from_db()
+        self.assertFalse(remaining.is_primary)
 
 
 class AIDiagnosisServiceTests(TestCase):
@@ -348,10 +507,15 @@ class DiagnosisAnalyzeApiTests(TestCase):
         self.assertEqual(response.data['palette']['toneKey'], 'summer_cool_mute')
         self.assertEqual(response.data['confidence'], 85)
         self.assertEqual(response.data['summary'], 'AI summary')
-        self.assertEqual(response.data['diagnosis_json'], ai_payload)
+        for key, value in ai_payload.items():
+            self.assertEqual(response.data['diagnosis_json'][key], value)
+        self.assertEqual(response.data['diagnosis_json']['tone_label'], response.data['tone_label'])
+        self.assertIn('axis_profile', response.data['diagnosis_json'])
+        self.assertIn('range_profile', response.data['diagnosis_json'])
         diagnosis = DiagnosisResult.objects.get(pk=response.data['id'])
         self.assertEqual(diagnosis.palette_snapshot, self.palette_data)
         self.assertEqual(diagnosis.makeup_generation_status, DiagnosisResult.MakeupGenerationStatus.NONE)
+        self.assertTrue(diagnosis.is_primary)
 
     def test_analyze_endpoint_keeps_multiple_results_for_same_user(self):
         ai_payload = {
@@ -381,6 +545,10 @@ class DiagnosisAnalyzeApiTests(TestCase):
         self.assertEqual(first_response.status_code, 201)
         self.assertEqual(second_response.status_code, 201)
         self.assertEqual(DiagnosisResult.objects.filter(user=self.user).count(), 2)
+        first_diagnosis = DiagnosisResult.objects.get(pk=first_response.data['id'])
+        second_diagnosis = DiagnosisResult.objects.get(pk=second_response.data['id'])
+        self.assertTrue(first_diagnosis.is_primary)
+        self.assertFalse(second_diagnosis.is_primary)
 
         list_response = self.client.get('/api/diagnosis/results/')
 

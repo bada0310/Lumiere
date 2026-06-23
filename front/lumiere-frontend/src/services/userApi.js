@@ -26,6 +26,17 @@ export const updateCurrentUser = async ({ email, nickname, profileImage }) => {
   return response.data
 }
 
+export const deleteCurrentUser = async ({ confirmation, password }) => {
+  const response = await axios.delete(`${API_BASE_URL}/accounts/user/`, {
+    headers: authHeaders(),
+    data: {
+      confirmation,
+      password,
+    },
+  })
+  return response.data
+}
+
 export const checkNickname = async (nickname) => {
   const response = await axios.post(
     `${API_BASE_URL}/accounts/check-nickname/`,

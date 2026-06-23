@@ -120,5 +120,6 @@ export interface DiagnosisResult {
   processed_image_url: string | null
   generated_makeup_image_url: string | null
   makeup_generation_status: string
+  is_primary: boolean
   is_demo: boolean
 }

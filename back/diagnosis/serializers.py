@@ -1,6 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 
+from diagnosis.domain.tone_profiles import build_tone_result_payload
 from diagnosis.services.palettes import build_makeup_color_guide
 
 from .models import (
@@ -152,6 +153,13 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
     )
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     confidence = serializers.IntegerField(source='confidence_score', read_only=True)
+    tone_label = serializers.SerializerMethodField()
+    second_tone_key = serializers.SerializerMethodField()
+    second_tone_label = serializers.SerializerMethodField()
+    axis_profile = serializers.SerializerMethodField()
+    range_profile = serializers.SerializerMethodField()
+    recommended_color_families = serializers.SerializerMethodField()
+    caution_color_families = serializers.SerializerMethodField()
     diagnosed_at = serializers.SerializerMethodField()
     uploaded_image_url = serializers.SerializerMethodField()
     processed_image_url = serializers.SerializerMethodField()
@@ -177,6 +185,13 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'personal_color',
             'personal_color_id',
             'tone_key',
+            'tone_label',
+            'second_tone_key',
+            'second_tone_label',
+            'axis_profile',
+            'range_profile',
+            'recommended_color_families',
+            'caution_color_families',
             'personal_color_code',
             'korean_name',
             'english_name',
@@ -201,6 +216,7 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'recommended_products',
             'recommended_lenses',
             'style_guide',
+            'is_primary',
             'uploaded_image',
             'uploaded_image_url',
             'processed_image',
@@ -218,6 +234,7 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'user',
             'user_id',
             'personal_color',
+            'is_primary',
             'uploaded_image_url',
             'processed_image_url',
             'generated_makeup_image_url',
@@ -235,6 +252,50 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
 
     def get_uploaded_image_url(self, obj):
         return self._absolute_image_url(obj.uploaded_image)
+
+    def get_tone_label(self, obj):
+        return self._tone_payload(obj)['tone_label']
+
+    def get_second_tone_key(self, obj):
+        return self._tone_payload(obj)['second_tone_key']
+
+    def get_second_tone_label(self, obj):
+        return self._tone_payload(obj)['second_tone_label']
+
+    def get_axis_profile(self, obj):
+        return self._tone_payload(obj)['axis_profile']
+
+    def get_range_profile(self, obj):
+        return self._tone_payload(obj)['range_profile']
+
+    def get_recommended_color_families(self, obj):
+        return self._tone_payload(obj)['recommended_color_families']
+
+    def get_caution_color_families(self, obj):
+        return self._tone_payload(obj)['caution_color_families']
+
+    def _tone_payload(self, obj):
+        diagnosis_json = obj.diagnosis_json or {}
+        cached = getattr(obj, '_tone_profile_payload', None)
+        if cached:
+            return cached
+        payload = build_tone_result_payload(
+            obj.tone_key or obj.personal_color_code or diagnosis_json.get('tone_key') or diagnosis_json.get('toneKey'),
+            diagnosis_json.get('second_tone_key') or diagnosis_json.get('secondToneKey'),
+        )
+        for key in [
+            'tone_label',
+            'second_tone_key',
+            'second_tone_label',
+            'axis_profile',
+            'range_profile',
+            'recommended_color_families',
+            'caution_color_families',
+        ]:
+            if diagnosis_json.get(key):
+                payload[key] = diagnosis_json[key]
+        obj._tone_profile_payload = payload
+        return payload
 
     def get_processed_image_url(self, obj):
         return self._absolute_image_url(obj.processed_image)

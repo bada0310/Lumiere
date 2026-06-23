@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/diagnosis/', include('diagnosis.urls')),
     path('api/products/', include('products.urls')),
     path('api/community/', include('community.urls')),
+    path('api/engagements/', include('engagements.urls')),
     # path('', include('personal_color.urls')),
     # path('', include('product.urls')),
 ]

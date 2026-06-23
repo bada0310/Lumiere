@@ -27,9 +27,18 @@ export const getCurrentUserId = () => {
   }
 }
 
-export const getPosts = async () => {
+export const getPosts = async (params = {}) => {
   const response = await axios.get(`${API_BASE_URL}/api/community/posts/`, {
     headers: authHeaders(),
+    params,
+  })
+  return response.data
+}
+
+export const getMyPosts = async (params = {}) => {
+  const response = await axios.get(`${API_BASE_URL}/api/community/posts/mine/`, {
+    headers: authHeaders(),
+    params,
   })
   return response.data
 }

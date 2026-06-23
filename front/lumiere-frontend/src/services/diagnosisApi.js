@@ -7,6 +7,13 @@ const authHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+const requireResultId = (resultId) => {
+  if (resultId === undefined || resultId === null || resultId === '') {
+    throw new Error('diagnosis result id is required')
+  }
+  return resultId
+}
+
 export const getLatestDiagnosis = async () => {
   const response = await axios.get(`${API_BASE_URL}/api/diagnosis/latest/`, {
     headers: authHeaders(),
@@ -14,9 +21,10 @@ export const getLatestDiagnosis = async () => {
   return response.data
 }
 
-export const getDiagnosisResults = async () => {
+export const getDiagnosisResults = async (params = {}) => {
   const response = await axios.get(`${API_BASE_URL}/api/diagnosis/results/`, {
     headers: authHeaders(),
+    params,
   })
   return response.data
 }
@@ -33,6 +41,38 @@ export const createDiagnosis = async (imageFile) => {
 
 export const getDiagnosisResult = async (resultId) => {
   const response = await axios.get(`${API_BASE_URL}/api/diagnosis/results/${resultId}/`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export const setPrimaryDiagnosis = async (resultId) => {
+  const id = requireResultId(resultId)
+  const response = await axios.post(
+    `${API_BASE_URL}/api/diagnosis/results/${id}/set-primary/`,
+    null,
+    {
+      headers: authHeaders(),
+    },
+  )
+  return response.data
+}
+
+export const unsetPrimaryDiagnosis = async (resultId) => {
+  const id = requireResultId(resultId)
+  const response = await axios.post(
+    `${API_BASE_URL}/api/diagnosis/results/${id}/unset-primary/`,
+    null,
+    {
+      headers: authHeaders(),
+    },
+  )
+  return response.data
+}
+
+export const deleteDiagnosisResult = async (resultId) => {
+  const id = requireResultId(resultId)
+  const response = await axios.delete(`${API_BASE_URL}/api/diagnosis/results/${id}/`, {
     headers: authHeaders(),
   })
   return response.data

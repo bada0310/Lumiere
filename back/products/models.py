@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
 
 
 class Product(models.Model):
@@ -47,6 +48,7 @@ class Product(models.Model):
     # 기본 상품 정보
     brand = models.CharField(max_length=80)
     name = models.CharField(max_length=300)
+    canonical_key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
 
     category = models.CharField(
         max_length=20,
@@ -55,6 +57,7 @@ class Product(models.Model):
     )
 
     image_url = models.URLField(max_length=1000, blank=True)
+    representative_image_url = models.URLField(max_length=1000, blank=True)
     product_url = models.URLField(max_length=1000, blank=True)
     description = models.TextField(blank=True)
 
@@ -158,9 +161,149 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['brand', 'name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['canonical_key'],
+                condition=Q(canonical_key__isnull=False),
+                name='unique_product_canonical_key',
+            )
+        ]
 
     def __str__(self):
         return f'{self.brand} {self.name}'
+
+    @property
+    def display_image_url(self):
+        return self.representative_image_url or self.image_url
+
+
+class ProductOption(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='options',
+    )
+    option_no = models.CharField(max_length=40, blank=True)
+    option_name = models.CharField(max_length=200, blank=True)
+    option_key = models.CharField(max_length=220)
+    image_url = models.URLField(max_length=1000, blank=True)
+    color_family = models.CharField(
+        max_length=20,
+        choices=Product.ColorFamily.choices,
+        default=Product.ColorFamily.ETC,
+    )
+    analyzed_tone_tag = models.CharField(max_length=80, blank=True, db_index=True)
+    hex_code = models.CharField(max_length=20, blank=True)
+    rgb_r = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(255)],
+    )
+    rgb_g = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(255)],
+    )
+    rgb_b = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(255)],
+    )
+    brightness = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    saturation = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    coolness = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    warmth = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    depth = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    softness = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    contrast = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['product', 'option_no', 'option_name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'option_key'],
+                name='unique_product_option_key',
+            )
+        ]
+
+    def __str__(self):
+        label = ' '.join(part for part in [self.option_no, self.option_name] if part)
+        return f'{self.product} {label or self.option_key}'
+
+
+class ProductOffer(models.Model):
+    option = models.ForeignKey(
+        ProductOption,
+        on_delete=models.CASCADE,
+        related_name='offers',
+    )
+    mall_name = models.CharField(max_length=100, blank=True)
+    price = models.PositiveIntegerField(default=0)
+    product_url = models.URLField(max_length=1000, blank=True)
+    naver_product_id = models.CharField(max_length=100, blank=True)
+    is_representative = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['price', 'id']
+
+    def __str__(self):
+        return f'{self.option} {self.mall_name} {self.price}'
+
+
+class ProductOptionToneScore(models.Model):
+    class Grade(models.TextChoices):
+        BEST = 'BEST', 'BEST'
+        GOOD = 'GOOD', 'GOOD'
+        OK = 'OK', 'OK'
+        CAUTION = 'CAUTION', 'CAUTION'
+
+    option = models.ForeignKey(
+        ProductOption,
+        on_delete=models.CASCADE,
+        related_name='tone_scores',
+    )
+    target_tone = models.CharField(max_length=80, db_index=True)
+    match_score = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    grade = models.CharField(max_length=20, choices=Grade.choices, default=Grade.CAUTION)
+    reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-match_score', 'option_id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['option', 'target_tone'],
+                name='unique_option_target_tone_score',
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.option_id} {self.target_tone} {self.match_score}'
 
 
 class Review(models.Model):

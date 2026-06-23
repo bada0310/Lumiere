@@ -3,11 +3,13 @@ from django.db import transaction
 from django.utils import timezone
 
 from diagnosis.domain.tone_keys import build_tone_name, tone_key_to_personal_color_fields
+from diagnosis.domain.tone_profiles import build_tone_result_payload
 from diagnosis.schemas.diagnosis_schema import LOW_CONFIDENCE_THRESHOLD
 from diagnosis.services.image_quality import validate_and_prepare_image
 from diagnosis.services.makeup_generation import enqueue_makeup_generation
 from diagnosis.services.multimodal_diagnosis import create_diagnosis_from_image
 from diagnosis.services.palettes import apply_palette_snapshot_to_diagnosis, get_palette_for_tone_key
+from diagnosis.services.primary import user_has_primary_diagnosis
 
 from diagnosis.models import DiagnosisResult, PersonalColor
 
@@ -29,6 +31,13 @@ def run_personal_color_diagnosis(user, uploaded_file):
 
     diagnosis_json = create_diagnosis_from_image(quality.processed_image)
     tone_key = diagnosis_json['toneKey']
+    diagnosis_json = {
+        **diagnosis_json,
+        **build_tone_result_payload(
+            tone_key,
+            diagnosis_json.get('secondToneKey') or diagnosis_json.get('second_tone_key'),
+        ),
+    }
     palette_data, palette_status = get_palette_for_tone_key(tone_key)
     if palette_status != DiagnosisResult.PaletteStatus.READY and not settings.DEBUG:
         raise PaletteNotReadyError(f'Fixed palette is not ready for toneKey={tone_key}')
@@ -113,6 +122,7 @@ def build_diagnosis_result(*, user, uploaded_file, quality, diagnosis_json, tone
         skin_metrics=_skin_metrics(analysis),
         radar_chart=_radar_chart(analysis),
         style_guide=_style_guide(palette_data),
+        is_primary=not user_has_primary_diagnosis(user),
         makeup_generation_status=DiagnosisResult.MakeupGenerationStatus.SKIPPED if is_low_confidence else DiagnosisResult.MakeupGenerationStatus.NONE,
     )
 

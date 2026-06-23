@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Q
 
 # Create your models here.
 # 1. 퍼스널 컬러 기준 정보 (Master Data)
@@ -170,6 +171,7 @@ class DiagnosisResult(models.Model):
     skin_metrics = models.JSONField(default=dict, blank=True)
     radar_chart = models.JSONField(default=dict, blank=True)
     style_guide = models.JSONField(default=dict, blank=True)
+    is_primary = models.BooleanField(default=False, db_index=True)
     is_demo = models.BooleanField(default=False)
     diagnosed_at = models.DateField(null=True, blank=True)
     uploaded_image = models.ImageField(
@@ -197,6 +199,13 @@ class DiagnosisResult(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=Q(is_primary=True),
+                name='unique_primary_diagnosis_per_user',
+            ),
+        ]
 
     def clean(self):
         super().clean()

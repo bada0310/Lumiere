@@ -436,7 +436,8 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { makeDetailPayload, makeProductGroups } from './productCatalog'
 import { getLatestDiagnosis } from '@/services/diagnosisApi'
-import { saveDiagnosisColorProfile } from '@/utils/colorRecommendationHelpers'
+import { toggleLikedProductOption } from '@/services/engagementApi'
+import { clearDiagnosisColorProfile, saveDiagnosisColorProfile } from '@/utils/colorRecommendationHelpers'
 
 const route = useRoute()
 const router = useRouter()
@@ -558,15 +559,27 @@ const getStoredSkinMetrics = () => {
 }
 
 const userSkinMetrics = ref(null)
+const hasPrimaryDiagnosis = ref(false)
 
 const syncLatestDiagnosisProfile = async () => {
-  if (!localStorage.getItem('access_token')) return
+  if (!localStorage.getItem('access_token')) {
+    clearDiagnosisColorProfile()
+    userSkinMetrics.value = null
+    hasPrimaryDiagnosis.value = false
+    return
+  }
 
   try {
     const latestDiagnosis = await getLatestDiagnosis()
-    if (!latestDiagnosis) return
+    if (!latestDiagnosis) {
+      clearDiagnosisColorProfile()
+      userSkinMetrics.value = null
+      hasPrimaryDiagnosis.value = false
+      return
+    }
 
     const profile = saveDiagnosisColorProfile(latestDiagnosis)
+    hasPrimaryDiagnosis.value = true
     userSkinMetrics.value = {
       brightness: profile.brightness,
       saturation: profile.saturation,
@@ -1083,6 +1096,9 @@ const scoreDescription = computed(() => {
 })
 
 const profileNotice = computed(() => {
+  if (!hasPrimaryDiagnosis.value) {
+    return '메인 퍼스널컬러가 설정되어 있지 않습니다. 진단 결과 목록에서 메인 결과를 선택해주세요.'
+  }
   return hasSkinProfile.value
     ? '내 피부 분석값과 제품 색상값을 같은 축으로 비교하고 있어요.'
     : '피부 사진을 분석하면 이 그래프가 내 피부 데이터 기준으로 바뀌어요.'
@@ -1385,12 +1401,40 @@ const goDetail = (item) => {
   })
 }
 
-const toggleLike = () => {
+const buildLikedOptionPayload = (item) => ({
+  product_id: Number(item.productId || item.parentId || item.id),
+  product_option_id: Number(item.optionId || item.id),
+  option_id: String(item.optionId || item.id || ''),
+  group_key: item.groupKey || '',
+  brand: item.brand || '',
+  name: item.name || '',
+  option: item.option || '',
+  image_url: item.imageUrl || item.image || '',
+  product_url: item.productUrl || '',
+  snapshot: item,
+})
+
+const toggleLike = async () => {
+  if (!product.value) return
+  if (!localStorage.getItem('access_token')) {
+    alert('로그인 후 찜할 수 있어요.')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+
+  const previousLiked = isLiked.value
   isLiked.value = !isLiked.value
 
-  if (product.value) {
+  try {
+    const response = await toggleLikedProductOption(buildLikedOptionPayload(product.value))
+    isLiked.value = Boolean(response.is_liked)
     product.value.liked = isLiked.value
     localStorage.setItem('selectedProductOption', JSON.stringify(product.value))
+  } catch (error) {
+    isLiked.value = previousLiked
+    product.value.liked = previousLiked
+    console.error('찜 상태를 저장하지 못했습니다.', error)
+    alert('찜 상태를 저장하지 못했습니다.')
   }
 }
 

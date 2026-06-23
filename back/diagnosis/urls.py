@@ -13,5 +13,7 @@ urlpatterns = [
         views.DiagnosisMakeoverRetryView.as_view(),
         name='diagnosis-makeover-retry',
     ),
-    path('results/<int:pk>/', views.DiagnosisResultDetailView.as_view(), name='diagnosis-result-detail'),
+    path('results/<int:result_id>/set-primary/', views.DiagnosisResultSetPrimaryView.as_view(), name='diagnosis-result-set-primary'),
+    path('results/<int:result_id>/unset-primary/', views.DiagnosisResultUnsetPrimaryView.as_view(), name='diagnosis-result-unset-primary'),
+    path('results/<int:result_id>/', views.DiagnosisResultDetailView.as_view(), name='diagnosis-result-detail'),
 ]

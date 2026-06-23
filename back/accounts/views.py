@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils.crypto import get_random_string
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -50,6 +51,9 @@ class CurrentUserView(generics.RetrieveAPIView):
     def get_object(self):
         return self.request.user
 
+    def delete(self, request, *args, **kwargs):
+        return delete_current_user(request)
+
 
 class CurrentUserUpdateView(generics.UpdateAPIView):
     serializer_class = CurrentUserSerializer
@@ -59,6 +63,37 @@ class CurrentUserUpdateView(generics.UpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class CurrentUserDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request):
+        return delete_current_user(request)
+
+
+def delete_current_user(request):
+    confirmation = request.data.get('confirmation', '')
+    password = request.data.get('password', '')
+
+    if confirmation != '탈퇴합니다':
+        return Response(
+            {'confirmation': '회원탈퇴 확인 문구를 정확히 입력해주세요.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = request.user
+    if user.has_usable_password() and not user.check_password(password):
+        return Response(
+            {'password': '비밀번호가 일치하지 않습니다.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user_id = user.pk
+    with transaction.atomic():
+        get_user_model().objects.filter(pk=user_id).delete()
+
+    return Response({'message': '회원탈퇴가 완료되었습니다.'}, status=status.HTTP_200_OK)
 
 
 class CheckUsernameView(APIView):

@@ -7,11 +7,20 @@ from rest_framework import serializers
 class CurrentUserSerializer(serializers.ModelSerializer):
     profile_image = serializers.ImageField(write_only=True, required=False, allow_empty_file=False)
     profile_image_url = serializers.SerializerMethodField()
+    requires_password_confirmation = serializers.SerializerMethodField()
 
     class Meta:
         model = get_user_model()
-        fields = ['id', 'username', 'nickname', 'email', 'profile_image', 'profile_image_url']
-        read_only_fields = ['id', 'username', 'profile_image_url']
+        fields = [
+            'id',
+            'username',
+            'nickname',
+            'email',
+            'profile_image',
+            'profile_image_url',
+            'requires_password_confirmation',
+        ]
+        read_only_fields = ['id', 'username', 'profile_image_url', 'requires_password_confirmation']
 
     def validate_profile_image(self, value):
         allowed_types = {'image/jpeg', 'image/png', 'image/webp'}
@@ -31,6 +40,9 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         url = obj.profile_image.url
         return request.build_absolute_uri(url) if request else url
+
+    def get_requires_password_confirmation(self, obj):
+        return obj.has_usable_password()
 
     def update(self, instance, validated_data):
         profile_image = validated_data.pop('profile_image', None)

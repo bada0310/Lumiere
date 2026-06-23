@@ -8,8 +8,10 @@ from rest_framework import generics, parsers, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from Lumiere.api_pagination import list_response
 from diagnosis.ai_clients.openai_compatible import AIClientConfigurationError, AIClientResponseError
 from diagnosis.domain.tone_keys import build_tone_name
+from diagnosis.domain.tone_profiles import build_tone_result_payload
 from diagnosis.services.ai_diagnosis import diagnose_personal_color
 from diagnosis.services.makeup_generation import (
     enqueue_makeover_generation,
@@ -17,6 +19,13 @@ from diagnosis.services.makeup_generation import (
     retry_makeover_style_generation,
 )
 from diagnosis.services.palettes import apply_palette_snapshot_to_diagnosis, serialize_palette
+from diagnosis.services.primary import (
+    delete_diagnosis_without_reassign,
+    get_primary_diagnosis_for_user,
+    set_primary_diagnosis,
+    unset_primary_diagnosis,
+    user_has_primary_diagnosis,
+)
 from diagnosis.services.workflow import get_or_create_personal_color
 
 from .models import DiagnosisResult, PersonalColorPalette
@@ -85,6 +94,13 @@ class PaletteMissingError(ValueError):
 
 def create_ai_diagnosis_result(user, uploaded_image):
     diagnosis_json = diagnose_personal_color(uploaded_image)
+    diagnosis_json = {
+        **diagnosis_json,
+        **build_tone_result_payload(
+            diagnosis_json['tone_key'],
+            diagnosis_json.get('second_tone_key'),
+        ),
+    }
     tone_key = diagnosis_json['tone_key']
     palette = (
         PersonalColorPalette.objects.select_related('personal_color')
@@ -98,6 +114,7 @@ def create_ai_diagnosis_result(user, uploaded_image):
     personal_color = palette.personal_color or get_or_create_personal_color(tone_key, _workflow_payload(diagnosis_json), palette_data)
 
     with transaction.atomic():
+        should_be_primary = not user_has_primary_diagnosis(user)
         diagnosis = DiagnosisResult(
             user=user,
             personal_color=personal_color,
@@ -117,6 +134,7 @@ def create_ai_diagnosis_result(user, uploaded_image):
             skin_metrics=_skin_metrics(diagnosis_json.get('features') or {}),
             radar_chart=_radar_chart(diagnosis_json.get('features') or {}),
             style_guide=_style_guide(palette_data),
+            is_primary=should_be_primary,
             makeup_generation_status=DiagnosisResult.MakeupGenerationStatus.NONE,
         )
         if hasattr(uploaded_image, 'seek'):
@@ -240,13 +258,20 @@ class DiagnosisResultListCreateView(generics.ListCreateAPIView):
             .prefetch_related(*DIAGNOSIS_PREFETCH)
         )
 
+    def list(self, request, *args, **kwargs):
+        return list_response(request, self.get_queryset(), self.get_serializer_class())
+
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(
+            user=self.request.user,
+            is_primary=not user_has_primary_diagnosis(self.request.user),
+        )
 
 
-class DiagnosisResultDetailView(generics.RetrieveAPIView):
+class DiagnosisResultDetailView(generics.RetrieveDestroyAPIView):
     serializer_class = DiagnosisResultSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = 'result_id'
 
     def get_queryset(self):
         return (
@@ -254,6 +279,61 @@ class DiagnosisResultDetailView(generics.RetrieveAPIView):
             .select_related('user', 'personal_color')
             .prefetch_related(*DIAGNOSIS_PREFETCH)
         )
+
+    def destroy(self, request, *args, **kwargs):
+        diagnosis = self.get_object()
+        deleted_id, was_primary, new_primary = delete_diagnosis_without_reassign(diagnosis)
+        return Response({
+            'deleted_id': deleted_id,
+            'was_primary': was_primary,
+            'new_primary_id': new_primary.pk if new_primary else None,
+            'new_primary': None,
+            'message': '진단 결과가 삭제되었습니다.',
+        }, status=status.HTTP_200_OK)
+
+
+class DiagnosisResultSetPrimaryView(generics.GenericAPIView):
+    serializer_class = DiagnosisResultSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = 'result_id'
+
+    def get_queryset(self):
+        return (
+            DiagnosisResult.objects.filter(user=self.request.user)
+            .select_related('user', 'personal_color')
+            .prefetch_related(*DIAGNOSIS_PREFETCH)
+        )
+
+    def post(self, request, result_id):
+        diagnosis = self.get_object()
+        set_primary_diagnosis(diagnosis)
+        diagnosis = self.get_queryset().get(pk=diagnosis.pk)
+        return Response({
+            **self.get_serializer(diagnosis).data,
+            'message': '메인 퍼스널컬러로 설정되었습니다.',
+        })
+
+
+class DiagnosisResultUnsetPrimaryView(generics.GenericAPIView):
+    serializer_class = DiagnosisResultSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = 'result_id'
+
+    def get_queryset(self):
+        return (
+            DiagnosisResult.objects.filter(user=self.request.user)
+            .select_related('user', 'personal_color')
+            .prefetch_related(*DIAGNOSIS_PREFETCH)
+        )
+
+    def post(self, request, result_id):
+        diagnosis = self.get_object()
+        unset_primary_diagnosis(diagnosis)
+        diagnosis = self.get_queryset().get(pk=diagnosis.pk)
+        return Response({
+            **self.get_serializer(diagnosis).data,
+            'message': '메인 퍼스널컬러 설정이 취소되었습니다.',
+        })
 
 
 class DiagnosisMakeoverView(APIView):
@@ -323,12 +403,12 @@ class LatestDiagnosisResultView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        result = (
-            DiagnosisResult.objects.filter(user=request.user)
+        queryset = (
+            DiagnosisResult.objects
             .select_related('user', 'personal_color')
             .prefetch_related(*DIAGNOSIS_PREFETCH)
-            .first()
         )
+        result = get_primary_diagnosis_for_user(request.user, queryset=queryset)
         if not result:
             return Response(None)
         return Response(self.get_serializer(result).data)

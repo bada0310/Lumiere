@@ -8,6 +8,8 @@ export const isAuthenticated = () => Boolean(getAccessToken())
 export const clearAuthTokens = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY)
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
 export const isAuthError = (error) => [401, 403].includes(error?.response?.status)

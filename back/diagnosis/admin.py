@@ -71,12 +71,13 @@ class DiagnosisResultAdmin(admin.ModelAdmin):
         'confidence_score',
         'palette_status',
         'makeup_generation_status',
+        'is_primary',
         'diagnosed_at',
         'is_demo',
         'makeover_style_count',
         'recommended_product_count',
     )
-    list_filter = ('status', 'palette_status', 'makeup_generation_status', 'is_demo', 'personal_color__season', 'personal_color__base_temperature', 'personal_color__tone')
+    list_filter = ('status', 'palette_status', 'makeup_generation_status', 'is_primary', 'is_demo', 'personal_color__season', 'personal_color__base_temperature', 'personal_color__tone')
     search_fields = ('user__username', 'user__nickname', 'korean_name', 'english_name', 'tone_key')
     inlines = [
         DiagnosisRepresentativeColorInline,

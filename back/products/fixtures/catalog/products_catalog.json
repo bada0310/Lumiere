@@ -1,0 +1,362 @@
+[
+  {
+    "product_id": 10001,
+    "brand": "rom&nd",
+    "product_name": "Juicy Lasting Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5642206/56422063372.20250825112318.jpg",
+    "description": "rom&nd Juicy Lasting Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10002,
+    "brand": "peripera",
+    "product_name": "Water Bare Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_9053367/90533672122.jpg",
+    "description": "peripera Water Bare Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10003,
+    "brand": "AMUSE",
+    "product_name": "Dew Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5400281/54002818264.50.jpg",
+    "description": "AMUSE Dew Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10004,
+    "brand": "hince",
+    "product_name": "Mood Enhancer Water Liquid Glow",
+    "category": "LIP",
+    "texture": "Liquid Lip",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5535276/55352760836.15.jpg",
+    "description": "hince Mood Enhancer Water Liquid Glow curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10005,
+    "brand": "dasique",
+    "product_name": "Fruity Lip Jam",
+    "category": "LIP",
+    "texture": "Gloss",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5226373/52263735196.7.jpg",
+    "description": "dasique Fruity Lip Jam curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10006,
+    "brand": "CLIO",
+    "product_name": "Crystal Glam Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_4947138/49471388527.2.jpg",
+    "description": "CLIO Crystal Glam Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10007,
+    "brand": "WAKEMAKE",
+    "product_name": "Dewy Gel Glaze Stick",
+    "category": "LIP",
+    "texture": "Lip Stick",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5504318/55043188145.25.jpg",
+    "description": "WAKEMAKE Dewy Gel Glaze Stick curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10008,
+    "brand": "fwee",
+    "product_name": "3D Voluming Gloss",
+    "category": "LIP",
+    "texture": "Gloss",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8887192/88871929160.jpg",
+    "description": "fwee 3D Voluming Gloss curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10009,
+    "brand": "ETUDE",
+    "product_name": "Fixing Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "MATTE",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5400282/54002829431.46.jpg",
+    "description": "ETUDE Fixing Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10010,
+    "brand": "laka",
+    "product_name": "Fruity Glam Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5385056/53850566273.jpg",
+    "description": "laka Fruity Glam Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10011,
+    "brand": "espoir",
+    "product_name": "Couture Lip Tint Velvet",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "VELVET",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8875847/88758473981.jpg",
+    "description": "espoir Couture Lip Tint Velvet curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10012,
+    "brand": "colorgram",
+    "product_name": "Fruity Glass Tint",
+    "category": "LIP",
+    "texture": "Tint",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5551470/55514705680.14.jpg",
+    "description": "colorgram Fruity Glass Tint curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10013,
+    "brand": "rom&nd",
+    "product_name": "Better Than Cheek",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5808567/58085673976.1.jpg",
+    "description": "rom&nd Better Than Cheek curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10014,
+    "brand": "peripera",
+    "product_name": "Pure Blushed Sunshine Cheek",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5921778/59217781706.jpg",
+    "description": "peripera Pure Blushed Sunshine Cheek curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10015,
+    "brand": "2aN",
+    "product_name": "Dual Cheek",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_6006444/60064442327.jpg",
+    "description": "2aN Dual Cheek curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10016,
+    "brand": "dasique",
+    "product_name": "Blending Mood Cheek",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_6006433/60064337912.jpg",
+    "description": "dasique Blending Mood Cheek curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10017,
+    "brand": "NARS",
+    "product_name": "Powder Blush",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5195104/51951042935.1.jpg",
+    "description": "NARS Powder Blush curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10018,
+    "brand": "fwee",
+    "product_name": "Lip and Cheek Blurry Pudding Pot",
+    "category": "CHEEK",
+    "texture": "Cream Blush",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8935227/89352274321.jpg",
+    "description": "fwee Lip and Cheek Blurry Pudding Pot curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10019,
+    "brand": "hince",
+    "product_name": "True Dimension Layering Cheek",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8935229/89352296799.jpg",
+    "description": "hince True Dimension Layering Cheek curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10020,
+    "brand": "CLINIQUE",
+    "product_name": "Cheek Pop",
+    "category": "CHEEK",
+    "texture": "Powder Blush",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_9110368/91103681017.jpg",
+    "description": "CLINIQUE Cheek Pop curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10021,
+    "brand": "dasique",
+    "product_name": "Shadow Palette",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_6006447/60064477371.jpg",
+    "description": "dasique Shadow Palette curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10022,
+    "brand": "CLIO",
+    "product_name": "Pro Eye Palette Air",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5450159/54501591079.1.jpg",
+    "description": "CLIO Pro Eye Palette Air curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10023,
+    "brand": "peripera",
+    "product_name": "All Take Mood Palette",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_9105800/91058007331.jpg",
+    "description": "peripera All Take Mood Palette curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10024,
+    "brand": "WAKEMAKE",
+    "product_name": "Soft Blurring Eye Palette",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8685720/86857207112.3.jpg",
+    "description": "WAKEMAKE Soft Blurring Eye Palette curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10025,
+    "brand": "rom&nd",
+    "product_name": "Better Than Palette",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8433189/84331893196.4.jpg",
+    "description": "rom&nd Better Than Palette curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10026,
+    "brand": "3CE",
+    "product_name": "Multi Eye Color Palette",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8645786/86457864138.1.jpg",
+    "description": "3CE Multi Eye Color Palette curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10027,
+    "brand": "ETUDE",
+    "product_name": "Play Color Eyes",
+    "category": "EYE",
+    "texture": "Eye Shadow",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8757785/87577850205.1.jpg",
+    "description": "ETUDE Play Color Eyes curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10028,
+    "brand": "too cool for school",
+    "product_name": "Artclass Frottage Pencil",
+    "category": "EYE",
+    "texture": "Eye Pencil",
+    "finish": "SHIMMER",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8645789/86457896575.1.jpg",
+    "description": "too cool for school Artclass Frottage Pencil curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10029,
+    "brand": "LANEIGE",
+    "product_name": "Neo Cushion Matte",
+    "category": "BASE",
+    "texture": "Cushion",
+    "finish": "MATTE",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5891357/58913575583.1.jpg",
+    "description": "LANEIGE Neo Cushion Matte curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10030,
+    "brand": "HERA",
+    "product_name": "Black Cushion",
+    "category": "BASE",
+    "texture": "Cushion",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5889847/58898477527.jpg",
+    "description": "HERA Black Cushion curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10031,
+    "brand": "espoir",
+    "product_name": "Be Velvet Cover Cushion",
+    "category": "BASE",
+    "texture": "Cushion",
+    "finish": "MATTE",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8759252/87592527681.1.jpg",
+    "description": "espoir Be Velvet Cover Cushion curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10032,
+    "brand": "fwee",
+    "product_name": "Cushion Glass Natural",
+    "category": "BASE",
+    "texture": "Cushion",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_9075964/90759646645.1.jpg",
+    "description": "fwee Cushion Glass Natural curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10033,
+    "brand": "NARS",
+    "product_name": "Light Reflecting Foundation",
+    "category": "BASE",
+    "texture": "Foundation",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8671388/86713887728.2.jpg",
+    "description": "NARS Light Reflecting Foundation curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10034,
+    "brand": "CLIO",
+    "product_name": "Kill Cover Mesh Glow Cushion",
+    "category": "BASE",
+    "texture": "Cushion",
+    "finish": "GLOSSY",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_6053085/60530854388.jpg",
+    "description": "CLIO Kill Cover Mesh Glow Cushion curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10035,
+    "brand": "JUNG SAEM MOOL",
+    "product_name": "Essential Skin Nuder Cushion",
+    "category": "BASE",
+    "texture": "Cushion",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_8893467/88934670784.jpg",
+    "description": "JUNG SAEM MOOL Essential Skin Nuder Cushion curated catalog product with explicit shade options for Lumiere tone matching."
+  },
+  {
+    "product_id": 10036,
+    "brand": "HERA",
+    "product_name": "Silky Stay Foundation",
+    "category": "BASE",
+    "texture": "Foundation",
+    "finish": "NATURAL",
+    "representative_image_url": "https://shopping-phinf.pstatic.net/main_5713924/57139248868.jpg",
+    "description": "HERA Silky Stay Foundation curated catalog product with explicit shade options for Lumiere tone matching."
+  }
+]
