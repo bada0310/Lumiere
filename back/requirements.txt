@@ -5,12 +5,16 @@ djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.1
 future==1.0.0
 pillow==12.2.0
+playwright==1.49.1
+pydantic==2.13.3
 jsonschema==4.25.1
 opencv-python-headless==4.12.0.88
 openai==2.14.0
 python-dotenv==0.21.0
 PyJWT==2.13.0
 serializers==0.2.4
+selenium==4.27.1
 sqlparse==0.5.3
 typing_extensions==4.14.1
 tzdata==2025.2
+webdriver-manager==4.0.2

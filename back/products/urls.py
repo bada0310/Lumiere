@@ -9,6 +9,9 @@ router.register('reviews', views.ReviewViewSet, basename='review')
 
 urlpatterns = [
     path('', views.product_list),
+    path('scrape/', views.product_scrape, name='product-scrape'),
+    path('color-analysis/', views.product_color_analysis, name='product-color-analysis'),
+    path('<int:product_id>/color-analysis/', views.product_catalog_color_analysis, name='product-catalog-color-analysis'),
     path('<int:product_id>/', views.product_detail, name='product-detail'),
     path('', include(router.urls)),
 ]

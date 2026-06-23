@@ -220,3 +220,11 @@ class ReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class ProductColorAnalysisRequestSerializer(serializers.Serializer):
+    product_url = serializers.URLField(max_length=1000)
+
+
+class ProductScrapeRequestSerializer(serializers.Serializer):
+    product_url = serializers.URLField(max_length=1000)

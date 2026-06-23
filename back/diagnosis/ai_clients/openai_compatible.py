@@ -74,6 +74,39 @@ class OpenAICompatibleClient:
         except (TypeError, json.JSONDecodeError) as exc:
             raise AIClientResponseError('AI response was not valid JSON.') from exc
 
+    def create_chat_json(self, *, prompt, schema, schema_name='structured_response', system_prompt=None, temperature=0.2):
+        if self.mock_enabled:
+            return {}
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            temperature=temperature,
+            response_format={
+                'type': 'json_schema',
+                'json_schema': {
+                    'name': schema_name,
+                    'schema': schema,
+                    'strict': True,
+                },
+            },
+            messages=[
+                {
+                    'role': 'system',
+                    'content': system_prompt or 'Return only valid JSON that matches the provided schema.',
+                },
+                {
+                    'role': 'user',
+                    'content': prompt,
+                },
+            ],
+        )
+
+        content = response.choices[0].message.content
+        try:
+            return json.loads(content)
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise AIClientResponseError('AI response was not valid JSON.') from exc
+
 
 def _mock_diagnosis():
     return {

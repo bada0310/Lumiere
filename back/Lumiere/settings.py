@@ -60,6 +60,9 @@ OPENAI_BASE_URL = os.getenv('OPENAI_BASE_URL', 'https://gms.ssafy.io/gmsapi/api.
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4.1')
 AI_DIAGNOSIS_MODEL = os.getenv('AI_DIAGNOSIS_MODEL') or OPENAI_MODEL
 OPENAI_DIAGNOSIS_MOCK = env_flag('OPENAI_DIAGNOSIS_MOCK')
+PRODUCT_ANALYSIS_ENABLE_BROWSER_FETCH = env_flag('PRODUCT_ANALYSIS_ENABLE_BROWSER_FETCH', True)
+PRODUCT_ANALYSIS_FETCH_TIMEOUT = int(os.getenv('PRODUCT_ANALYSIS_FETCH_TIMEOUT', '10'))
+PRODUCT_ANALYSIS_HTTP_RETRY_ATTEMPTS = int(os.getenv('PRODUCT_ANALYSIS_HTTP_RETRY_ATTEMPTS', '2'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

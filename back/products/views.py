@@ -1,14 +1,34 @@
+import logging
+
 from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, viewsets
-from rest_framework.decorators import api_view
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from diagnosis.domain.tone_profiles import build_tone_result_payload
 from diagnosis.services.primary import get_primary_diagnosis_for_user
 from products.models import Product, ProductOffer, ProductOption, ProductOptionToneScore, Review
-from products.serializers import ProductSerializer, ReviewSerializer
+from products.serializers import (
+    ProductColorAnalysisRequestSerializer,
+    ProductScrapeRequestSerializer,
+    ProductSerializer,
+    ReviewSerializer,
+)
+from products.services.catalog_color_analysis import build_product_color_analysis_payload
 from products.services.recommendation import build_user_tone_profile, calculate_option_match
+from products.services.url_color_analysis import ProductColorAnalysisError, analyze_product_color_url
+
+
+logger = logging.getLogger(__name__)
+SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE = '상품 정보를 가져올 수 없습니다. URL을 다시 확인해주세요.'
+SHORT_URL_RESOLVE_ERROR_MESSAGE = '단축 링크를 분석하지 못했습니다. 올리브영 상품 상세 페이지의 전체 URL을 입력해주세요.'
+
+
+def safe_product_analysis_error_message(code):
+    if code == 'SHORT_URL_RESOLVE_FAILED':
+        return SHORT_URL_RESOLVE_ERROR_MESSAGE
+    return SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
@@ -149,3 +169,116 @@ def product_detail(request, product_id):
         context={'request': request, 'user_tone_profile': user_profile, 'option_match_cache': {}},
     )
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def product_catalog_color_analysis(request, product_id):
+    product = get_object_or_404(product_queryset(request, apply_filters=False), pk=product_id)
+    return Response(build_product_color_analysis_payload(product, request=request))
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def product_color_analysis(request):
+    serializer = ProductColorAnalysisRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {
+                'success': False,
+                'message': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
+                'detail': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
+                'code': 'invalid_url',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        return Response(
+            {
+                'success': False,
+                'message': '제품 링크를 확인할 수 없습니다. URL을 다시 확인해주세요.',
+                'detail': '제품 링크를 확인할 수 없습니다. URL을 다시 확인해주세요.',
+                'code': 'invalid_url',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        payload = analyze_product_color_url(
+            serializer.validated_data['product_url'],
+            user=request.user,
+        )
+    except ProductColorAnalysisError as exc:
+        logger.exception('Product color analysis failed with handled error code=%s', exc.code)
+        message = safe_product_analysis_error_message(exc.code)
+        return Response(
+            {
+                'success': False,
+                'message': message,
+                'detail': message,
+                'code': exc.code,
+            },
+            status=exc.status_code,
+        )
+    except Exception as exc:
+        logger.exception('Unexpected product color analysis failure: %s', exc)
+        return Response(
+            {
+                'success': False,
+                'message': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
+                'detail': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
+                'code': 'PRODUCT_URL_ANALYSIS_FAILED',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        return Response(
+            {
+                'success': False,
+                'message': '상품 URL 분석 중 오류가 발생했습니다.',
+                'detail': '상품 URL 분석 중 오류가 발생했습니다.',
+                'code': 'PRODUCT_URL_ANALYSIS_FAILED',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return Response(payload, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def product_scrape(request):
+    serializer = ProductScrapeRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {
+                'status': 'fail',
+                'message': 'The URL is unsupported or temporarily inaccessible.',
+                'code': 'INVALID_URL',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from products.services.scraping import ScrapingError, scrape_product_url
+
+        scraped = scrape_product_url(serializer.validated_data['product_url'])
+    except ScrapingError as exc:
+        logger.exception('Product scrape failed with handled error code=%s', exc.code)
+        return Response(
+            {
+                'status': 'fail',
+                'message': 'The URL is unsupported or temporarily inaccessible.',
+                'code': exc.code,
+            },
+            status=exc.status_code,
+        )
+    except Exception as exc:
+        logger.exception('Unexpected product scrape failure: %s', exc)
+        return Response(
+            {
+                'status': 'fail',
+                'message': 'The URL is unsupported or temporarily inaccessible.',
+                'code': 'SCRAPE_FAILED',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return Response(scraped.public_payload(), status=status.HTTP_200_OK)
