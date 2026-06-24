@@ -33,6 +33,7 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
+import { API_BASE_URL } from '@/config/api'
 
 const username = ref('') 
 const email = ref('')
@@ -51,7 +52,7 @@ const checkUsername = async () => {
   }
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/accounts/check-username/', {
+    const response = await axios.post(`${API_BASE_URL}/accounts/check-username/`, {
       username: username.value
     })
     
@@ -91,7 +92,7 @@ const handleSignup = async () => {
   }
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/accounts/signup/', userData)
+    const response = await axios.post(`${API_BASE_URL}/accounts/signup/`, userData)
     console.log("서버 응답:", response.data)
     alert('회원가입이 완료되었습니다! 로그인해주세요.')
     

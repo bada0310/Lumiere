@@ -79,8 +79,13 @@
           <p>{{ look.description }}</p>
           <ul v-if="look.points?.length" class="look-card__points">
             <li v-for="point in look.points" :key="point">
-              <span class="point-icon" aria-hidden="true">
-                <span class="point-icon__glow"></span>
+              <span
+                class="point-icon"
+                :class="pointIconClass(point)"
+                aria-hidden="true"
+              >
+                <span class="point-icon__base"></span>
+                <span class="point-icon__detail"></span>
               </span>
               <span>{{ point }}</span>
             </li>
@@ -190,6 +195,27 @@ const statusLabel = (status) =>
     skipped: '보류',
   })[status] || status
 
+const pointIconClass = (point) => {
+  const text = String(point || '').toLowerCase()
+
+  if (text.includes('아이라인') || text.includes('라이너') || text.includes('eyeline') || text.includes('liner')) {
+    return 'point-icon--liner'
+  }
+
+  if (text.includes('블러셔') || text.includes('블러쉬') || text.includes('blush')) {
+    return 'point-icon--blush'
+  }
+
+  if (text.includes('립') || text.includes('mlbb') || text.includes('lip')) {
+    return 'point-icon--lip'
+  }
+
+  if (text.includes('섀도우') || text.includes('쉐도우') || text.includes('shadow') || text.includes('브라운') || text.includes('핑크 코랄')) {
+    return 'point-icon--shadow'
+  }
+
+  return 'point-icon--swatch'
+}
 const styleSettings = {
   daily: {
     lipGroups: ['lip'],
@@ -445,13 +471,13 @@ const makeupStyleVars = (look) => {
 
 .look-card {
   min-width: 0;
-  padding: 14px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: #fff;
+  padding: 24px 26px 22px;
+  border: 1px solid #f0ded8;
+  border-radius: 18px;
+  background: #fffaf8;
   display: grid;
-  gap: 13px;
-  box-shadow: 0 10px 24px rgba(88, 55, 45, 0.05);
+  gap: 18px;
+  box-shadow: 0 10px 24px rgba(88, 55, 45, 0.04);
 }
 
 .look-card.active {
@@ -1096,13 +1122,14 @@ const makeupStyleVars = (look) => {
 }
 
 .look-card__copy strong,
-.look-card__copy p {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.look-card__copy strong {
+.look-card__copy > p:not(.look-card__disclaimer) {
+  margin: 0;
   color: #3f3633;
+  font-size: 16px;
+  line-height: 1.75;
+  font-weight: 500;
+  text-align: center;
+  word-break: keep-all;
 }
 
 .look-card__status {
@@ -1135,24 +1162,112 @@ const makeupStyleVars = (look) => {
   min-width: 0;
   display: grid;
   justify-items: center;
-  gap: 7px;
+  gap: 10px;
   color: #4d4441;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-align: center;
-  line-height: 1.35;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 
 .point-icon {
-  width: 42px;
-  height: 42px;
+  position: relative;
+  width: 58px;
+  height: 58px;
   border-radius: 999px;
+  background: #f9efec;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 8px 18px rgba(94, 61, 55, 0.1);
+  overflow: hidden;
+}
+
+.point-icon__base,
+.point-icon__detail {
+  position: absolute;
+  display: block;
+}
+
+.point-icon--shadow {
+  background:
+    radial-gradient(circle at 32% 34%, #d8a082 0 12%, transparent 13%),
+    radial-gradient(circle at 66% 34%, #c47f68 0 12%, transparent 13%),
+    radial-gradient(circle at 32% 68%, #b86c55 0 12%, transparent 13%),
+    radial-gradient(circle at 66% 68%, #e0b49d 0 12%, transparent 13%),
+    #f7e5dd;
+}
+
+.point-icon--shadow .point-icon__base {
+  inset: 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 76, 63, 0.16);
+}
+
+.point-icon--liner {
+  background: #f8efed;
+}
+
+.point-icon--liner .point-icon__base {
+  left: 27px;
+  top: 10px;
+  width: 5px;
+  height: 38px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1f1c1d, #4b4141);
+  transform: rotate(42deg);
+}
+
+.point-icon--liner .point-icon__detail {
+  left: 16px;
+  top: 37px;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: #1f1c1d;
+  transform: rotate(-28deg);
+}
+
+.point-icon--blush {
+  background:
+    radial-gradient(circle at 45% 40%, rgba(255, 255, 255, 0.55) 0 12%, transparent 22%),
+    radial-gradient(circle at 50% 50%, #ef8f9c 0 42%, #d9667b 72%, #c65367 100%);
+}
+
+.point-icon--blush .point-icon__base {
+  inset: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.45), transparent 32%);
+}
+
+.point-icon--lip {
+  background: #f9eeec;
+}
+
+.point-icon--lip .point-icon__base {
+  left: 12px;
+  top: 24px;
+  width: 34px;
+  height: 15px;
+  border-radius: 50% 50% 58% 58%;
+  background:
+    radial-gradient(ellipse at 50% 24%, rgba(255, 255, 255, 0.28) 0 14%, transparent 28%),
+    linear-gradient(180deg, #d95e6d, #a83f4a);
+  transform: rotate(2deg);
+}
+
+.point-icon--lip .point-icon__detail {
+  left: 17px;
+  top: 29px;
+  width: 24px;
+  height: 1px;
+  background: rgba(118, 39, 47, 0.42);
+}
+
+.point-icon--swatch {
   background:
     radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), transparent 28%),
     linear-gradient(135deg, #f4c0bd, #d86b82);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
-    0 8px 16px rgba(198, 83, 103, 0.12);
 }
 
 

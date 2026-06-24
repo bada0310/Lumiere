@@ -14,6 +14,8 @@ from datetime import timedelta
 import os
 from pathlib import Path
 
+import dj_database_url
+
 try:
     from dotenv import load_dotenv
 except ImportError:
@@ -55,6 +57,13 @@ def env_flag(name, default=False):
     return value.lower() in {'1', 'true', 'yes', 'on'}
 
 
+def env_list(name, default=None):
+    value = os.getenv(name)
+    if value is None:
+        return list(default or [])
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 OPENAI_BASE_URL = os.getenv('OPENAI_BASE_URL', 'https://gms.ssafy.io/gmsapi/api.openai.com/v1')
 OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4.1')
@@ -72,13 +81,13 @@ PRODUCT_IMAGE_ANALYSIS_ENABLE_AI = env_flag('PRODUCT_IMAGE_ANALYSIS_ENABLE_AI', 
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%4xdnn79bgj-znfo^6^5z30bcrtew945)0^f9%#i*_^vel+hk#'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-%4xdnn79bgj-znfo^6^5z30bcrtew945)0^f9%#i*_^vel+hk#')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_flag('DEBUG', True)
 OPENAI_DIAGNOSIS_FALLBACK_ON_ERROR = env_flag('OPENAI_DIAGNOSIS_FALLBACK_ON_ERROR', DEBUG)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', ['localhost', '127.0.0.1'])
 
 
 # Application definition
@@ -104,6 +113,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -135,12 +145,23 @@ WSGI_APPLICATION = 'Lumiere.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=int(os.getenv('DATABASE_CONN_MAX_AGE', '600')),
+            ssl_require=env_flag('DATABASE_SSL_REQUIRE', not DEBUG),
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -177,19 +198,32 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = Path(os.getenv('STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media')))
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+CORS_ALLOWED_ORIGINS = env_list(
+    'CORS_ALLOWED_ORIGINS',
+    [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ],
+)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -204,10 +238,15 @@ REST_FRAMEWORK = {
 CORS_ALLOW_CREDENTIALS = True
 
 # 중요: 프론트엔드에서 오는 POST 요청을 믿을 수 있도록 CSRF 예외 처리
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CSRF_TRUSTED_ORIGINS = env_list(
+    'CSRF_TRUSTED_ORIGINS',
+    [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ],
+)
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -225,7 +264,16 @@ EMAIL_PORT = 587 # 구글이 열어둔 보안 포트
 EMAIL_USE_TLS = True # 보안 터널 사용 여부 (필수)
 
 # ★ 수정 필요: host님의 실제 정보로 바꿔주세요!
-EMAIL_HOST_USER = 'host님의구글이메일@gmail.com' 
-EMAIL_HOST_PASSWORD = '여기에_16자리_앱비밀번호_띄어쓰기없이_입력'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
-BACKEND_ORIGIN = os.getenv('BACKEND_ORIGIN', 'http://127.0.0.1:8000')
+BACKEND_ORIGIN = os.getenv('BACKEND_ORIGIN', 'http://127.0.0.1:8000').rstrip('/')
+
+USE_X_FORWARDED_HOST = env_flag('USE_X_FORWARDED_HOST', not DEBUG)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = env_flag('SECURE_SSL_REDIRECT', not DEBUG)
+SESSION_COOKIE_SECURE = env_flag('SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = env_flag('CSRF_COOKIE_SECURE', not DEBUG)
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000' if not DEBUG else '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_flag('SECURE_HSTS_INCLUDE_SUBDOMAINS', not DEBUG)
+SECURE_HSTS_PRELOAD = env_flag('SECURE_HSTS_PRELOAD', not DEBUG)

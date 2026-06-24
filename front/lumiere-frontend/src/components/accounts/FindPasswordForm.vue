@@ -16,6 +16,7 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
+import { API_BASE_URL } from '@/config/api'
 
 const emit = defineEmits(['goBack'])
 const email = ref('')
@@ -29,7 +30,7 @@ const handleFindPassword = async () => {
 
   try {
     // 장고로 이메일을 담아 POST 요청을 보냅니다.
-    const response = await axios.post('http://127.0.0.1:8000/accounts/find-password/', {
+    const response = await axios.post(`${API_BASE_URL}/accounts/find-password/`, {
       email: email.value
     })
     

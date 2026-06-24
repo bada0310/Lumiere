@@ -180,6 +180,7 @@ import ProductImageAnalysisForm from '@/components/analysis/ProductImageAnalysis
 import RecentAnalysis from '@/components/analysis/RecentAnalysis.vue'
 import ProductOptionColorChart from '@/components/products/ProductOptionColorChart.vue'
 import RecommendationAccordion from '@/components/products/RecommendationAccordion.vue'
+import { API_ORIGIN } from '@/config/api'
 import {
   analyzeProductColorImage,
   confirmProductImageAnalysis,
@@ -459,8 +460,6 @@ const normalizeOption = (option) => ({
   grade: option.grade || '',
   analysis_status: option.analysis_status || '',
 })
-
-const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || 'http://127.0.0.1:8000'
 
 const resolveMediaUrl = (url) => {
   if (!url) return ''
