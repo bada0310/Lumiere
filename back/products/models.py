@@ -336,3 +336,123 @@ class Review(models.Model):
 
     def __str__(self):
         return f'{self.product} - {self.rating}'
+
+
+class ProductImageAnalysis(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Draft'
+        CONFIRMED = 'confirmed', 'Confirmed'
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='product_image_analyses',
+    )
+    product_name = models.CharField(max_length=300, blank=True)
+    brand_name = models.CharField(max_length=120, blank=True)
+    category = models.CharField(
+        max_length=20,
+        choices=Product.Category.choices,
+        default=Product.Category.ETC,
+    )
+    uploaded_image = models.ImageField(upload_to='products/color-analysis/')
+    raw_ai_response = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.product_name or self.brand_name or f'Image analysis {self.id}'
+
+
+class ProductImageAnalysisOption(models.Model):
+    class ColorSource(models.TextChoices):
+        IMAGE_EXTRACTED = 'IMAGE_EXTRACTED', 'Image extracted'
+        AI_ESTIMATED = 'AI_ESTIMATED', 'AI estimated'
+        USER_EDITED = 'USER_EDITED', 'User edited'
+        PENDING = 'PENDING', 'Pending'
+
+    class Grade(models.TextChoices):
+        BEST = 'BEST', 'BEST'
+        GOOD = 'GOOD', 'GOOD'
+        CAUTION = 'CAUTION', 'CAUTION'
+        PENDING = 'PENDING', 'PENDING'
+
+    analysis = models.ForeignKey(
+        ProductImageAnalysis,
+        on_delete=models.CASCADE,
+        related_name='options',
+    )
+    option_name = models.CharField(max_length=200, blank=True)
+    display_name = models.CharField(max_length=200, blank=True)
+    hex_code = models.CharField(max_length=20, blank=True)
+    color_source = models.CharField(
+        max_length=20,
+        choices=ColorSource.choices,
+        default=ColorSource.PENDING,
+    )
+    confidence = models.FloatField(null=True, blank=True)
+    chart_x = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    chart_y = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    brightness = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    saturation = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    warmth = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    coolness = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    depth = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    softness = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    contrast = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    match_score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    grade = models.CharField(max_length=20, choices=Grade.choices, blank=True)
+    reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return self.display_name or self.option_name or f'Analysis option {self.id}'

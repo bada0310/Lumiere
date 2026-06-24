@@ -12,7 +12,7 @@
         <em>{{ option.short_reason || option.reason || fallbackShortReason }}</em>
       </span>
       <span class="score">{{ scoreLabel }}</span>
-      <span class="chevron" aria-hidden="true">{{ isOpen ? '⌄' : '›' }}</span>
+      <span class="chevron" aria-hidden="true">{{ isOpen ? '−' : '+' }}</span>
     </button>
 
     <transition name="accordion">
@@ -53,37 +53,38 @@ const isPending = computed(() => {
   const grade = String(props.option.grade || '').toUpperCase()
   return status === 'PENDING_COLOR_ANALYSIS' || grade === 'PENDING'
 })
+
 const color = computed(() => props.option.hex_code || props.option.hex || '#d9d3cf')
 const optionLabel = computed(() => {
-  return [props.option.option_no, props.option.display_name || props.option.option_name].filter(Boolean).join(' ') || props.option.option || '기본 옵션'
+  return [props.option.option_no, props.option.display_name || props.option.option_name].filter(Boolean).join(' ') || '기본 옵션'
 })
-const gradeLabel = computed(() => (isPending.value ? 'Pending analysis' : props.option.grade || '분석'))
+const gradeLabel = computed(() => (isPending.value ? '분석 대기' : props.option.grade || '분석 완료'))
 const scoreLabel = computed(() => {
-  if (isPending.value) return 'Pending analysis'
+  if (isPending.value) return '분석 대기'
   const rawScore = props.option.match_score
   if (rawScore === null || rawScore === undefined || rawScore === '') return gradeLabel.value
   const score = Number(rawScore)
   return Number.isFinite(score) ? `${Math.round(score)}점` : gradeLabel.value
 })
 const toneFeature = computed(() => {
-  if (isPending.value) return 'Color metrics pending'
+  if (isPending.value) return '색상 확인 필요'
   const brightness = Number(props.option.brightness)
   const saturation = Number(props.option.saturation)
   const coolness = Number(props.option.coolness)
-  const lightWord = brightness >= 65 ? '라이트' : brightness <= 42 ? '딥' : '미디엄'
+  const lightWord = brightness >= 65 ? '라이트' : brightness <= 42 ? '딥' : '중명도'
   const chromaWord = saturation >= 65 ? '고채도' : saturation <= 40 ? '저채도' : '중채도'
-  const tempWord = coolness >= 60 ? '쿨' : coolness <= 40 ? '웜' : '뉴트럴'
+  const tempWord = coolness >= 60 ? '쿨' : coolness <= 40 ? '웜' : '중성'
   return `${lightWord} · ${chromaWord} · ${tempWord}`
 })
-const fallbackShortReason = computed(() => (isPending.value ? 'Color HEX analysis is pending.' : '색상 분석값을 기준으로 추천 등급을 계산했습니다.'))
+const fallbackShortReason = computed(() => (isPending.value ? '색상 확인이 필요합니다.' : '색상 분석값을 기준으로 추천 등급을 계산했습니다.'))
 const fallbackDetailReason = computed(() => {
-  if (isPending.value) return 'The option was found, but no reliable swatch HEX value was available in the page data.'
+  if (isPending.value) return '옵션은 감지했지만 대표 색상을 아직 확정하지 못했습니다.'
   return `명도 ${metric(props.option.brightness)}, 채도 ${metric(props.option.saturation)}, 쿨니스 ${metric(props.option.coolness)} 기준으로 분류했습니다.`
 })
 const fallbackUsageTip = computed(() => {
-  if (isPending.value) return 'Color matching will become available after the swatch color is analyzed.'
-  if (gradeLabel.value === 'CAUTION') return '진하게 바르기보다 소량을 얇게 올리거나 더 잘 맞는 베이스 컬러와 함께 사용해보세요.'
-  return '실제 발색은 조명과 피부톤에 따라 달라질 수 있으니 얇게 테스트해보세요.'
+  if (isPending.value) return 'HEX 색상을 확인하거나 직접 수정하면 추천 점수를 다시 계산할 수 있습니다.'
+  if (gradeLabel.value === 'CAUTION') return '포인트 사용이나 양 조절로 톤 차이를 완화해보세요.'
+  return '실제 발색은 조명과 피부톤에 따라 달라질 수 있습니다.'
 })
 
 const metric = (value) => {

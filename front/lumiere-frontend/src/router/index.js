@@ -131,6 +131,7 @@ const router = createRouter({
     },
     {
       path: '/product-analysis',
+      alias: '/product-color-analysis',
       name: 'product-analysis',
       component: AnalysisView,
     },

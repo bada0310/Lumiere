@@ -1,14 +1,13 @@
 <template>
   <div class="analysis-view-container">
-    <SearchBar
-      :is-analyzing-url="isAnalyzingUrl"
-      :is-searching-product="isSearchingProduct"
-      @search-product="handleSearchProduct"
-      @analyze-url="handleAnalyzeUrl"
+    <ProductImageAnalysisForm
+      :loading="isAnalyzingImage"
+      @submit-analysis="handleAnalyzeImage"
     />
 
     <div v-if="errorMessage" class="message-panel error">{{ errorMessage }}</div>
     <div v-if="successMessage" class="message-panel success">{{ successMessage }}</div>
+    <div v-if="warningMessage" class="message-panel warning">{{ warningMessage }}</div>
 
     <RecentAnalysis
       :items="recentAnalyses"
@@ -16,16 +15,6 @@
       :selected-id="selectedAnalysisId"
       @select-analysis="handleSelectRecentAnalysis"
       @delete-analysis="handleDeleteRecentAnalysis"
-    />
-
-    <SearchResult
-      :products="searchPreviewResults"
-      :loading="isSearchingProduct"
-      :searched="hasSearchedProduct"
-      :keyword="productSearchInput"
-      :selected-product-id="selectedProductId"
-      @select-product="handleSelectSearchPreviewProduct"
-      @show-more="handleGoToMoreSearchResults"
     />
 
     <section ref="resultSectionRef" class="analysis-result-section">
@@ -39,12 +28,13 @@
           </div>
 
           <div class="summary-body">
-            <p class="brand">{{ analysisProduct.brand || '브랜드 미상' }}</p>
+            <p class="brand">{{ analysisProduct.brand || '브랜드 미확인' }}</p>
             <h2>{{ analysisProduct.name }}</h2>
-            <p>{{ analysisProduct.description || '분석한 제품의 색상 옵션을 퍼스널컬러 기준으로 비교했습니다.' }}</p>
-            <a v-if="analysisProduct.product_url" :href="analysisProduct.product_url" target="_blank" rel="noreferrer">
-              원본 링크 열기
-            </a>
+            <p>{{ analysisCopy }}</p>
+            <div class="summary-badges">
+              <span class="status-chip">{{ confirmedLabel }}</span>
+              <span v-if="analysisCategoryLabel" class="status-chip soft">{{ analysisCategoryLabel }}</span>
+            </div>
           </div>
 
           <aside v-if="selectedOption" class="best-summary">
@@ -56,17 +46,93 @@
         </article>
 
         <div v-if="!hasPersonalizedResult" class="primary-missing-box">
-          메인 퍼스널컬러가 설정되어 있지 않습니다. 진단 결과 목록에서 메인 결과를 선택하면 개인화 추천 이유를 확인할 수 있습니다.
+          메인 퍼스널컬러가 설정되어 있지 않아 개인화 점수는 표시하지 않습니다. 색상 추출과 차트 위치는 그대로 확인할 수 있습니다.
         </div>
 
-        <div v-if="!analysisOptions.length" class="result-state">색상 옵션 정보가 없습니다.</div>
+        <section class="review-panel">
+            <div class="section-head review-head">
+              <div>
+                <h2>검토 및 수정</h2>
+                <p>옵션명과 HEX 색상을 검토한 뒤 저장하고 확정합니다.</p>
+              </div>
+              <div class="action-row">
+                <button type="button" class="secondary-btn" :disabled="isSavingReview || !hasReviewChanges" @click="handleSaveReview">
+                  {{ isSavingReview ? '저장 중...' : '수정 저장' }}
+                </button>
+                <button type="button" class="primary-btn" :disabled="isConfirmingAnalysis" @click="handleConfirmAnalysis">
+                  {{ isConfirmingAnalysis ? '확정 중...' : '분석 확정' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="review-meta">
+              <label>
+                <span>제품명</span>
+                <input v-model="editableProduct.product_name" type="text" />
+              </label>
+              <label>
+                <span>브랜드명</span>
+                <input v-model="editableProduct.brand_name" type="text" />
+              </label>
+              <label>
+                <span>카테고리</span>
+                <select v-model="editableProduct.category">
+                  <option value="LIP">립</option>
+                  <option value="EYE">아이</option>
+                  <option value="CHEEK">치크</option>
+                  <option value="BASE">베이스</option>
+                  <option value="LENS">렌즈</option>
+                  <option value="ETC">기타</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="review-list">
+              <article v-for="(option, index) in editableOptions" :key="option.localId" class="review-item">
+                <div class="review-item-top">
+                  <span class="dot" :style="{ backgroundColor: option.hex_code || '#d9d3cf' }"></span>
+                  <strong>{{ option.display_name || option.option_name || `옵션 ${index + 1}` }}</strong>
+                  <span class="confidence-badge">{{ confidenceLabel(option.confidence) }}</span>
+                  <span class="source-badge">{{ colorSourceLabel(option.color_source) }}</span>
+                  <button type="button" class="remove-btn" @click="removeEditableOption(index)">삭제</button>
+                </div>
+
+                <div class="review-fields">
+                  <label>
+                    <span>원본 옵션명</span>
+                    <input v-model="option.option_name" type="text" />
+                  </label>
+                  <label>
+                    <span>표시 이름</span>
+                    <input v-model="option.display_name" type="text" />
+                  </label>
+                  <label>
+                    <span>HEX</span>
+                    <input v-model="option.hex_code" type="text" placeholder="#B95F55" />
+                  </label>
+                  <label>
+                    <span>차트 X</span>
+                    <input v-model.number="option.chart_x" type="number" min="0" max="100" />
+                  </label>
+                  <label>
+                    <span>차트 Y</span>
+                    <input v-model.number="option.chart_y" type="number" min="0" max="100" />
+                  </label>
+                </div>
+              </article>
+            </div>
+
+            <button type="button" class="secondary-btn add-btn" @click="addEditableOption">누락 옵션 추가</button>
+        </section>
+
+        <div v-if="!analysisOptions.length" class="result-state">추출된 옵션이 없습니다. 위에서 옵션을 직접 추가한 뒤 저장할 수 있습니다.</div>
 
         <template v-else>
           <section class="chart-section">
             <div class="section-head">
               <div>
                 <h2>옵션 색상 차트</h2>
-                <p>Warm-Cool 축은 coolness, Light-Deep 축은 brightness 기준으로 배치합니다.</p>
+                <p>업로드 이미지에서 읽은 위치를 기준으로 Warm/Cool, Light/Deep 차트에 배치했습니다.</p>
               </div>
               <strong>{{ toneLabel }}</strong>
             </div>
@@ -89,8 +155,7 @@
               <div class="swatch" :class="{ pending: isPendingOption(selectedOption) }" :style="{ backgroundColor: selectedColor }"></div>
               <p class="eyebrow">{{ optionGrade(selectedOption) || 'COLOR' }}</p>
               <h2>{{ optionLabel(selectedOption) }}</h2>
-              <p>{{ selectedOption.detail_reason || selectedOption.reason || '선택한 옵션의 색상 분석값을 기준으로 추천 점수를 계산했습니다.' }}</p>
-              <p v-if="selectedOption.usage_tip" class="usage-tip">{{ selectedOption.usage_tip }}</p>
+              <p>{{ selectedOption.reason || pendingReason }}</p>
               <dl>
                 <div v-for="metric in selectedMetrics" :key="metric.label">
                   <dt>{{ metric.label }}</dt>
@@ -109,242 +174,198 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
+import ProductImageAnalysisForm from '@/components/analysis/ProductImageAnalysisForm.vue'
 import RecentAnalysis from '@/components/analysis/RecentAnalysis.vue'
-import SearchBar from '@/components/analysis/SearchBar.vue'
-import SearchResult from '@/components/analysis/SearchResult.vue'
 import ProductColorChart from '@/components/products/ProductColorChart.vue'
 import RecommendationAccordion from '@/components/products/RecommendationAccordion.vue'
-import { deleteUrlAnalysisRecord, getUrlAnalysisRecord, getUrlAnalysisRecords } from '@/services/engagementApi'
-import { analyzeProductColorUrl, getProductColorAnalysis, searchProducts } from '@/services/productApi'
+import {
+  analyzeProductColorImage,
+  confirmProductImageAnalysis,
+  deleteProductImageAnalysis,
+  getProductImageAnalyses,
+  getProductImageAnalysis,
+  updateProductImageAnalysis,
+} from '@/services/productApi'
 import { readUserColorProfile } from '@/utils/colorRecommendationHelpers'
 
 const route = useRoute()
-const router = useRouter()
 
-const urlInput = ref('')
-const productSearchInput = ref('')
-const isAnalyzingUrl = ref(false)
-const isSearchingProduct = ref(false)
-const isLoadingProductAnalysis = ref(false)
+const isAnalyzingImage = ref(false)
+const isSavingReview = ref(false)
+const isConfirmingAnalysis = ref(false)
 const isLoadingRecentAnalyses = ref(false)
-const isLoadingRecentAnalysisDetail = ref(false)
+const isLoadingAnalysisDetail = ref(false)
 const recentAnalyses = ref([])
 const selectedAnalysisId = ref('')
-const searchPreviewResults = ref([])
-const selectedProductId = ref('')
 const analysisResult = ref(null)
 const selectedOption = ref(null)
 const errorMessage = ref('')
 const successMessage = ref('')
-const hasSearchedProduct = ref(false)
 const resultSectionRef = ref(null)
+const editableProduct = ref({ product_name: '', brand_name: '', category: 'ETC' })
+const editableOptions = ref([])
+const reviewSnapshot = ref('')
 
-const isResultLoading = computed(() => isLoadingProductAnalysis.value || isLoadingRecentAnalysisDetail.value)
+const pendingReason = '색상 확인 필요'
+const isResultLoading = computed(() => isLoadingAnalysisDetail.value)
 const analysisProduct = computed(() => normalizeProductFromResult(analysisResult.value))
-const analysisOptions = computed(() => {
-  if (!analysisResult.value?.options) return []
-  return analysisResult.value.options.map(normalizeOption)
-})
+const analysisOptions = computed(() => (analysisResult.value?.options || []).map(normalizeOption))
 const personalizedOptions = computed(() => analysisOptions.value.filter((option) => optionGrade(option)))
 const hasPersonalizedResult = computed(() => Boolean(analysisResult.value?.personalized))
 const userToneProfile = computed(() => normalizeToneProfile(analysisResult.value?.user_tone))
 const toneLabel = computed(() => {
   return hasPersonalizedResult.value ? userToneProfile.value.toneName || '메인 퍼스널컬러' : '메인 퍼스널컬러 미설정'
 })
-const productImage = computed(() => selectedOption.value?.image_url || analysisProduct.value?.representative_image_url || '')
 const selectedColor = computed(() => optionColor(selectedOption.value))
-const disclaimer = computed(() => analysisResult.value?.disclaimer || '화면의 색상은 실제와 다를 수 있으며, 개인차가 있을 수 있습니다.')
+const productImage = computed(() => analysisResult.value?.uploaded_image_url || analysisProduct.value?.representative_image_url || '')
+const disclaimer = computed(() => analysisResult.value?.disclaimer || '')
+const confirmedLabel = computed(() => (analysisResult.value?.confirmed ? '확정 완료' : '검토 중'))
+const warningMessage = computed(() => {
+  if (analysisResult.value?.warning?.code === 'AI_VISION_UNAVAILABLE_FALLBACK_USED') {
+    return 'AI 옵션명 인식은 실패했지만, 이미지에서 색상 후보를 추출했습니다. 옵션명을 확인해주세요.'
+  }
+  return ''
+})
+const analysisCopy = computed(() => {
+  if (warningMessage.value) {
+    return 'AI 옵션명 인식은 실패했지만 색상 후보는 추출했습니다. 아래에서 옵션명과 HEX를 확인하고 수정해주세요.'
+  }
+  return analysisOptions.value.length
+    ? `${analysisOptions.value.length}개 옵션을 추출했습니다. 필요하면 아래에서 직접 수정한 뒤 확정하세요.`
+    : '추출된 옵션이 없습니다. 아래에서 직접 추가해 저장할 수 있습니다.'
+})
+const analysisCategoryLabel = computed(() => categoryLabel(analysisProduct.value?.category))
+const hasReviewChanges = computed(() => reviewSnapshot.value !== buildReviewSnapshot())
 const selectedMetrics = computed(() => {
   const option = selectedOption.value
   if (!option) return []
   return [
-    { label: 'Hex', value: option.hex_code || '-' },
+    { label: 'HEX', value: option.hex_code || '-' },
+    { label: 'Confidence', value: confidenceLabel(option.confidence) },
+    { label: 'Source', value: colorSourceLabel(option.color_source) },
+    { label: 'Chart X', value: metricValue(option.chart_x) },
+    { label: 'Chart Y', value: metricValue(option.chart_y) },
     { label: 'Brightness', value: metricValue(option.brightness) },
     { label: 'Saturation', value: metricValue(option.saturation) },
     { label: 'Coolness', value: metricValue(option.coolness) },
     { label: 'Warmth', value: metricValue(option.warmth) },
     { label: 'Depth', value: metricValue(option.depth) },
-    { label: 'Softness', value: metricValue(option.softness) },
-    { label: 'Contrast', value: metricValue(option.contrast) },
   ]
 })
 
-const handleAnalyzeUrl = async (url) => {
+const handleAnalyzeImage = async (payload) => {
   clearMessages()
-  const normalizedUrl = String(url || '').trim()
-  urlInput.value = normalizedUrl
-
-  if (!normalizedUrl) {
-    errorMessage.value = '제품 URL을 입력해주세요.'
-    return
-  }
-  if (!isValidUrl(normalizedUrl)) {
-    errorMessage.value = '올바른 제품 링크를 입력해주세요.'
-    return
-  }
-
-  isAnalyzingUrl.value = true
-  selectedProductId.value = ''
-  selectedAnalysisId.value = ''
-
+  isAnalyzingImage.value = true
   try {
-    const result = await analyzeProductColorUrl(normalizedUrl)
-    if (result?.success === false) {
-      errorMessage.value = safeAnalysisErrorMessage({ response: { data: result } })
-      return
-    }
+    const result = await analyzeProductColorImage(payload)
     applyAnalysisResult(result)
-    successMessage.value = '제품 분석이 완료되었습니다.'
+    successMessage.value = '제품 색상표 분석이 완료되었습니다.'
     await fetchRecentAnalyses()
     await scrollToResult()
   } catch (error) {
-    console.error('product URL analysis failed:', error)
     errorMessage.value = safeAnalysisErrorMessage(error)
   } finally {
-    isAnalyzingUrl.value = false
+    isAnalyzingImage.value = false
   }
-}
-
-const handleSearchProduct = async (keyword) => {
-  clearMessages()
-  const query = String(keyword || '').trim()
-  productSearchInput.value = query
-  hasSearchedProduct.value = true
-
-  if (!query) {
-    errorMessage.value = '검색할 제품명을 입력해주세요.'
-    searchPreviewResults.value = []
-    return
-  }
-
-  isSearchingProduct.value = true
-  selectedProductId.value = ''
-
-  try {
-    const results = await searchProducts(query)
-    searchPreviewResults.value = results.slice(0, 5).map(normalizeSearchProduct)
-    if (!searchPreviewResults.value.length) {
-      errorMessage.value = ''
-    }
-  } catch (error) {
-    console.error('product search failed:', error)
-    searchPreviewResults.value = []
-    errorMessage.value = '제품 검색 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
-  } finally {
-    isSearchingProduct.value = false
-  }
-}
-
-const handleSelectSearchPreviewProduct = async (product) => {
-  clearMessages()
-  const productId = product?.id
-  if (!productId) {
-    errorMessage.value = '선택한 제품 정보를 찾을 수 없습니다.'
-    return
-  }
-
-  selectedProductId.value = productId
-  selectedAnalysisId.value = ''
-  isLoadingProductAnalysis.value = true
-
-  try {
-    const result = await getProductColorAnalysis(productId)
-    applyAnalysisResult(result)
-    await scrollToResult()
-  } catch (error) {
-    console.error('selected product analysis failed:', error)
-    errorMessage.value = '선택한 제품의 컬러 분석 정보를 불러오지 못했습니다.'
-  } finally {
-    isLoadingProductAnalysis.value = false
-  }
-}
-
-const handleSelectRecentAnalysis = async (analysis) => {
-  clearMessages()
-  const analysisId = analysis?.id
-  if (!analysisId) {
-    errorMessage.value = '최근 분석 결과를 찾을 수 없습니다.'
-    return
-  }
-
-  selectedAnalysisId.value = analysisId
-  selectedProductId.value = ''
-  isLoadingRecentAnalysisDetail.value = true
-
-  try {
-    const record = await getUrlAnalysisRecord(analysisId)
-    const resultPayload = record?.result_payload
-    if (isAnalysisPayload(resultPayload)) {
-      applyAnalysisResult(resultPayload)
-    } else if (record?.source_url) {
-      const fallbackResult = await analyzeProductColorUrl(record.source_url)
-      applyAnalysisResult(fallbackResult)
-    } else {
-      throw new Error('recent analysis payload is empty')
-    }
-    await scrollToResult()
-  } catch (error) {
-    console.error('recent analysis load failed:', error)
-    errorMessage.value = '최근 분석 결과를 불러오지 못했습니다.'
-  } finally {
-    isLoadingRecentAnalysisDetail.value = false
-  }
-}
-
-const handleDeleteRecentAnalysis = async (analysis) => {
-  clearMessages()
-  if (!analysis?.id) return
-  try {
-    await deleteUrlAnalysisRecord(analysis.id)
-    recentAnalyses.value = recentAnalyses.value.filter((item) => String(item.id) !== String(analysis.id))
-    if (String(selectedAnalysisId.value) === String(analysis.id)) selectedAnalysisId.value = ''
-    successMessage.value = '최근 분석 기록을 삭제했습니다.'
-  } catch (error) {
-    console.error('delete recent analysis failed:', error)
-    errorMessage.value = '최근 분석 기록을 삭제하지 못했습니다.'
-  }
-}
-
-const handleGoToMoreSearchResults = () => {
-  clearMessages()
-  const keyword = productSearchInput.value.trim()
-  if (!keyword) {
-    errorMessage.value = '검색어를 입력해주세요.'
-    return
-  }
-  router.push({ name: 'products', query: { keyword } })
 }
 
 const fetchRecentAnalyses = async () => {
-  if (!localStorage.getItem('access_token')) {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
     recentAnalyses.value = []
     return
   }
-
   isLoadingRecentAnalyses.value = true
   try {
-    const response = await getUrlAnalysisRecords({ limit: 8 })
+    const response = await getProductImageAnalyses({ limit: 8 })
     const records = Array.isArray(response) ? response : response.results || []
     recentAnalyses.value = records.map(normalizeRecentAnalysis)
   } catch (error) {
-    console.error('recent analyses load failed:', error)
+    console.error('recent image analyses load failed:', error)
     recentAnalyses.value = []
   } finally {
     isLoadingRecentAnalyses.value = false
   }
 }
 
-const loadRouteAnalysis = async () => {
-  const analysisId = route.params.id
-  if (!analysisId) return
-  await handleSelectRecentAnalysis({ id: analysisId })
+const handleSelectRecentAnalysis = async (analysis) => {
+  if (!analysis?.id) return
+  clearMessages()
+  isLoadingAnalysisDetail.value = true
+  selectedAnalysisId.value = String(analysis.id)
+  try {
+    const result = await getProductImageAnalysis(analysis.id)
+    applyAnalysisResult(result)
+    await scrollToResult()
+  } catch (error) {
+    console.error('image analysis detail load failed:', error)
+    errorMessage.value = '저장된 분석 결과를 불러오지 못했습니다.'
+  } finally {
+    isLoadingAnalysisDetail.value = false
+  }
+}
+
+const handleDeleteRecentAnalysis = async (analysis) => {
+  if (!analysis?.id) return
+  clearMessages()
+  try {
+    await deleteProductImageAnalysis(analysis.id)
+    recentAnalyses.value = recentAnalyses.value.filter((item) => String(item.id) !== String(analysis.id))
+    if (String(selectedAnalysisId.value) === String(analysis.id)) {
+      selectedAnalysisId.value = ''
+      analysisResult.value = null
+      selectedOption.value = null
+      editableOptions.value = []
+    }
+    successMessage.value = '분석 기록을 삭제했습니다.'
+  } catch (error) {
+    console.error('delete image analysis failed:', error)
+    errorMessage.value = '분석 기록을 삭제하지 못했습니다.'
+  }
+}
+
+const handleSaveReview = async ({ silent = false } = {}) => {
+  if (!analysisResult.value?.analysis_id) return
+  isSavingReview.value = true
+  clearMessages()
+  try {
+    const result = await updateProductImageAnalysis(analysisResult.value.analysis_id, buildReviewPayload())
+    applyAnalysisResult(result)
+    if (!silent) successMessage.value = '수정 사항을 저장했습니다.'
+  } catch (error) {
+    errorMessage.value = safeAnalysisErrorMessage(error)
+    throw error
+  } finally {
+    isSavingReview.value = false
+  }
+}
+
+const handleConfirmAnalysis = async () => {
+  if (!analysisResult.value?.analysis_id) return
+  isConfirmingAnalysis.value = true
+  clearMessages()
+  try {
+    if (hasReviewChanges.value) {
+      await handleSaveReview({ silent: true })
+    }
+    const result = await confirmProductImageAnalysis(analysisResult.value.analysis_id)
+    applyAnalysisResult(result)
+    successMessage.value = '분석 결과를 확정했습니다.'
+    await fetchRecentAnalyses()
+  } catch (error) {
+    errorMessage.value = safeAnalysisErrorMessage(error)
+  } finally {
+    isConfirmingAnalysis.value = false
+  }
 }
 
 const applyAnalysisResult = (result) => {
   analysisResult.value = result
+  selectedAnalysisId.value = String(result?.analysis_id || '')
   selectedOption.value = selectInitialOption(result)
+  initializeEditableState(result)
 }
 
 const selectInitialOption = (result) => {
@@ -354,62 +375,99 @@ const selectInitialOption = (result) => {
   return options.find((option) => String(option.id) === String(bestId)) || options[0]
 }
 
+const initializeEditableState = (result) => {
+  const product = normalizeProductFromResult(result)
+  editableProduct.value = {
+    product_name: product?.name || '',
+    brand_name: product?.brand || '',
+    category: product?.category || 'ETC',
+  }
+  editableOptions.value = (result?.options || []).map((option, index) => ({
+    localId: `${option.id || 'option'}-${index}`,
+    id: option.id,
+    option_name: option.option_name || '',
+    display_name: option.display_name || option.option_name || '',
+    hex_code: option.hex_code || '',
+    chart_x: option.chart_x ?? null,
+    chart_y: option.chart_y ?? null,
+    confidence: option.confidence ?? null,
+    color_source: option.color_source || '',
+  }))
+  reviewSnapshot.value = buildReviewSnapshot()
+}
+
+const buildReviewPayload = () => ({
+  product_name: editableProduct.value.product_name.trim(),
+  brand_name: editableProduct.value.brand_name.trim(),
+  category: editableProduct.value.category || 'ETC',
+  options: editableOptions.value.map((option) => ({
+    id: option.id,
+    option_name: option.option_name.trim(),
+    display_name: option.display_name.trim(),
+    hex_code: option.hex_code.trim(),
+    chart_x: numericOrNull(option.chart_x),
+    chart_y: numericOrNull(option.chart_y),
+    confidence: option.confidence,
+  })),
+})
+
+const buildReviewSnapshot = () => JSON.stringify(buildReviewPayload())
+
+const addEditableOption = () => {
+  editableOptions.value.push({
+    localId: `new-${Date.now()}-${editableOptions.value.length}`,
+    id: null,
+    option_name: '',
+    display_name: '',
+    hex_code: '',
+    chart_x: null,
+    chart_y: null,
+    confidence: null,
+    color_source: 'USER_EDITED',
+  })
+}
+
+const removeEditableOption = (index) => {
+  editableOptions.value.splice(index, 1)
+}
+
 const normalizeProductFromResult = (result) => {
   if (!result?.product) return null
   return {
-    id: result.product.id || result.product.product_id || result.product.url || 'analysis-product',
-    brand: result.product.brand_name || result.product.brandName || result.product.brand || '',
-    name: result.product.product_name || result.product.productName || result.product.name || '분석한 제품',
-    category: result.product.category || 'PRODUCT',
+    id: result.product.id || result.analysis_id || 'analysis-product',
+    brand: result.product.brand_name || result.product.brand || '',
+    name: result.product.product_name || result.product.name || '분석한 제품',
+    category: result.product.category || 'ETC',
     description: result.product.description || '',
-    representative_image_url: result.product.thumbnail_url || result.product.thumbnailUrl || result.product.image_url || '',
-    product_url: result.product.url || result.product.product_url || '',
+    representative_image_url: result.product.thumbnail_url || result.product.image_url || '',
   }
 }
 
 const normalizeOption = (option) => ({
   ...option,
-  id: option.id || option.option_id || option.option_no || option.option_name,
-  option_no: option.option_no || option.optionId || '',
-  option_name: option.option_name || option.optionName || option.name || '',
-  display_name: option.display_name || option.displayName || option.option_name || option.optionName || option.name || '',
-  hex_code: option.hex_code || option.hex || null,
-  analysis_status: option.analysis_status || option.analysisStatus || '',
-  color_metrics: option.color_metrics || option.colorMetrics || null,
-  match_score: option.match_score ?? option.matchScore ?? null,
-  grade: option.grade || option.recommendation || '',
+  id: option.id || option.option_id,
+  option_no: option.option_no || '',
+  option_name: option.option_name || '',
+  display_name: option.display_name || option.option_name || '',
+  hex_code: option.hex_code || '',
+  color_source: option.color_source || '',
+  confidence: option.confidence ?? null,
+  chart_x: option.chart_x ?? null,
+  chart_y: option.chart_y ?? null,
+  match_score: option.match_score ?? null,
+  grade: option.grade || '',
+  analysis_status: option.analysis_status || '',
 })
 
-const normalizeSearchProduct = (product) => {
-  const options = Array.isArray(product.options) ? product.options : []
-  return {
-    id: product.id || product.product_id,
-    brandName: product.brand || product.brandName || '',
-    productName: product.name || product.productName || '',
-    thumbnailUrl: product.representative_image_url || product.image || product.image_url || '',
-    category: product.category || '',
-    optionCount: options.length,
-    colors: options.slice(0, 5).map((option) => option.hex_code).filter(Boolean),
-  }
-}
-
-const normalizeRecentAnalysis = (record) => {
-  const payload = record.result_payload || {}
-  const product = payload.product || {}
-  const colors = Array.isArray(record.colors)
-    ? record.colors.map((color) => color.hex_code || color.hex || color).filter(Boolean).slice(0, 5)
-    : []
-  return {
-    id: record.id,
-    brandName: record.brand || product.brand_name || product.brandName || '',
-    productName: record.product_name || product.product_name || product.productName || record.title || '',
-    title: record.title,
-    thumbnailUrl: record.image_url || product.thumbnail_url || product.thumbnailUrl || '',
-    analyzedAt: record.created_at,
-    colors,
-    sourceUrl: record.source_url,
-  }
-}
+const normalizeRecentAnalysis = (record) => ({
+  id: record.id,
+  brandName: record.brand_name || '',
+  productName: record.product_name || '',
+  title: record.product_name || '제품 색상 분석',
+  thumbnailUrl: record.uploaded_image_url || '',
+  analyzedAt: record.created_at,
+  colors: Array.isArray(record.colors) ? record.colors : [],
+})
 
 const normalizeToneProfile = (tone) => {
   if (!tone) return readUserColorProfile()
@@ -422,94 +480,78 @@ const normalizeToneProfile = (tone) => {
   }
 }
 
-const isAnalysisPayload = (payload) => {
-  return Boolean(payload?.product && Array.isArray(payload?.options))
-}
-
 const optionLabel = (option) => {
-  return [option?.option_no, option?.display_name || option?.option_name].filter(Boolean).join(' ') || option?.option || '기본 옵션'
+  return [option?.option_no, option?.display_name || option?.option_name].filter(Boolean).join(' ') || '기본 옵션'
 }
 
 const isPendingOption = (option) => {
-  const status = String(option?.analysis_status || option?.analysisStatus || '').toUpperCase()
+  const status = String(option?.analysis_status || '').toUpperCase()
   const grade = String(option?.grade || '').toUpperCase()
   return status === 'PENDING_COLOR_ANALYSIS' || grade === 'PENDING'
 }
 
 const optionColor = (option) => {
-  if (!option) return '#d9d3cf'
-  if (option.hex_code || option.hex) return option.hex_code || option.hex
-  return '#d9d3cf'
+  if (!option?.hex_code) return '#d9d3cf'
+  return option.hex_code
 }
 
 const optionGrade = (option) => {
   if (isPendingOption(option)) return 'PENDING'
   const grade = String(option?.grade || '').toUpperCase()
   if (grade === 'BEST' || grade === 'GOOD' || grade === 'CAUTION') return grade
-  const rawScore = option?.match_score
-  if (rawScore === null || rawScore === undefined || rawScore === '') return ''
-  const score = Number(rawScore)
+  const score = Number(option?.match_score)
   if (!Number.isFinite(score)) return ''
   if (score >= 85) return 'BEST'
-  if (score >= 70) return 'GOOD'
+  if (score >= 55) return 'GOOD'
   return 'CAUTION'
 }
 
 const scoreLabel = (option) => {
-  if (isPendingOption(option)) return 'Pending analysis'
-  const rawScore = option?.match_score
-  const grade = optionGrade(option)
-  if (rawScore === null || rawScore === undefined || rawScore === '') return grade || '분석 완료'
-  const score = Number(rawScore)
-  if (!Number.isFinite(score)) return grade || '분석 완료'
-  return `${Math.round(score)}점 · ${grade || '분석'}`
+  if (isPendingOption(option)) return '분석 대기'
+  const score = Number(option?.match_score)
+  if (!Number.isFinite(score)) return hasPersonalizedResult.value ? '점수 없음' : '개인화 점수 없음'
+  return `${Math.round(score)}점 · ${optionGrade(option)}`
+}
+
+const confidenceLabel = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? `신뢰도 ${Math.round(number * 100)}%` : '신뢰도 없음'
+}
+
+const colorSourceLabel = (value) => {
+  if (value === 'IMAGE_EXTRACTED') return '이미지 추출'
+  if (value === 'AI_ESTIMATED') return 'AI 추정'
+  if (value === 'USER_EDITED') return '사용자 수정'
+  return '확인 필요'
+}
+
+const categoryLabel = (value) => {
+  const map = {
+    LIP: '립',
+    EYE: '아이',
+    CHEEK: '치크',
+    BASE: '베이스',
+    LENS: '렌즈',
+    ETC: '기타',
+  }
+  return map[value] || ''
 }
 
 const metricValue = (value) => {
-  const numberValue = Number(value)
-  return Number.isFinite(numberValue) ? Math.round(numberValue) : '-'
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.round(number) : '-'
 }
 
-const isValidUrl = (value) => {
-  try {
-    const url = new URL(value)
-    return ['http:', 'https:'].includes(url.protocol)
-  } catch {
-    return false
-  }
+const numericOrNull = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, Math.round(number))) : null
 }
 
 const safeAnalysisErrorMessage = (error) => {
   const data = error?.response?.data
-  const fallbackMessage = '상품 정보를 가져올 수 없습니다. URL을 다시 확인해주세요.'
-  if (data && typeof data === 'object' && !Array.isArray(data)) {
-    if (data.code === 'SHORT_URL_RESOLVE_FAILED') {
-      return '단축 링크를 분석하지 못했습니다. 올리브영 상품 상세 페이지의 전체 URL을 입력해주세요.'
-    }
-    return fallbackMessage
-  }
-  return fallbackMessage
-  if (data && typeof data === 'object' && !Array.isArray(data)) {
-    if (data.code === 'SHORT_URL_RESOLVE_FAILED') {
-      return '단축 링크를 분석하지 못했습니다. 올리브영 상품 상세 페이지의 전체 URL을 입력해주세요.'
-    }
-    if (data.code === 'invalid_url') {
-      return '올바른 제품 링크를 입력해주세요.'
-    }
-    if (data.code) {
-      return '상품 URL 분석에 실패했습니다. 잠시 후 다시 시도해주세요.'
-    }
-    const message = data.message || data.detail
-    if (typeof message === 'string' && !looksLikeHtml(message)) {
-      return `${message} 올리브영 링크는 상품 상세 URL 또는 단축 링크를 사용할 수 있습니다.`
-    }
-  }
-  return '상품 URL 분석에 실패했습니다. 링크를 확인하거나 잠시 후 다시 시도해주세요. 올리브영 링크는 상품 상세 URL 또는 단축 링크를 사용할 수 있습니다.'
-}
-
-const looksLikeHtml = (value) => {
-  const text = String(value || '').trim().toLowerCase()
-  return text.includes('<!doctype html') || text.includes('<html') || text.includes('traceback')
+  if (data?.message) return String(data.message)
+  if (data?.detail) return String(data.detail)
+  return '제품 색상 분석 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
 }
 
 const clearMessages = () => {
@@ -520,6 +562,11 @@ const clearMessages = () => {
 const scrollToResult = async () => {
   await nextTick()
   resultSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const loadRouteAnalysis = async () => {
+  if (!route.params.id) return
+  await handleSelectRecentAnalysis({ id: route.params.id })
 }
 
 watch(
@@ -539,8 +586,8 @@ onMounted(async () => {
 .analysis-view-container {
   width: 100%;
   min-height: 100vh;
-  background-color: #fffafb;
-  padding: 40px 0 80px;
+  background: #fffafb;
+  padding: 0 0 80px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -550,7 +597,7 @@ onMounted(async () => {
   width: calc(100% - 40px);
   max-width: 1200px;
   margin: 0 auto;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 14px 18px;
   font-weight: 800;
   line-height: 1.5;
@@ -558,155 +605,169 @@ onMounted(async () => {
 
 .message-panel.error {
   border: 1px solid #f1c4cc;
-  background: #fff4f6;
-  color: #9d495f;
+  background: #fff2f4;
+  color: #b14a5e;
 }
 
 .message-panel.success {
-  border: 1px solid #d8e7c0;
-  background: #f6fbef;
-  color: #6f8f2d;
+  border: 1px solid #cfe5cc;
+  background: #f4fbf2;
+  color: #457d38;
+}
+
+.message-panel.warning {
+  border: 1px solid #f1ddb0;
+  background: #fff8e7;
+  color: #8a5a00;
 }
 
 .analysis-result-section {
-  width: 100%;
+  width: calc(100% - 40px);
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
-  scroll-margin-top: 24px;
+  display: grid;
+  gap: 18px;
 }
 
 .result-state,
-.result-summary,
-.chart-section,
-.detail-panel {
-  border: 1px solid #eaded8;
+.primary-missing-box {
+  border: 1px dashed #eaded8;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #6f6562;
 }
 
-.result-state {
-  padding: 44px 20px;
-  color: #8e7e79;
-  text-align: center;
+.result-summary,
+.review-panel,
+.chart-section,
+.detail-panel {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #eaded8;
+  border-radius: 8px;
 }
 
 .result-summary {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr) 230px;
-  gap: 22px;
-  padding: 22px;
-  align-items: stretch;
+  grid-template-columns: 220px minmax(0, 1fr) 220px;
+  gap: 20px;
+  padding: 20px;
 }
 
 .image-box {
-  display: grid;
-  place-items: center;
-  height: 210px;
+  min-height: 220px;
   border-radius: 8px;
-  background: #fff1f3;
   overflow: hidden;
+  background: #f7f3f1;
 }
 
-.image-box img {
+.image-box img,
+.image-fallback {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: white;
 }
 
-.image-fallback {
-  width: 78px;
-  height: 116px;
-  border-radius: 12px;
-  background: linear-gradient(160deg, #f5b7c3, #c65367);
+.summary-body {
+  display: grid;
+  align-content: center;
+  gap: 10px;
 }
 
 .brand,
-.eyebrow {
-  color: #c65367;
+.best-summary p,
+.detail-panel .eyebrow {
+  margin: 0;
+  color: #8b7b76;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
-.summary-body h2 {
-  margin: 6px 0 12px;
-  font-size: 28px;
+.summary-body h2,
+.detail-panel h2 {
+  margin: 0;
+  color: #241d1c;
 }
 
-.summary-body p,
+.summary-body p:last-of-type,
 .detail-panel p {
-  color: #5f5754;
+  margin: 0;
+  color: #5f5653;
   line-height: 1.6;
 }
 
-.summary-body a {
+.summary-badges,
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-chip,
+.confidence-badge,
+.source-badge {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
   display: inline-flex;
-  margin-top: 14px;
-  color: #b75a73;
-  font-weight: 900;
-  text-decoration: none;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-chip {
+  background: #f5ece8;
+  color: #6c4d45;
+}
+
+.status-chip.soft,
+.confidence-badge {
+  background: #f4f0ee;
+  color: #6b625f;
+}
+
+.source-badge {
+  background: #fff1f4;
+  color: #b05568;
 }
 
 .best-summary {
-  padding: 22px;
-  border-radius: 8px;
-  background: #fff8f6;
+  border-left: 1px solid #efe4df;
+  padding-left: 20px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
 }
 
 .best-summary span,
 .swatch {
-  display: block;
-  width: 54px;
-  height: 54px;
-  border: 1px solid rgba(45, 37, 36, 0.1);
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
+  border: 2px solid rgba(36, 29, 28, 0.08);
 }
 
 .best-summary span.pending,
 .swatch.pending {
-  background-color: #d9d3cf !important;
-  border: 1px dashed rgba(94, 74, 70, 0.45);
+  background: #d9d3cf !important;
+  border-style: dashed;
 }
 
 .best-summary strong,
 .best-summary em {
-  display: block;
-  margin-top: 8px;
-}
-
-.best-summary em {
-  color: #c65367;
   font-style: normal;
-  font-weight: 900;
-}
-
-.primary-missing-box {
-  margin-top: 18px;
-  border: 1px solid #eaded8;
-  border-radius: 8px;
-  background: #fff8f6;
-  color: #8b3a4a;
-  font-weight: 800;
-  line-height: 1.6;
-  padding: 14px 18px;
-}
-
-.chart-section {
-  margin-top: 18px;
-  padding: 24px;
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
-  align-items: flex-end;
+  gap: 12px;
+  align-items: center;
   margin-bottom: 18px;
 }
 
-.section-head h2,
-.detail-panel h2 {
+.section-head h2 {
   margin: 0 0 8px;
 }
 
@@ -715,53 +776,147 @@ onMounted(async () => {
   color: #6b625f;
 }
 
-.section-head strong {
-  color: #c65367;
+.review-panel,
+.chart-section,
+.detail-panel {
+  padding: 20px;
+}
+
+.review-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.review-meta label,
+.review-fields label {
+  display: grid;
+  gap: 8px;
+}
+
+.review-meta span,
+.review-fields span {
+  color: #5b504e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.review-meta input,
+.review-meta select,
+.review-fields input {
+  min-height: 42px;
+  border: 1px solid #e5d9d5;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fffdfc;
+}
+
+.review-list {
+  display: grid;
+  gap: 12px;
+}
+
+.review-item {
+  border: 1px solid #efe5e1;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fffdfc;
+}
+
+.review-item-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.review-item-top .dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(36, 29, 28, 0.1);
+}
+
+.review-fields {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .result-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
   gap: 18px;
-  margin-top: 18px;
 }
 
 .detail-panel {
-  align-self: start;
-  padding: 24px;
-}
-
-.usage-tip {
-  border-left: 3px solid #c65367;
-  padding-left: 10px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
 }
 
 .detail-panel dl {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 22px 0 0;
-}
-
-.detail-panel dl div {
-  padding: 10px;
-  border-radius: 8px;
-  background: #fff8f6;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 0;
 }
 
 .detail-panel dt {
-  color: #8e7e79;
+  color: #8b7b76;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .detail-panel dd {
-  margin: 4px 0 0;
-  font-weight: 900;
+  margin: 0;
+  color: #241d1c;
+  font-weight: 700;
+}
+
+.primary-btn,
+.secondary-btn,
+.remove-btn {
+  min-height: 42px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #c25f74;
+  color: white;
+}
+
+.secondary-btn {
+  background: #f4ebe7;
+  color: #6b4d45;
+}
+
+.secondary-btn:disabled,
+.primary-btn:disabled {
+  background: #d8c9c5;
+  color: #fff8f7;
+  cursor: not-allowed;
+}
+
+.remove-btn {
+  min-height: 30px;
+  margin-left: auto;
+  background: transparent;
+  color: #a45a6a;
+}
+
+.add-btn {
+  margin-top: 14px;
 }
 
 .disclaimer {
-  margin: 18px 0 0;
+  margin: 0;
   color: #8e7e79;
   font-size: 13px;
   line-height: 1.6;
@@ -769,14 +924,17 @@ onMounted(async () => {
 
 @media (max-width: 980px) {
   .result-summary,
-  .result-grid {
+  .result-grid,
+  .review-meta,
+  .review-fields {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 620px) {
-  .section-head {
-    display: block;
+  .best-summary {
+    border-left: none;
+    border-top: 1px solid #efe4df;
+    padding-left: 0;
+    padding-top: 16px;
   }
 }
 </style>

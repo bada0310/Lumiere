@@ -46,3 +46,53 @@ export const analyzeProductColorUrl = async (productUrl) => {
   )
   return response.data
 }
+
+export const analyzeProductColorImage = async ({ image, product_name = '', brand_name = '', category = '' }) => {
+  const formData = new FormData()
+  formData.append('image', image)
+  if (product_name) formData.append('product_name', product_name)
+  if (brand_name) formData.append('brand_name', brand_name)
+  if (category) formData.append('category', category)
+
+  const response = await axios.post(`${API_BASE_URL}/api/products/analyze-image/`, formData, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export const getProductImageAnalyses = async (params = {}) => {
+  const response = await axios.get(`${API_BASE_URL}/api/products/image-analyses/`, {
+    headers: authHeaders(),
+    params,
+  })
+  return response.data
+}
+
+export const getProductImageAnalysis = async (analysisId) => {
+  const response = await axios.get(`${API_BASE_URL}/api/products/image-analyses/${analysisId}/`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export const updateProductImageAnalysis = async (analysisId, payload) => {
+  const response = await axios.patch(`${API_BASE_URL}/api/products/image-analyses/${analysisId}/`, payload, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export const confirmProductImageAnalysis = async (analysisId) => {
+  const response = await axios.post(
+    `${API_BASE_URL}/api/products/image-analyses/${analysisId}/confirm/`,
+    {},
+    { headers: authHeaders() },
+  )
+  return response.data
+}
+
+export const deleteProductImageAnalysis = async (analysisId) => {
+  await axios.delete(`${API_BASE_URL}/api/products/image-analyses/${analysisId}/`, {
+    headers: authHeaders(),
+  })
+}

@@ -52,7 +52,7 @@ const groups = computed(() => {
     { grade: 'BEST', label: 'BEST' },
     { grade: 'GOOD', label: 'GOOD' },
     { grade: 'CAUTION', label: 'CAUTION' },
-    { grade: 'PENDING', label: 'Pending analysis' },
+    { grade: 'PENDING', label: '분석 대기' },
   ]
   return order.map((item) => ({
     ...item,

@@ -131,8 +131,9 @@ const goodEllipse = computed(() => rangeToEllipse(rangeProfile.value.good))
 
 const chartPoints = computed(() => {
   return props.options.filter(hasMetricPosition).map((option, index) => {
-    const x = clamp(option.coolness)
-    const y = clamp(100 - clamp(option.brightness))
+    const position = pointPosition(option)
+    const x = position.x
+    const y = position.y
     const grade = gradeFor(option)
     const isSelected = String(option.id) === selectedId.value
     const label = String(option.option_no || option.option_name || index + 1).slice(0, 12)
@@ -188,9 +189,24 @@ const isPendingOption = (option) => {
 
 const hasMetricPosition = (option) => {
   if (isPendingOption(option)) return false
+  const directX = Number(option?.chart_x ?? option?.chartX)
+  const directY = Number(option?.chart_y ?? option?.chartY)
+  if (Number.isFinite(directX) && Number.isFinite(directY)) return true
   const x = Number(option?.coolness)
   const y = Number(option?.brightness)
   return Number.isFinite(x) && Number.isFinite(y)
+}
+
+const pointPosition = (option) => {
+  const directX = Number(option?.chart_x ?? option?.chartX)
+  const directY = Number(option?.chart_y ?? option?.chartY)
+  if (Number.isFinite(directX) && Number.isFinite(directY)) {
+    return { x: clamp(directX), y: clamp(directY) }
+  }
+  return {
+    x: clamp(option?.coolness),
+    y: clamp(100 - clamp(option?.brightness)),
+  }
 }
 
 const gradeFor = (option) => {
