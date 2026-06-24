@@ -22,6 +22,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { API_BASE_URL } from '@/config/api'
 
 const emit = defineEmits(['goToFindPassword'])
 
@@ -37,7 +38,7 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/accounts/jwt-login/', loginData)
+    const response = await axios.post(`${API_BASE_URL}/accounts/jwt-login/`, loginData)
     
     localStorage.setItem('access_token', response.data.access)
     localStorage.setItem('refresh_token', response.data.refresh)
