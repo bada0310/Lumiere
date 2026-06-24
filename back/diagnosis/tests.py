@@ -18,7 +18,7 @@ from diagnosis.domain.tone_keys import CANONICAL_TONE_KEYS
 from diagnosis.domain.tone_key_normalizer import ToneKeyError, normalize_tone_key
 from diagnosis.models import DiagnosisResult, PersonalColor, PersonalColorPalette
 from diagnosis.services.ai_diagnosis import diagnose_personal_color
-from diagnosis.services.makeup_generation import build_makeup_generation_prompt
+from diagnosis.services.makeup_generation import DEFAULT_MAKEOVER_STYLES, MAKEUP_IMAGE_DISCLAIMER, build_makeup_generation_prompt
 from diagnosis.services.multimodal_diagnosis import validate_diagnosis_payload
 from diagnosis.services.palettes import get_palette_for_tone_key, serialize_palette
 
@@ -392,6 +392,14 @@ class PaletteSeedDataTests(TestCase):
 
 
 class MakeupGenerationPromptTests(TestCase):
+    def test_default_makeover_styles_are_three_card_styles(self):
+        self.assertEqual([style['key'] for style in DEFAULT_MAKEOVER_STYLES], ['daily', 'lovely', 'smoky'])
+        for style in DEFAULT_MAKEOVER_STYLES:
+            self.assertIn('name', style)
+            self.assertIn('description', style)
+            self.assertGreaterEqual(len(style['points']), 3)
+        self.assertIn('AI 기술로 생성된 예시 메이크업 이미지', MAKEUP_IMAGE_DISCLAIMER)
+
     def test_prompt_uses_fixed_makeup_palette(self):
         user = self._user()
         personal_color = self._personal_color()
@@ -416,6 +424,26 @@ class MakeupGenerationPromptTests(TestCase):
         self.assertIn('summer_cool_mute', prompt)
         self.assertIn('dusty rose', prompt)
         self.assertIn('taupe brown', prompt)
+
+    def test_prompt_preserves_identity_and_rejects_filter_only_result(self):
+        user = self._user()
+        personal_color = self._personal_color()
+        diagnosis = DiagnosisResult.objects.create(
+            user=user,
+            personal_color=personal_color,
+            tone_key='winter_cool_deep',
+            personal_color_code='winter_cool_deep',
+            confidence_score=82,
+            palette_snapshot={'makeupPalette': {'lip': {'recommended': ['berry']}}},
+        )
+
+        prompt = build_makeup_generation_prompt(diagnosis, DEFAULT_MAKEOVER_STYLES[2])
+
+        self.assertIn('Keep the same person', prompt)
+        self.assertIn('Do not make it look like a simple filter or color overlay', prompt)
+        self.assertIn('Apply actual visible makeup by facial area', prompt)
+        self.assertIn('Winter Cool Deep smoky colors', prompt)
+        self.assertIn('no face replacement', prompt)
 
     def _user(self):
         return get_user_model().objects.create_user(username='tester', email='tester@example.com', password='test1234!')

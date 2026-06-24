@@ -144,8 +144,33 @@ def create_ai_diagnosis_result(user, uploaded_image):
         diagnosis.full_clean()
         diagnosis.save()
         apply_palette_snapshot_to_diagnosis(diagnosis, palette_data)
+        _create_diagnosis_complete_notification(diagnosis)
+    
+        apply_palette_snapshot_to_diagnosis(diagnosis, palette_data)
+
+        if diagnosis.status == DiagnosisResult.Status.COMPLETED and diagnosis.palette_status == DiagnosisResult.PaletteStatus.READY:
+            enqueue_makeover_generation(diagnosis)
+            start_makeover_worker(limit=3)
+
+        _create_diagnosis_complete_notification(diagnosis)
 
     return diagnosis
+
+
+def _create_diagnosis_complete_notification(diagnosis):
+    from engagements.models import Notification
+
+    Notification.objects.create(
+        user=diagnosis.user,
+        notification_type='diagnosis_complete',
+        title='퍼스널컬러 진단 결과가 준비됐어요',
+        body=f'{diagnosis.korean_name or "진단 결과"} 기준 추천과 메이크업 가이드를 확인할 수 있어요.',
+        route={
+            'name': 'diagnosis-result-detail',
+            'params': {'diagnosisId': diagnosis.pk},
+        },
+        metadata={'diagnosis_id': diagnosis.pk, 'tone_key': diagnosis.tone_key or diagnosis.personal_color_code},
+    )
 
 
 def _workflow_payload(diagnosis_json):

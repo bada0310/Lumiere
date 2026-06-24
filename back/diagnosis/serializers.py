@@ -2,6 +2,12 @@ from django.conf import settings
 from rest_framework import serializers
 
 from diagnosis.domain.tone_profiles import build_tone_result_payload
+from diagnosis.services.makeup_generation import (
+    MAKEUP_IMAGE_DISCLAIMER,
+    canonical_makeover_key,
+    canonical_makeover_styles,
+    get_makeover_style_meta,
+)
 from diagnosis.services.palettes import build_makeup_color_guide
 
 from .models import (
@@ -99,11 +105,44 @@ class DiagnosisColorPaletteSerializer(serializers.ModelSerializer):
 
 
 class DiagnosisMakeoverStyleSerializer(serializers.ModelSerializer):
+    style_key = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    points = serializers.SerializerMethodField()
+    disclaimer = serializers.SerializerMethodField()
 
     class Meta:
         model = DiagnosisMakeoverStyle
-        fields = ['key', 'name', 'description', 'image', 'image_url', 'status', 'error_message', 'order', 'is_default']
+        fields = [
+            'key',
+            'style_key',
+            'name',
+            'title',
+            'description',
+            'points',
+            'disclaimer',
+            'image',
+            'image_url',
+            'status',
+            'error_message',
+            'order',
+            'is_default',
+        ]
+
+    def _meta(self, obj):
+        return get_makeover_style_meta(obj.key) or {}
+
+    def get_style_key(self, obj):
+        return canonical_makeover_key(obj.key)
+
+    def get_title(self, obj):
+        return self._meta(obj).get('name') or obj.name
+
+    def get_points(self, obj):
+        return self._meta(obj).get('points') or []
+
+    def get_disclaimer(self, obj):
+        return MAKEUP_IMAGE_DISCLAIMER
 
     def get_image_url(self, obj):
         return build_media_url(self.context.get('request'), obj.image)
@@ -166,6 +205,7 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
     generated_makeup_image_url = serializers.SerializerMethodField()
     representative_colors = DiagnosisRepresentativeColorSerializer(many=True, read_only=True)
     makeover_styles = DiagnosisMakeoverStyleSerializer(many=True, read_only=True)
+    makeup_images = serializers.SerializerMethodField()
     recommended_products = DiagnosisRecommendedProductSerializer(many=True, read_only=True)
     recommended_lenses = DiagnosisRecommendedLensSerializer(many=True, read_only=True)
     color_palettes = serializers.SerializerMethodField()
@@ -212,6 +252,7 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
             'radar_chart',
             'representative_colors',
             'makeover_styles',
+            'makeup_images',
             'color_palettes',
             'recommended_products',
             'recommended_lenses',
@@ -302,6 +343,10 @@ class DiagnosisResultSerializer(serializers.ModelSerializer):
 
     def get_generated_makeup_image_url(self, obj):
         return self._absolute_image_url(obj.generated_makeup_image)
+
+    def get_makeup_images(self, obj):
+        styles = canonical_makeover_styles(list(obj.makeover_styles.all()))
+        return DiagnosisMakeoverStyleSerializer(styles, many=True, context={'request': self.context.get('request')}).data
 
     def get_color_palettes(self, obj):
         grouped = {'best': [], 'neutral': [], 'accent': [], 'try': [], 'worst': []}
