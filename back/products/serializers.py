@@ -1,6 +1,14 @@
 from rest_framework import serializers
 
-from .models import Product, ProductOffer, ProductOption, ProductOptionToneScore, Review
+from .models import (
+    Product,
+    ProductImageAnalysis,
+    ProductImageAnalysisOption,
+    ProductOffer,
+    ProductOption,
+    ProductOptionToneScore,
+    Review,
+)
 from .services.recommendation import calculate_option_match
 
 
@@ -228,3 +236,76 @@ class ProductColorAnalysisRequestSerializer(serializers.Serializer):
 
 class ProductScrapeRequestSerializer(serializers.Serializer):
     product_url = serializers.URLField(max_length=1000)
+
+
+class ProductImageAnalysisRequestSerializer(serializers.Serializer):
+    image = serializers.ImageField()
+    product_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    brand_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    category = serializers.ChoiceField(
+        choices=Product.Category.choices,
+        required=False,
+        allow_blank=True,
+    )
+
+
+class ProductImageAnalysisReviewOptionSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False)
+    option_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    display_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    hex_code = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    chart_x = serializers.IntegerField(required=False, allow_null=True, min_value=0, max_value=100)
+    chart_y = serializers.IntegerField(required=False, allow_null=True, min_value=0, max_value=100)
+    confidence = serializers.FloatField(required=False, allow_null=True, min_value=0, max_value=1)
+    removed = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, attrs):
+        if attrs.get('removed'):
+            return attrs
+        if not (attrs.get('option_name') or attrs.get('display_name')):
+            raise serializers.ValidationError('option_name or display_name is required.')
+        return attrs
+
+
+class ProductImageAnalysisUpdateSerializer(serializers.Serializer):
+    product_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    brand_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    category = serializers.ChoiceField(
+        choices=Product.Category.choices,
+        required=False,
+        allow_blank=True,
+    )
+    options = ProductImageAnalysisReviewOptionSerializer(many=True, required=False)
+
+
+class ProductImageAnalysisSummarySerializer(serializers.ModelSerializer):
+    uploaded_image_url = serializers.SerializerMethodField()
+    colors = serializers.SerializerMethodField()
+    confirmed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductImageAnalysis
+        fields = [
+            'id',
+            'product_name',
+            'brand_name',
+            'category',
+            'uploaded_image_url',
+            'colors',
+            'confirmed',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_uploaded_image_url(self, obj):
+        return obj.uploaded_image.url if obj.uploaded_image else ''
+
+    def get_colors(self, obj):
+        return [
+            option.hex_code
+            for option in obj.options.all()
+            if option.hex_code
+        ][:5]
+
+    def get_confirmed(self, obj):
+        return obj.status == ProductImageAnalysis.Status.CONFIRMED

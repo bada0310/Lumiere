@@ -1,13 +1,29 @@
-from django.contrib.auth import get_user_model
-from django.core.management import call_command
-from rest_framework import status
-from rest_framework.test import APITestCase
+import json
+from io import BytesIO
+from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
+import httpx
+import openai
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.test import TestCase, override_settings
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from diagnosis.ai_clients.openai_compatible import AIClientParseError, OpenAICompatibleClient
 from diagnosis.models import DiagnosisResult, PersonalColor
-from .models import Product, ProductOffer, ProductOption, ProductOptionToneScore, Review
+from PIL import Image, ImageDraw
+from .models import Product, ProductImageAnalysis, ProductOffer, ProductOption, ProductOptionToneScore, Review
 from .services.color_metrics import build_color_metrics, public_grade_from_score
+from .services.image_color_analysis import (
+    PRODUCT_IMAGE_ANALYSIS_SCHEMA,
+    extract_color_blobs_from_image,
+    resolve_product_image_analysis_model,
+)
 from .services.url_color_analysis import extract_oliveyoung_goods_no
 
 
@@ -30,6 +46,41 @@ class FakeHttpResponse:
 
     def geturl(self):
         return self.url
+
+
+def openai_request():
+    return httpx.Request('POST', 'https://example.com/v1/chat/completions')
+
+
+def make_bad_request_error(message):
+    response = httpx.Response(400, request=openai_request())
+    return openai.BadRequestError(message, response=response, body={'message': message})
+
+
+def make_authentication_error(message='auth failed'):
+    response = httpx.Response(401, request=openai_request())
+    return openai.AuthenticationError(message, response=response, body={'message': message})
+
+
+def make_api_error(message='provider failed'):
+    return openai.APIError(message, request=openai_request(), body={'message': message})
+
+
+def make_chart_upload():
+    image = Image.new('RGB', (320, 240), 'white')
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((30, 40, 110, 120), fill='#B95F55')
+    draw.ellipse((180, 60, 260, 140), fill='#7A4B6A')
+    buffer = BytesIO()
+    image.save(buffer, format='PNG')
+    return SimpleUploadedFile('chart.png', buffer.getvalue(), content_type='image/png')
+
+
+def make_blank_upload():
+    image = Image.new('RGB', (320, 240), 'white')
+    buffer = BytesIO()
+    image.save(buffer, format='PNG')
+    return SimpleUploadedFile('blank.png', buffer.getvalue(), content_type='image/png')
 
 
 class ProductReviewApiTests(APITestCase):
@@ -790,3 +841,480 @@ class ProductColorAnalysisApiTests(APITestCase):
         self.assertEqual(public_grade_from_score(86), 'BEST')
         self.assertEqual(public_grade_from_score(65), 'GOOD')
         self.assertEqual(public_grade_from_score(30), 'CAUTION')
+
+
+class ProductImageAnalysisModelSelectionTests(TestCase):
+    @override_settings(PRODUCT_IMAGE_ANALYSIS_MODEL='gpt-4.1', AI_DIAGNOSIS_MODEL='gpt-5.5', OPENAI_MODEL='gpt-5.5')
+    def test_resolve_product_image_analysis_model_prefers_product_setting(self):
+        self.assertEqual(resolve_product_image_analysis_model(), 'gpt-4.1')
+
+    def test_local_color_blob_extraction_finds_distinct_colors(self):
+        upload = make_chart_upload()
+        image = Image.open(BytesIO(upload.read())).convert('RGBA')
+
+        candidates = extract_color_blobs_from_image(image)
+
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual([candidate['option_name'] for candidate in candidates], ['Option 1', 'Option 2'])
+        self.assertNotEqual(candidates[0]['hex_code'], candidates[1]['hex_code'])
+        self.assertLess(candidates[0]['chart_y'], candidates[1]['chart_y'] + 15)
+        self.assertLess(candidates[0]['chart_x'], candidates[1]['chart_x'])
+
+    @override_settings(OPENAI_API_KEY='test-key', OPENAI_BASE_URL='https://gms.example/v1')
+    def test_product_vision_request_uses_json_object_and_omits_temperature_for_gpt5(self):
+        captured = {}
+        payload = {
+            'product_name': 'Demo Chart',
+            'brand_name': 'Demo',
+            'chart_labels': {
+                'warm_label': 'Warm',
+                'cool_label': 'Cool',
+                'light_label': 'Light',
+                'deep_label': 'Deep',
+                'best_region_labels': [],
+                'season_labels': [],
+            },
+            'options': [],
+        }
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                captured['init_kwargs'] = kwargs
+                self.chat = SimpleNamespace(
+                    completions=SimpleNamespace(create=self.create),
+                )
+
+            def create(self, **kwargs):
+                captured['request_kwargs'] = kwargs
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(content=json.dumps(payload)),
+                        )
+                    ]
+                )
+
+        with patch('openai.OpenAI', FakeOpenAI):
+            client = OpenAICompatibleClient(model='gpt-5.5')
+            result = client.create_vision_json(
+                image_bytes=b'fake-image',
+                mime_type='image/png',
+                prompt='analyze this chart',
+                schema=PRODUCT_IMAGE_ANALYSIS_SCHEMA,
+                response_format_type='json_object',
+                validate_schema=True,
+                debug_label='product image',
+            )
+
+        self.assertEqual(captured['init_kwargs']['api_key'], 'test-key')
+        self.assertEqual(captured['init_kwargs']['base_url'], 'https://gms.example/v1')
+        self.assertEqual(captured['request_kwargs']['model'], 'gpt-5.5')
+        self.assertEqual(captured['request_kwargs']['response_format'], {'type': 'json_object'})
+        self.assertNotIn('temperature', captured['request_kwargs'])
+        self.assertTrue(
+            captured['request_kwargs']['messages'][1]['content'][1]['image_url']['url'].startswith('data:image/png;base64,')
+        )
+        self.assertEqual(result['product_name'], 'Demo Chart')
+
+    @override_settings(PRODUCT_IMAGE_ANALYSIS_ENABLE_AI=False)
+    def test_product_image_analysis_can_disable_ai_vision(self):
+        self.assertFalse(settings.PRODUCT_IMAGE_ANALYSIS_ENABLE_AI)
+
+
+class ProductImageAnalysisApiTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='image-analysis-user',
+            password='password1234',
+            nickname='image_analysis_user',
+        )
+        self.personal_color = PersonalColor.objects.create(
+            type_name='Image Test Tone',
+            tone_key='spring_warm_light',
+            base_temperature=PersonalColor.BaseTemperature.warm,
+            season=PersonalColor.SeasonChoice.spring,
+            tone=PersonalColor.ToneChoices.LIGHT,
+            description='test',
+            temperature_degree=18,
+            brightness_degree=82,
+            saturation_degree=40,
+            turbidity_degree=55,
+            glossiness_degree=40,
+            contrast_degree=28,
+            best_pccs=[],
+            sub_pccs=[],
+        )
+        DiagnosisResult.objects.create(
+            user=self.user,
+            personal_color=self.personal_color,
+            tone_key='spring_warm_light',
+            personal_color_code='spring_warm_light',
+            confidence_score=88,
+            is_primary=True,
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_analyze_image_requires_image(self):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['code'], 'IMAGE_REQUIRED')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 0)
+
+    @patch('products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json')
+    @override_settings(PRODUCT_IMAGE_ANALYSIS_ENABLE_AI=False)
+    def test_analyze_image_skips_ai_when_disabled(self, mocked_vision):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['ai_used'])
+        self.assertIsNone(response.data['warning'])
+        mocked_vision.assert_not_called()
+
+    @patch(
+        'products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json',
+        side_effect=make_bad_request_error('Error code: 400 - Model not found in request for domain api.openai.com'),
+    )
+    @override_settings(PRODUCT_IMAGE_ANALYSIS_MODEL='gpt-4.1', AI_DIAGNOSIS_MODEL='gpt-5.5', OPENAI_MODEL='gpt-5.5')
+    def test_analyze_image_uses_local_fallback_when_model_is_unavailable(self, mocked_vision):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['analysis_status'], 'DRAFT')
+        self.assertEqual(response.data['analysis_type'], 'IMAGE_COLOR_CHART')
+        self.assertFalse(response.data['ai_used'])
+        self.assertEqual(response.data['warning']['code'], 'AI_VISION_UNAVAILABLE_FALLBACK_USED')
+        self.assertEqual(response.data['product']['source'], 'uploaded_image')
+        self.assertEqual(len(response.data['options']), 2)
+        self.assertEqual([option['option_name'] for option in response.data['options']], ['Option 1', 'Option 2'])
+        self.assertTrue(all(option['color_source'] == 'IMAGE_EXTRACTED' for option in response.data['options']))
+        self.assertTrue(all(option['analysis_status'] == 'DONE' for option in response.data['options']))
+        self.assertNotEqual(response.data['options'][0]['hex_code'], response.data['options'][1]['hex_code'])
+        self.assertEqual(ProductImageAnalysis.objects.count(), 1)
+        mocked_vision.assert_called_once()
+
+    @patch(
+        'products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json',
+        side_effect=make_authentication_error(),
+    )
+    def test_analyze_image_uses_local_fallback_for_authentication_error(self, mocked_vision):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['ai_used'])
+        self.assertEqual(response.data['warning']['code'], 'AI_VISION_UNAVAILABLE_FALLBACK_USED')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 1)
+        mocked_vision.assert_called_once()
+
+    @patch(
+        'products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json',
+        side_effect=make_api_error(),
+    )
+    def test_analyze_image_uses_local_fallback_for_provider_error(self, mocked_vision):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['ai_used'])
+        self.assertEqual(response.data['warning']['code'], 'AI_VISION_UNAVAILABLE_FALLBACK_USED')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 1)
+        mocked_vision.assert_called_once()
+
+    @patch(
+        'products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json',
+        side_effect=AIClientParseError('AI response was not valid JSON.'),
+    )
+    def test_analyze_image_uses_local_fallback_for_parse_error(self, mocked_vision):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['ai_used'])
+        self.assertEqual(response.data['warning']['code'], 'AI_VISION_UNAVAILABLE_FALLBACK_USED')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 1)
+        mocked_vision.assert_called_once()
+
+    @patch(
+        'products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json',
+        side_effect=make_bad_request_error('Error code: 400 - Model not found in request for domain api.openai.com'),
+    )
+    def test_analyze_image_returns_no_color_candidates_when_local_extraction_fails(self, mocked_vision):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_blank_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertEqual(response.data['code'], 'NO_COLOR_CANDIDATES_FOUND')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 0)
+        mocked_vision.assert_not_called()
+
+    @patch('products.models.ProductImageAnalysis.objects.create', side_effect=OSError('disk full'))
+    def test_analyze_image_returns_safe_json_when_initial_save_fails(self, mocked_create):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.data['code'], 'IMAGE_ANALYSIS_SAVE_FAILED')
+        self.assertEqual(response.data['message'], 'The uploaded image could not be saved for analysis.')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 0)
+        mocked_create.assert_called_once()
+
+    @patch('products.services.image_color_analysis.ProductImageAnalysisPipeline.run', side_effect=RuntimeError('boom'))
+    def test_analyze_image_returns_safe_json_for_unexpected_runtime_failure(self, mocked_run):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.data['code'], 'IMAGE_ANALYSIS_FAILED')
+        self.assertEqual(response.data['message'], 'Product image analysis failed unexpectedly.')
+        self.assertEqual(ProductImageAnalysis.objects.count(), 0)
+        mocked_run.assert_called_once()
+
+    @patch('products.services.image_color_analysis.build_tone_result_payload', side_effect=RuntimeError('bad tone payload'))
+    @override_settings(PRODUCT_IMAGE_ANALYSIS_ENABLE_AI=False)
+    def test_analyze_image_continues_when_tone_payload_fails(self, mocked_tone_payload):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['personalized'])
+        self.assertIsNone(response.data['user_tone'])
+        self.assertEqual(len(response.data['options']), 2)
+        self.assertTrue(all(option['match_score'] is None for option in response.data['options']))
+        mocked_tone_payload.assert_called_once()
+
+    @patch('products.services.image_color_analysis.calculate_option_match', side_effect=RuntimeError('bad score'))
+    @override_settings(PRODUCT_IMAGE_ANALYSIS_ENABLE_AI=False)
+    def test_analyze_image_retries_without_personalization_when_scoring_fails(self, mocked_match):
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['personalized'])
+        self.assertIsNone(response.data['user_tone'])
+        self.assertEqual(len(response.data['options']), 2)
+        self.assertTrue(all(option['match_score'] is None for option in response.data['options']))
+        mocked_match.assert_called()
+
+    @patch('products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json')
+    def test_analyze_image_creates_draft_and_extracts_colors(self, mocked_vision):
+        mocked_vision.return_value = {
+            'product_name': '3CE GUMMY OIL TINT',
+            'brand_name': '3CE',
+            'chart_labels': {
+                'warm_label': 'Warm',
+                'cool_label': 'Cool',
+                'light_label': 'Light',
+                'deep_label': 'Deep',
+                'best_region_labels': ['WARM BEST', 'COOL BEST'],
+                'season_labels': ['SPRING', 'SUMMER'],
+            },
+            'options': [
+                {
+                    'option_name': '베이글 피치',
+                    'display_name': '베이글 피치',
+                    'confidence': 0.93,
+                    'ai_estimated_hex': '',
+                    'blob_box': {'x': 8, 'y': 16, 'width': 28, 'height': 34},
+                },
+                {
+                    'option_name': '모브 젤리',
+                    'display_name': '모브 젤리',
+                    'confidence': 0.91,
+                    'ai_estimated_hex': '',
+                    'blob_box': {'x': 54, 'y': 24, 'width': 28, 'height': 34},
+                },
+            ],
+        }
+
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {
+                'image': make_chart_upload(),
+                'product_name': '',
+                'brand_name': '',
+                'category': Product.Category.LIP,
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['source'], 'IMAGE_CHART')
+        self.assertEqual(response.data['analysis_type'], 'IMAGE_COLOR_CHART')
+        self.assertTrue(response.data['ai_used'])
+        self.assertIsNone(response.data['warning'])
+        self.assertFalse(response.data['confirmed'])
+        self.assertEqual(response.data['product']['product_name'], '3CE GUMMY OIL TINT')
+        self.assertEqual(response.data['product']['source'], 'uploaded_image')
+        self.assertEqual(len(response.data['options']), 2)
+        self.assertTrue(all(option['hex_code'] for option in response.data['options']))
+        self.assertTrue(all(option['color_source'] == 'IMAGE_EXTRACTED' for option in response.data['options']))
+        self.assertNotEqual(response.data['options'][0]['hex_code'], response.data['options'][1]['hex_code'])
+        self.assertEqual(response.data['options'][0]['option_no'], '01')
+        self.assertIn(response.data['options'][0]['grade'], ['BEST', 'GOOD', 'CAUTION'])
+
+    @patch('products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json')
+    def test_ai_name_failure_does_not_turn_local_colors_into_pending(self, mocked_vision):
+        mocked_vision.return_value = {
+            'product_name': 'Blank Chart',
+            'brand_name': 'Demo',
+            'chart_labels': {
+                'warm_label': 'Warm',
+                'cool_label': 'Cool',
+                'light_label': 'Light',
+                'deep_label': 'Deep',
+                'best_region_labels': [],
+                'season_labels': [],
+            },
+            'options': [
+                {
+                    'option_name': '색상 확인 필요',
+                    'display_name': '색상 확인 필요',
+                    'confidence': 0.62,
+                    'ai_estimated_hex': '',
+                    'blob_box': {'x': 88, 'y': 88, 'width': 8, 'height': 8},
+                },
+            ],
+        }
+
+        response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        done_options = [option for option in response.data['options'] if option['analysis_status'] == 'DONE']
+        self.assertGreaterEqual(len(done_options), 2)
+        self.assertTrue(all(option['grade'] != 'PENDING' for option in done_options))
+
+    @patch('products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json')
+    def test_review_patch_marks_user_edited_and_confirm_locks(self, mocked_vision):
+        mocked_vision.return_value = {
+            'product_name': '3CE GUMMY OIL TINT',
+            'brand_name': '3CE',
+            'chart_labels': {
+                'warm_label': 'Warm',
+                'cool_label': 'Cool',
+                'light_label': 'Light',
+                'deep_label': 'Deep',
+                'best_region_labels': ['WARM BEST'],
+                'season_labels': ['SPRING'],
+            },
+            'options': [
+                {
+                    'option_name': '베이글 피치',
+                    'display_name': '베이글 피치',
+                    'confidence': 0.88,
+                    'ai_estimated_hex': '',
+                    'blob_box': {'x': 8, 'y': 16, 'width': 28, 'height': 34},
+                },
+            ],
+        }
+
+        create_response = self.client.post(
+            '/api/products/analyze-image/',
+            {'image': make_chart_upload(), 'category': Product.Category.LIP},
+        )
+        analysis_id = create_response.data['analysis_id']
+        option = create_response.data['options'][0]
+
+        patch_response = self.client.patch(
+            f'/api/products/image-analyses/{analysis_id}/',
+            {
+                'product_name': '3CE GUMMY OIL TINT EDITED',
+                'options': [
+                    {
+                        'id': option['id'],
+                        'option_name': '베이글 피치',
+                        'display_name': '베이글 피치 수정',
+                        'hex_code': '#C26A5E',
+                        'chart_x': option['chart_x'],
+                        'chart_y': option['chart_y'],
+                    }
+                ],
+            },
+            format='json',
+        )
+
+        self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
+        patched_option = patch_response.data['options'][0]
+        self.assertEqual(patch_response.data['product']['product_name'], '3CE GUMMY OIL TINT EDITED')
+        self.assertEqual(patched_option['display_name'], '베이글 피치 수정')
+        self.assertEqual(patched_option['color_source'], 'USER_EDITED')
+        self.assertEqual(patched_option['hex_code'], '#C26A5E')
+
+        confirm_response = self.client.post(f'/api/products/image-analyses/{analysis_id}/confirm/')
+        self.assertEqual(confirm_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(confirm_response.data['confirmed'])
+
+        rejected_patch = self.client.patch(
+            f'/api/products/image-analyses/{analysis_id}/',
+            {'options': [{'id': patched_option['id'], 'removed': True}]},
+            format='json',
+        )
+        self.assertEqual(rejected_patch.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(rejected_patch.data['code'], 'INVALID_REVIEW_UPDATE')
+
+    @patch('products.services.image_color_analysis.OpenAICompatibleClient.create_vision_json')
+    def test_image_analysis_list_only_returns_current_user_records(self, mocked_vision):
+        other_user = get_user_model().objects.create_user(
+            username='other-image-user',
+            password='password1234',
+            nickname='other_image_user',
+        )
+        mocked_vision.return_value = {
+            'product_name': 'Demo Chart',
+            'brand_name': 'Demo',
+            'chart_labels': {
+                'warm_label': 'Warm',
+                'cool_label': 'Cool',
+                'light_label': 'Light',
+                'deep_label': 'Deep',
+                'best_region_labels': [],
+                'season_labels': [],
+            },
+            'options': [
+                {
+                    'option_name': '베이글 피치',
+                    'display_name': '베이글 피치',
+                    'confidence': 0.8,
+                    'ai_estimated_hex': '',
+                    'blob_box': {'x': 8, 'y': 16, 'width': 28, 'height': 34},
+                },
+            ],
+        }
+
+        self.client.post('/api/products/analyze-image/', {'image': make_chart_upload(), 'category': Product.Category.LIP})
+        self.client.force_authenticate(other_user)
+        self.client.post('/api/products/analyze-image/', {'image': make_chart_upload(), 'category': Product.Category.LIP})
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get('/api/products/image-analyses/?limit=5')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['product_name'], 'Demo Chart')

@@ -1,26 +1,51 @@
 import logging
 
+from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+from diagnosis.ai_clients.openai_compatible import (
+    AIClientConfigurationError,
+)
 from diagnosis.domain.tone_profiles import build_tone_result_payload
 from diagnosis.services.primary import get_primary_diagnosis_for_user
-from products.models import Product, ProductOffer, ProductOption, ProductOptionToneScore, Review
+from Lumiere.api_pagination import list_response
+from products.models import (
+    Product,
+    ProductImageAnalysis,
+    ProductOffer,
+    ProductOption,
+    ProductOptionToneScore,
+    Review,
+)
 from products.serializers import (
     ProductColorAnalysisRequestSerializer,
+    ProductImageAnalysisRequestSerializer,
+    ProductImageAnalysisSummarySerializer,
+    ProductImageAnalysisUpdateSerializer,
     ProductScrapeRequestSerializer,
     ProductSerializer,
     ReviewSerializer,
 )
 from products.services.catalog_color_analysis import build_product_color_analysis_payload
+from products.services.image_color_analysis import (
+    NoColorCandidatesFoundError,
+    ProductImageAnalysisPipeline,
+    build_product_image_analysis_payload,
+    confirm_analysis,
+    update_analysis_from_review,
+)
 from products.services.recommendation import build_user_tone_profile, calculate_option_match
 from products.services.url_color_analysis import ProductColorAnalysisError, analyze_product_color_url
 
 
 logger = logging.getLogger(__name__)
+IMAGE_ANALYSIS_SAVE_FAILED_MESSAGE = 'The uploaded image could not be saved for analysis.'
+IMAGE_ANALYSIS_FAILED_MESSAGE = 'Product image analysis failed unexpectedly.'
 SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE = '상품 정보를 가져올 수 없습니다. URL을 다시 확인해주세요.'
 SHORT_URL_RESOLVE_ERROR_MESSAGE = '단축 링크를 분석하지 못했습니다. 올리브영 상품 상세 페이지의 전체 URL을 입력해주세요.'
 
@@ -29,6 +54,65 @@ def safe_product_analysis_error_message(code):
     if code == 'SHORT_URL_RESOLVE_FAILED':
         return SHORT_URL_RESOLVE_ERROR_MESSAGE
     return SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE
+
+
+def validation_error_message(exc):
+    if hasattr(exc, 'message'):
+        return exc.message
+    if hasattr(exc, 'messages') and exc.messages:
+        return exc.messages[0]
+    return str(exc)
+
+
+def mark_product_image_analysis_failed(analysis, *, code, message, exc=None):
+    """Persist analysis failure metadata without deleting the uploaded analysis row."""
+    if not analysis or not analysis.pk:
+        return None
+
+    raw_payload = analysis.raw_ai_response if isinstance(analysis.raw_ai_response, dict) else {}
+    raw_meta = raw_payload.get('analysis_meta') if isinstance(raw_payload.get('analysis_meta'), dict) else {}
+
+    error_message = message or (str(exc) if exc else '')
+
+    raw_payload['analysis_meta'] = {
+        **raw_meta,
+        'success': False,
+        'code': code,
+        'error_type': exc.__class__.__name__ if exc else '',
+        'error_message': str(exc) if exc else error_message,
+        'message': error_message,
+    }
+
+    analysis.raw_ai_response = raw_payload
+    try:
+        analysis.save(update_fields=['raw_ai_response', 'updated_at'])
+    except Exception:
+        logger.exception(
+            'Failed to persist product image analysis failure metadata. analysis_id=%s code=%s',
+            analysis.pk,
+            code,
+        )
+    return analysis.pk
+
+
+def product_image_analysis_error_response(analysis, *, code, message, http_status, exc=None, detail=None):
+    analysis_id = mark_product_image_analysis_failed(
+        analysis,
+        code=code,
+        message=message,
+        exc=exc,
+    )
+    body = {
+        'success': False,
+        'analysis_id': analysis_id,
+        'code': code,
+        'message': message,
+    }
+    if detail is not None:
+        body['detail'] = detail
+    elif exc is not None:
+        body['detail'] = str(exc)
+    return Response(body, status=http_status)
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
@@ -191,15 +275,6 @@ def product_color_analysis(request):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
-        return Response(
-            {
-                'success': False,
-                'message': '제품 링크를 확인할 수 없습니다. URL을 다시 확인해주세요.',
-                'detail': '제품 링크를 확인할 수 없습니다. URL을 다시 확인해주세요.',
-                'code': 'invalid_url',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
 
     try:
         payload = analyze_product_color_url(
@@ -225,15 +300,6 @@ def product_color_analysis(request):
                 'success': False,
                 'message': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
                 'detail': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
-                'code': 'PRODUCT_URL_ANALYSIS_FAILED',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-        return Response(
-            {
-                'success': False,
-                'message': '상품 URL 분석 중 오류가 발생했습니다.',
-                'detail': '상품 URL 분석 중 오류가 발생했습니다.',
                 'code': 'PRODUCT_URL_ANALYSIS_FAILED',
             },
             status=status.HTTP_400_BAD_REQUEST,
@@ -282,3 +348,167 @@ def product_scrape(request):
         )
 
     return Response(scraped.public_payload(), status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def product_image_analysis(request):
+    if not request.FILES.get('image'):
+        return Response(
+            {
+                'success': False,
+                'analysis_id': None,
+                'code': 'IMAGE_REQUIRED',
+                'message': 'An image file is required for product image analysis.',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    serializer = ProductImageAnalysisRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    validated = serializer.validated_data
+
+    analysis = None
+    try:
+        analysis = ProductImageAnalysis.objects.create(
+            user=request.user,
+            product_name=validated.get('product_name', ''),
+            brand_name=validated.get('brand_name', ''),
+            category=validated.get('category') or Product.Category.ETC,
+            uploaded_image=validated['image'],
+        )
+        logger.info(
+            'Product image analysis request saved. analysis_id=%s user_id=%s category=%s image_name=%s image_path=%s',
+            analysis.id,
+            request.user.id,
+            analysis.category,
+            analysis.uploaded_image.name,
+            getattr(analysis.uploaded_image, 'path', ''),
+        )
+
+        pipeline = ProductImageAnalysisPipeline(analysis)
+        payload = pipeline.run()
+
+    except NoColorCandidatesFoundError as exc:
+        logger.warning(
+            'Product image analysis found no color candidates. analysis_id=%s error=%s',
+            analysis.id if analysis else None,
+            exc,
+        )
+        return product_image_analysis_error_response(
+            analysis,
+            code='NO_COLOR_CANDIDATES_FOUND',
+            message=str(exc),
+            detail=str(exc),
+            exc=exc,
+            http_status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    except AIClientConfigurationError as exc:
+        logger.exception(
+            'Product image analysis AI configuration failed. analysis_id=%s error=%s',
+            analysis.id if analysis else None,
+            exc,
+        )
+        return product_image_analysis_error_response(
+            analysis,
+            code='IMAGE_ANALYSIS_UNAVAILABLE',
+            message=str(exc),
+            detail=str(exc),
+            exc=exc,
+            http_status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    except ValidationError as exc:
+        message = validation_error_message(exc)
+        logger.exception(
+            'Product image analysis validation failed. analysis_id=%s error=%s',
+            analysis.id if analysis else None,
+            message,
+        )
+        return product_image_analysis_error_response(
+            analysis,
+            code='INVALID_IMAGE',
+            message=message,
+            detail=message,
+            exc=exc,
+            http_status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    except (DatabaseError, OSError, ValueError) as exc:
+        logger.exception(
+            'Product image analysis persistence or processing failed. analysis_id=%s error=%s',
+            analysis.id if analysis else None,
+            exc,
+        )
+        return product_image_analysis_error_response(
+            analysis,
+            code='IMAGE_ANALYSIS_SAVE_FAILED',
+            message=IMAGE_ANALYSIS_SAVE_FAILED_MESSAGE,
+            detail=str(exc),
+            exc=exc,
+            http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    except Exception as exc:
+        logger.exception(
+            'Unexpected product image analysis failure. analysis_id=%s error=%s',
+            analysis.id if analysis else None,
+            exc,
+        )
+        return product_image_analysis_error_response(
+            analysis,
+            code='IMAGE_ANALYSIS_FAILED',
+            message=IMAGE_ANALYSIS_FAILED_MESSAGE,
+            detail=str(exc),
+            exc=exc,
+            http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return Response(payload, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def product_image_analysis_list(request):
+    queryset = ProductImageAnalysis.objects.filter(user=request.user).prefetch_related('options')
+    return list_response(request, queryset, ProductImageAnalysisSummarySerializer, context={'request': request})
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def product_image_analysis_detail(request, analysis_id):
+    analysis = get_object_or_404(
+        ProductImageAnalysis.objects.filter(user=request.user).prefetch_related('options'),
+        pk=analysis_id,
+    )
+    if request.method == 'GET':
+        return Response(build_product_image_analysis_payload(analysis), status=status.HTTP_200_OK)
+    if request.method == 'DELETE':
+        analysis.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ProductImageAnalysisUpdateSerializer(data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    try:
+        payload = update_analysis_from_review(analysis, serializer.validated_data)
+    except ValidationError as exc:
+        return Response(
+            {
+                'success': False,
+                'code': 'INVALID_REVIEW_UPDATE',
+                'detail': exc.message if hasattr(exc, 'message') else exc.messages[0],
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return Response(payload, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def product_image_analysis_confirm(request, analysis_id):
+    analysis = get_object_or_404(
+        ProductImageAnalysis.objects.filter(user=request.user).prefetch_related('options'),
+        pk=analysis_id,
+    )
+    payload = confirm_analysis(analysis)
+    return Response(payload, status=status.HTTP_200_OK)
