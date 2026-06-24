@@ -136,7 +136,7 @@
               </div>
               <strong>{{ toneLabel }}</strong>
             </div>
-            <ProductColorChart
+            <ProductOptionColorChart
               v-model="selectedOption"
               :product="analysisProduct"
               :options="analysisOptions"
@@ -178,7 +178,7 @@ import { useRoute } from 'vue-router'
 
 import ProductImageAnalysisForm from '@/components/analysis/ProductImageAnalysisForm.vue'
 import RecentAnalysis from '@/components/analysis/RecentAnalysis.vue'
-import ProductColorChart from '@/components/products/ProductColorChart.vue'
+import ProductOptionColorChart from '@/components/products/ProductOptionColorChart.vue'
 import RecommendationAccordion from '@/components/products/RecommendationAccordion.vue'
 import {
   analyzeProductColorImage,
@@ -219,7 +219,7 @@ const toneLabel = computed(() => {
   return hasPersonalizedResult.value ? userToneProfile.value.toneName || '메인 퍼스널컬러' : '메인 퍼스널컬러 미설정'
 })
 const selectedColor = computed(() => optionColor(selectedOption.value))
-const productImage = computed(() => analysisResult.value?.uploaded_image_url || analysisProduct.value?.representative_image_url || '')
+const productImage = computed(() => resolveMediaUrl(analysisResult.value?.uploaded_image_url || analysisProduct.value?.representative_image_url || ''))
 const disclaimer = computed(() => analysisResult.value?.disclaimer || '')
 const confirmedLabel = computed(() => (analysisResult.value?.confirmed ? '확정 완료' : '검토 중'))
 const warningMessage = computed(() => {
@@ -439,7 +439,8 @@ const normalizeProductFromResult = (result) => {
     name: result.product.product_name || result.product.name || '분석한 제품',
     category: result.product.category || 'ETC',
     description: result.product.description || '',
-    representative_image_url: result.product.thumbnail_url || result.product.image_url || '',
+    representative_image_url: resolveMediaUrl(
+  result.product.thumbnail_url || result.product.image_url || result.product.uploaded_image_url || ''),
   }
 }
 
@@ -459,12 +460,21 @@ const normalizeOption = (option) => ({
   analysis_status: option.analysis_status || '',
 })
 
+const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || 'http://127.0.0.1:8000'
+
+const resolveMediaUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url
+  if (url.startsWith('/')) return `${API_ORIGIN}${url}`
+  return `${API_ORIGIN}/${url}`
+}
+
 const normalizeRecentAnalysis = (record) => ({
   id: record.id,
   brandName: record.brand_name || '',
   productName: record.product_name || '',
   title: record.product_name || '제품 색상 분석',
-  thumbnailUrl: record.uploaded_image_url || '',
+  thumbnailUrl: resolveMediaUrl(record.uploaded_image_url || record.thumbnail_url || record.image_url || ''),
   analyzedAt: record.created_at,
   colors: Array.isArray(record.colors) ? record.colors : [],
 })

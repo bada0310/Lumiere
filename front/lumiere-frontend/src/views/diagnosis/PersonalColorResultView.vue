@@ -28,19 +28,8 @@
       <section v-else-if="!diagnosisResult" class="state-card">표시할 진단 결과가 없어요.</section>
 
       <section v-else class="result-shell">
-        <div class="result-topline">
-          <span v-if="diagnosisResult.is_mock" class="demo-badge">개발용 mock 결과</span>
-          <span v-else-if="diagnosisResult.is_demo" class="demo-badge">데모 진단 결과</span>
-
-          <label v-if="isDev" class="mock-switcher">
-            <span>Mock 타입</span>
-            <select :value="selectedMockQuery" @change="changeMockType">
-              <option value="">API 결과</option>
-              <option v-for="mock in mockOptions" :key="mock.type || mock.toneKey" :value="mock.type || mock.toneKey">
-                {{ mock.titleKo }}
-              </option>
-            </select>
-          </label>
+        <div v-if="diagnosisResult.is_demo" class="result-topline">
+          <span class="demo-badge">데모 진단 결과</span>
         </div>
 
         <section class="hero-grid">
@@ -253,8 +242,20 @@
         <section ref="makeoverRef" class="section-card makeover-section">
           <div class="section-head">
             <div>
-              <h2>AI 메이크오버 이미지</h2>
-              <p>진단 결과와 분리된 비동기 작업으로 스타일별 이미지를 순차 표시합니다.</p>
+              <h2>예상 메이크업 이미지</h2>
+              <p>내 퍼스널 컬러에 어울리는 다양한 메이크업 스타일을 확인해보세요.</p>
+            </div>
+          </div>
+          <div v-if="showMakeoverLoadingNotice" class="makeover-status-banner">
+            <span class="makeover-status-spinner" aria-hidden="true"></span>
+
+            <div>
+              <strong>AI 예상 메이크업 이미지를 생성하고 있어요</strong>
+              <p>
+                이미지 생성은 시간이 조금 걸릴 수 있어요.
+                완성된 스타일은 자동으로 표시됩니다.
+                <b>{{ makeoverProgressText }}</b>
+              </p>
             </div>
           </div>
 
@@ -371,7 +372,6 @@ import {
   DEFAULT_MOCK_TONE_KEY,
   getMockPersonalColorResult,
   isMockPersonalColorResultKey,
-  MOCK_PERSONAL_COLOR_RESULTS,
 } from '@/data/mockPersonalColorResults'
 import {
   getDemoDiagnosis,
@@ -427,7 +427,6 @@ const makeoverLoading = ref(false)
 let makeoverPollTimer = null
 
 const isDev = import.meta.env.DEV
-const mockOptions = MOCK_PERSONAL_COLOR_RESULTS
 const defaultTip = '색상은 제품명보다 실제 발색, 채도, 명도, 온도감이 더 중요해요.'
 
 const selectedMockQuery = computed(() => {
@@ -529,9 +528,81 @@ const colorTipItems = computed(() => {
   ]
 })
 
+const getMakeoverImageUrl = (style) => style?.image_url || style?.imageUrl || style?.image || ''
+
+const normalizeStatus = (status) => String(status || '').toLowerCase()
+
+const hasMakeoverImage = (style) => Boolean(getMakeoverImageUrl(style))
+
+const isMakeoverStyleComplete = (style) => {
+  if (hasMakeoverImage(style)) return true
+  return ['complete', 'completed', 'done', 'success'].includes(normalizeStatus(style?.status))
+}
+
+const isMakeoverStyleWaiting = (style) => {
+  if (hasMakeoverImage(style)) return false
+  return ['queued', 'running', 'pending', 'loading'].includes(normalizeStatus(style?.status))
+}
+
+const isMakeoverStyleFailed = (style) => {
+  if (hasMakeoverImage(style)) return false
+  return normalizeStatus(style?.status) === 'failed'
+}
+
+const normalizeMakeoverStyle = (style = {}, index = 0) => {
+  const key = style.style_key || style.key || `style-${index}`
+  const imageUrl = getMakeoverImageUrl(style)
+
+  return {
+    ...style,
+    key,
+    style_key: key,
+    name: style.title || style.name || `스타일 ${index + 1}`,
+    title: style.title || style.name || `스타일 ${index + 1}`,
+    description: style.description || '',
+    points: asArray(style.points),
+    disclaimer: style.disclaimer || '',
+    image_url: imageUrl,
+    status: imageUrl ? 'complete' : style.status || 'none',
+    error_message: style.error_message || style.error || '',
+    order: style.order ?? index + 1,
+    is_default: Boolean(style.is_default || index === 0),
+  }
+}
+
+const deriveMakeoverStatus = (rawStatus, styles = []) => {
+  if (!styles.length) return normalizeStatus(rawStatus) || 'none'
+  if (styles.some(isMakeoverStyleWaiting)) return 'running'
+  if (styles.every(isMakeoverStyleComplete)) return 'complete'
+  if (styles.some(isMakeoverStyleComplete) && styles.some(isMakeoverStyleFailed)) return 'partial'
+  if (styles.every(isMakeoverStyleFailed)) return 'failed'
+  return normalizeStatus(rawStatus) || 'none'
+}
+
+const completedMakeoverCount = computed(() =>
+  makeoverStyles.value.filter((style) => isMakeoverStyleComplete(style)).length
+)
+
+const totalMakeoverCount = computed(() => Math.max(makeoverStyles.value.length || 3, 3))
+
 const isMakeoverActive = computed(() => {
-  if (['queued', 'running', 'pending', 'loading', 'partial'].includes(makeoverStatus.value)) return true
-  return makeoverStyles.value.some((style) => ['queued', 'running', 'pending', 'loading'].includes(style.status))
+  const styles = makeoverStyles.value || []
+
+  if (styles.length > 0) {
+    return styles.some((style) => isMakeoverStyleWaiting(style))
+  }
+
+  return ['queued', 'running', 'pending', 'loading'].includes(normalizeStatus(makeoverStatus.value))
+})
+
+const showMakeoverLoadingNotice = computed(() => {
+  if (!canUseMakeoverApi.value) return false
+  if (!isMakeoverActive.value && !makeoverLoading.value) return false
+  return completedMakeoverCount.value < totalMakeoverCount.value
+})
+
+const makeoverProgressText = computed(() => {
+  return `${completedMakeoverCount.value}/${totalMakeoverCount.value}개 완료`
 })
 
 const skinMetricLabels = [
@@ -639,29 +710,48 @@ const iconLabel = (icon) =>
     circle: '◌',
   })[icon] || '✦'
 
-const normalizeMakeoverPayload = (payload) => ({
-  status: payload?.status || 'none',
-  error: payload?.error || payload?.detail || '',
-  styles: asArray(payload?.styles || payload?.makeover_styles).map((style, index) => ({
-    key: style.key || `style-${index}`,
-    name: style.name || `스타일 ${index + 1}`,
-    description: style.description || '',
-    image_url: style.image_url || style.image || '',
-    status: style.status || (style.image_url || style.image ? 'complete' : 'none'),
-    error_message: style.error_message || style.error || '',
-    order: style.order ?? index + 1,
-    is_default: Boolean(style.is_default || index === 0),
-  })),
-})
+const normalizeMakeoverPayload = (payload = {}) => {
+  const styles = asArray(payload?.makeup_images || payload?.styles || payload?.makeover_styles).map(normalizeMakeoverStyle)
+  const status = deriveMakeoverStatus(payload?.status || payload?.makeup_generation_status, styles)
+
+  return {
+    status,
+    error: payload?.error || payload?.makeup_generation_error || payload?.detail || '',
+    styles,
+  }
+}
 
 const applyDiagnosisResult = (raw) => {
   const normalized = normalizeDiagnosisResult(raw)
+  const initialMakeover = normalizeMakeoverPayload({
+    status:
+      raw?.makeup_generation_status ||
+      raw?.makeover?.status ||
+      raw?.ai_makeover?.status ||
+      normalized?.ai_makeover?.status,
+    error:
+      raw?.makeup_generation_error ||
+      raw?.makeover?.error ||
+      raw?.ai_makeover?.error ||
+      normalized?.ai_makeover?.error,
+    makeup_images:
+      raw?.makeup_images ||
+      raw?.makeover_styles ||
+      raw?.makeover?.makeup_images ||
+      raw?.makeover?.styles ||
+      raw?.ai_makeover?.makeup_images ||
+      raw?.ai_makeover?.styles ||
+      normalized?.makeup_images ||
+      normalized?.makeover_styles ||
+      normalized?.ai_makeover?.styles ||
+      [],
+  })
+
   diagnosisResult.value = normalized
-  makeoverState.value = normalized?.ai_makeover || { status: 'none', styles: [], error: '' }
+  makeoverState.value = initialMakeover
   selectedLookKey.value =
-    normalized?.ai_makeover?.styles?.find((look) => look.is_default)?.key ||
-    normalized?.ai_makeover?.styles?.[0]?.key ||
-    normalized?.makeover_styles?.[0]?.key ||
+    initialMakeover.styles.find((look) => look.is_default)?.key ||
+    initialMakeover.styles[0]?.key ||
     ''
   profileImageErrored.value = false
   isSaved.value = Boolean(normalized?.is_primary || (normalized?.is_mock && getSavedMockDiagnosisResult()?.id === normalized.id))
@@ -784,7 +874,6 @@ const loadDiagnosis = async ({ silent = false } = {}) => {
 
     applyDiagnosisResult(data)
     await loadMakeovers({ silent: true })
-    await startMakeoversIfNeeded()
   } catch (error) {
     console.error('진단 결과 조회 실패:', error)
 
@@ -810,7 +899,6 @@ const stopMakeoverPolling = () => {
   window.clearInterval(makeoverPollTimer)
   makeoverPollTimer = null
 }
-
 const scheduleMakeoverPolling = () => {
   stopMakeoverPolling()
   if (!isMakeoverActive.value || diagnosisResult.value?.is_mock || diagnosisResult.value?.is_demo) return
@@ -822,17 +910,6 @@ const scheduleMakeoverPolling = () => {
     }
     loadMakeovers({ silent: true })
   }, 4000)
-}
-
-const changeMockType = (event) => {
-  const nextMock = event.target.value
-  router.replace({
-    path: route.path,
-    query: {
-      ...route.query,
-      mock: nextMock || undefined,
-    },
-  })
 }
 
 const goToProducts = () => {
@@ -1779,6 +1856,55 @@ onUnmounted(stopMakeoverPolling)
 
   .profile-image-frame {
     width: min(100%, 260px);
+  }
+}
+
+.makeover-status-banner {
+  margin: 18px 0 20px;
+  padding: 18px 20px;
+  border: 1px solid rgba(198, 83, 103, 0.14);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.86), transparent 42%),
+    linear-gradient(135deg, #fff8f5, #f8e7ee);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 12px 28px rgba(120, 67, 78, 0.07);
+}
+
+.makeover-status-spinner {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 4px solid rgba(198, 83, 103, 0.16);
+  border-top-color: #c65367;
+  animation: makeover-status-spin 0.9s linear infinite;
+}
+
+.makeover-status-banner strong {
+  display: block;
+  color: #3a2b2a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.makeover-status-banner p {
+  margin: 5px 0 0;
+  color: #8b7672;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.makeover-status-banner b {
+  color: #c65367;
+  font-weight: 900;
+}
+
+@keyframes makeover-status-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

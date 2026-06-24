@@ -18,14 +18,26 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
+from products import views as product_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('api/diagnosis/', include('diagnosis.urls')),
     path('api/products/', include('products.urls')),
+    path(
+        'api/recommendations/personalized-products/',
+        product_views.personalized_recommendation_products,
+        name='personalized-recommendation-products',
+    ),
+    path(
+        'api/recommendations/<int:product_id>/color-matching/',
+        product_views.recommendation_color_matching,
+        name='recommendation-color-matching',
+    ),
     path('api/community/', include('community.urls')),
     path('api/engagements/', include('engagements.urls')),
+    path('api/notifications/', include('engagements.notification_urls')),
     # path('', include('personal_color.urls')),
     # path('', include('product.urls')),
 ]

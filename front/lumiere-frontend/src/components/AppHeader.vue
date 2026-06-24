@@ -1,6 +1,8 @@
 <template>
   <header class="app-header">
-    <RouterLink to="/" class="brand-logo">Lumière</RouterLink>
+    <RouterLink to="/" class="brand-logo" aria-label="Lumière 홈으로 이동">
+      <img :src="lumiereLogo" alt="Lumière" />
+    </RouterLink>
 
     <nav class="nav-menu" aria-label="주요 메뉴">
       <RouterLink to="/upload" class="nav-item">진단하기</RouterLink>
@@ -74,7 +76,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.1-7.1l.4.4.4-.4a5 5 0 0 1 7.1 7.1Z" />
         </svg>
-        <span v-if="likedCount" class="action-badge">{{ likedCount }}</span>
       </RouterLink>
 
       <button v-if="!isLoggedIn" class="login-btn" type="button" @click="router.push('/login')">
@@ -107,29 +108,32 @@
 </template>
 
 <script setup>
+import lumiereLogo from '@/assets/images/lumiere_logo.png'
+
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import UserAvatar from '@/components/user/UserAvatar.vue'
 import { useCurrentUser } from '@/composables/useCurrentUser'
 import { useResolvedProfileImage } from '@/composables/useResolvedProfileImage'
-import { getLatestDiagnosis } from '@/services/diagnosisApi'
-import { getLikedProductOptions } from '@/services/engagementApi'
+import { useEngagementStore } from '@/stores/engagement'
+import { useNotificationStore } from '@/stores/notifications'
 
 const router = useRouter()
 const { currentUser, loadCurrentUser, clearCurrentUser } = useCurrentUser()
 const { resolvedProfileImageUrl, loadLatestDiagnosisForProfile, clearResolvedProfileImage } =
   useResolvedProfileImage(currentUser)
+const engagementStore = useEngagementStore()
+const notificationStore = useNotificationStore()
 
 const isSearchOpen = ref(false)
 const isNotificationOpen = ref(false)
 const searchKeyword = ref('')
 const searchInput = ref(null)
-const latestDiagnosis = ref(null)
-const likedCount = ref(0)
 
 const isLoggedIn = computed(() => Boolean(localStorage.getItem('access_token')))
 const userName = computed(() => currentUser.value?.nickname || currentUser.value?.username || '사용자')
+const likedCount = computed(() => engagementStore.likedCount)
 const notificationItems = computed(() => {
   if (!isLoggedIn.value) {
     return [
@@ -142,35 +146,28 @@ const notificationItems = computed(() => {
     ]
   }
 
-  const items = []
-  if (latestDiagnosis.value) {
-    items.push({
-      key: 'diagnosis',
-      title: '퍼스널컬러 요약 준비 완료',
-      description: `${latestDiagnosis.value.korean_name || latestDiagnosis.value.tone_label || '진단 결과'} 기준 추천을 확인할 수 있어요.`,
-      route: latestDiagnosis.value.id
-        ? { name: 'diagnosis-result-detail', params: { diagnosisId: latestDiagnosis.value.id } }
-        : { name: 'mypage-diagnoses' },
-    })
-  } else {
-    items.push({
-      key: 'diagnosis-empty',
-      title: '아직 진단 결과가 없어요',
-      description: '사진을 업로드하면 홈과 추천제품에 내 톤이 반영돼요.',
-      route: { name: 'upload' },
-    })
+  if (!notificationStore.items.length) {
+    return [
+      {
+        key: 'empty',
+        title: '새 알림이 없어요',
+        description: '진단 완료와 서비스 안내를 이곳에서 확인할 수 있어요.',
+        route: null,
+        empty: true,
+      },
+    ]
   }
 
-  items.push({
-    key: 'likes',
-    title: likedCount.value ? `찜한 제품 ${likedCount.value}개` : '찜한 제품이 없어요',
-    description: likedCount.value ? '마이페이지에서 저장한 제품 옵션을 다시 볼 수 있어요.' : '추천제품에서 하트를 눌러 제품을 저장해보세요.',
-    route: { name: 'mypage-liked-options' },
-  })
-
-  return items
+  return notificationStore.items.map((notice) => ({
+    key: notice.id,
+    id: notice.id,
+    title: notice.title,
+    description: notice.body,
+    route: notice.route,
+    isRead: notice.is_read,
+  }))
 })
-const notificationCount = computed(() => notificationItems.value.length)
+const notificationCount = computed(() => notificationStore.unreadCount)
 
 const toggleSearch = async () => {
   isSearchOpen.value = !isSearchOpen.value
@@ -186,12 +183,29 @@ const closeSearch = () => {
   searchKeyword.value = ''
 }
 
-const toggleNotifications = () => {
-  isNotificationOpen.value = !isNotificationOpen.value
+const toggleNotifications = async () => {
+  const willOpen = !isNotificationOpen.value
+  isNotificationOpen.value = willOpen
+
+  if (!willOpen || !isLoggedIn.value) return
+
+  try {
+    await notificationStore.loadNotifications({ force: true })
+    await notificationStore.markAllRead()
+  } catch (error) {
+    console.warn('알림 읽음 상태를 업데이트하지 못했습니다.', error)
+  }
 }
 
-const goNotice = (notice) => {
+const goNotice = async (notice) => {
   isNotificationOpen.value = false
+  if (notice.id && !notice.isRead) {
+    try {
+      await notificationStore.markRead(notice.id)
+    } catch (error) {
+      console.warn('알림을 읽음 처리하지 못했습니다.', error)
+    }
+  }
   if (notice.route) router.push(notice.route)
 }
 
@@ -213,6 +227,8 @@ const logout = () => {
   localStorage.removeItem('refresh_token')
   clearCurrentUser()
   clearResolvedProfileImage()
+  engagementStore.$reset?.()
+  notificationStore.$reset?.()
   window.location.href = '/'
 }
 
@@ -227,16 +243,11 @@ onMounted(async () => {
     logout()
   }
 
-  try {
-    const [diagnosis, likedOptions] = await Promise.all([
-      getLatestDiagnosis(),
-      getLikedProductOptions({ page: 1, page_size: 1 }),
-    ])
-    latestDiagnosis.value = diagnosis
-    likedCount.value = Array.isArray(likedOptions) ? likedOptions.length : Number(likedOptions?.count || 0)
-  } catch (error) {
-    console.warn('헤더 알림 정보를 가져오지 못했습니다.', error)
-  }
+  await Promise.allSettled([
+    engagementStore.loadLikedOptions({ force: true }),
+    notificationStore.loadNotifications({ force: true }),
+    notificationStore.refreshUnreadCount(),
+  ])
 })
 </script>
 
@@ -257,10 +268,16 @@ onMounted(async () => {
 }
 
 .brand-logo {
-  color: #bf4f63;
-  font-size: 30px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
+}
+
+.brand-logo img {
+  display: block;
+  width: 138px;
+  height: auto;
+  object-fit: contain;
 }
 
 .nav-menu {

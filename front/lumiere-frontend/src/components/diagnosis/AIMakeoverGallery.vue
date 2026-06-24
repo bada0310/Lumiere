@@ -17,22 +17,22 @@
         class="look-card"
         :class="{
           active: selectedKey === look.key,
-        'look-card--failed': look.status === 'failed',
-        'look-card--loading': ['queued', 'running', 'pending', 'loading'].includes(look.status),
-      }"
+          'look-card--failed': isLookFailed(look),
+          'look-card--loading': isLookLoading(look),
+        }"
       @click="$emit('select', look.key)"
     >
         <div
           class="look-card__visual"
           :class="[
             `look-card__visual--${look.key}`,
-            { 'look-card__visual--guide': !look.image_url },
+            { 'look-card__visual--guide': !hasLookImage(look) },
           ]"
         >
           <img
-            v-if="look.image_url"
-            :src="look.image_url"
-            :alt="`${look.name} 메이크오버 이미지`"
+            v-if="hasLookImage(look)"
+            :src="getLookImageUrl(look)"
+            :alt="look.title || look.name || 'AI 메이크업 이미지'"
           />
           <div v-else class="makeup-model" :style="makeupStyleVars(look)" aria-hidden="true">
             <span class="makeup-model__glow"></span>
@@ -66,16 +66,31 @@
               <i class="makeup-model__swatch makeup-model__swatch--lip"></i>
             </span>
           </div>
-          <em v-if="!look.image_url">퍼스널컬러 화장법</em>
+          <em v-if="!hasLookImage(look)">
+            {{ isLookFailed(look) ? '생성 실패' : '메이크업 프리뷰' }}
+          </em>
         </div>
 
         <div class="look-card__copy">
-          <strong>{{ look.name }}</strong>
-          <small v-if="look.status" class="look-card__status">{{ statusLabel(look.status) }}</small>
+          <strong>{{ look.title || look.name }}</strong>
+          <small v-if="look.status || hasLookImage(look)" class="look-card__status">
+            {{ statusLabel(effectiveLookStatus(look)) }}
+          </small>
           <p>{{ look.description }}</p>
+          <ul v-if="look.points?.length" class="look-card__points">
+            <li v-for="point in look.points" :key="point">
+              <span class="point-icon" aria-hidden="true">
+                <span class="point-icon__glow"></span>
+              </span>
+              <span>{{ point }}</span>
+            </li>
+          </ul>
+          <p class="look-card__disclaimer">
+            {{ look.disclaimer || defaultDisclaimer }}
+          </p>
         </div>
 
-        <button v-if="look.status === 'failed'" type="button" @click="$emit('retry', look.key)">다시 생성</button>
+        <button v-if="isLookFailed(look)" type="button" @click="$emit('retry', look.key)">다시 생성</button>
       </article>
     </div>
 
@@ -125,9 +140,37 @@ const props = defineProps({
 
 defineEmits(['start', 'retry', 'select'])
 
-const isActive = computed(() => ['queued', 'running', 'pending', 'loading'].includes(props.status))
-const showAction = computed(() => !props.styles.length && !isActive.value && props.status !== 'complete')
-const skeletonCount = computed(() => Math.min(Math.max(props.styles.length || 3, 3), 5))
+const defaultDisclaimer = 'AI 기술로 생성된 예시 메이크업 이미지로, 실제 화장 결과와 제품 발색은 다를 수 있어요.'
+const activeStatuses = ['queued', 'running', 'pending', 'loading']
+
+const normalizeStatus = (status) => String(status || '').toLowerCase()
+const getLookImageUrl = (look) => look?.image_url || look?.imageUrl || look?.image || ''
+const hasLookImage = (look) => Boolean(getLookImageUrl(look))
+
+const effectiveLookStatus = (look) => {
+  if (hasLookImage(look)) return 'complete'
+  return normalizeStatus(look?.status || 'none')
+}
+
+const isLookLoading = (look) => {
+  if (hasLookImage(look)) return false
+  return activeStatuses.includes(normalizeStatus(look?.status))
+}
+
+const isLookFailed = (look) => {
+  if (hasLookImage(look)) return false
+  return normalizeStatus(look?.status) === 'failed'
+}
+
+const isActive = computed(() => {
+  if (props.styles.length) {
+    return props.styles.some((look) => isLookLoading(look))
+  }
+
+  return activeStatuses.includes(normalizeStatus(props.status))
+})
+const showAction = computed(() => !props.styles.length && !isActive.value && !['complete', 'partial'].includes(normalizeStatus(props.status)))
+const skeletonCount = computed(() => Math.min(Math.max(props.styles.length || 3, 3), 3))
 const loadingMessage = computed(() =>
   props.styles.length
     ? '완성된 스타일은 순차적으로 표시됩니다.'
@@ -142,11 +185,34 @@ const statusLabel = (status) =>
     running: '생성 중',
     loading: '생성 중',
     complete: '완료',
+    partial: '일부 완료',
     failed: '실패',
     skipped: '보류',
   })[status] || status
 
 const styleSettings = {
+  daily: {
+    lipGroups: ['lip'],
+    blushGroups: ['blush'],
+    eyeGroups: ['base', 'shading'],
+    lipDepth: 0.18,
+    linerAlpha: 0.42,
+    shadowAlpha: 0.36,
+    blushAlpha: 0.42,
+    lipAlpha: 0.68,
+    bgAlpha: 0.18,
+  },
+  lovely: {
+    lipGroups: ['lip'],
+    blushGroups: ['blush'],
+    eyeGroups: ['point', 'base', 'aegyosal'],
+    lipDepth: 0.28,
+    linerAlpha: 0.46,
+    shadowAlpha: 0.5,
+    blushAlpha: 0.6,
+    lipAlpha: 0.84,
+    bgAlpha: 0.24,
+  },
   natural_daily: {
     lipGroups: ['lip'],
     blushGroups: ['blush'],
@@ -305,8 +371,9 @@ const makeupStyleVars = (look) => {
   const fallback = getFallbackPalette()
   const setting = styleSettings[look?.key] || styleSettings.natural_daily
   const guide = props.makeupGuide || {}
-  const lip = getChipHex(guide?.lip?.chips, fallback.lip, look?.key === 'romantic' ? 1 : 0)
-  const blush = getChipHex(guide?.blush?.chips, fallback.blush, look?.key === 'romantic' ? 1 : 0)
+  const isLovely = ['lovely', 'romantic'].includes(look?.key)
+  const lip = getChipHex(guide?.lip?.chips, fallback.lip, isLovely ? 1 : 0)
+  const blush = getChipHex(guide?.blush?.chips, fallback.blush, isLovely ? 1 : 0)
   const eye = getEyeHex(guide, setting, fallback.eye)
   const liner = getChipHex(guide?.eye?.eyeliner, fallback.liner)
   const lipDeep = mixHex(lip, '#4B2230', setting.lipDepth)
@@ -378,12 +445,13 @@ const makeupStyleVars = (look) => {
 
 .look-card {
   min-width: 0;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 16px;
   background: #fff;
   display: grid;
-  gap: 11px;
+  gap: 13px;
+  box-shadow: 0 10px 24px rgba(88, 55, 45, 0.05);
 }
 
 .look-card.active {
@@ -402,8 +470,8 @@ const makeupStyleVars = (look) => {
 .look-card__visual,
 .look-card__placeholder {
   width: 100%;
-  aspect-ratio: 1.5 / 1;
-  border-radius: 8px;
+  aspect-ratio: 4 / 5;
+  border-radius: 13px;
   background:
     radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.82) 0 11%, transparent 12%),
     radial-gradient(ellipse at 50% 56%, rgba(120, 75, 78, 0.28) 0 22%, transparent 23%),
@@ -1024,7 +1092,7 @@ const makeupStyleVars = (look) => {
 .look-card__copy {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 7px;
 }
 
 .look-card__copy strong,
@@ -1051,6 +1119,49 @@ const makeupStyleVars = (look) => {
   margin: 0;
   color: #8e7e79;
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.look-card__points {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.look-card__points li {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  color: #4d4441;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.point-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), transparent 28%),
+    linear-gradient(135deg, #f4c0bd, #d86b82);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 8px 16px rgba(198, 83, 103, 0.12);
+}
+
+
+.look-card__disclaimer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f1e4de;
+  color: #9b8d88 !important;
+  font-size: 11px !important;
   line-height: 1.5;
 }
 

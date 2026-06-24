@@ -29,7 +29,11 @@
 
           <button class="card-button" type="button" @click="$emit('select-analysis', item)">
             <div class="image-box">
-              <img :src="item.thumbnailUrl || 'https://via.placeholder.com/80?text=Img'" :alt="item.productName" />
+              <img
+                :src="item.thumbnailUrl || fallbackImage"
+                :alt="item.productName || '제품 이미지'"
+                @error="handleImageError"
+              />
             </div>
 
             <div class="info-box">
@@ -91,6 +95,19 @@ const formatDate = (value) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
   return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+}
+
+const fallbackImage =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="100" viewBox="0 0 80 100">
+      <rect width="80" height="100" rx="8" fill="#f7f1ef"/>
+      <text x="40" y="52" text-anchor="middle" font-size="11" fill="#b75a73">No Image</text>
+    </svg>
+  `)
+
+const handleImageError = (event) => {
+  event.target.src = fallbackImage
 }
 </script>
 

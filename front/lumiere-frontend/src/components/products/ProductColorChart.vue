@@ -42,7 +42,7 @@
         @click="selectOption(point.option)"
       >
         <circle
-          v-if="point.grade === 'CAUTION'"
+          v-if="point.grade === 'CAUTION' || point.grade === 'AVOID'"
           :cx="point.x"
           :cy="point.y"
           r="5.6"
@@ -211,8 +211,9 @@ const pointPosition = (option) => {
 
 const gradeFor = (option) => {
   if (isPendingOption(option)) return 'PENDING'
-  if (String(option.grade || '').toUpperCase()) {
-    return String(option.grade).toUpperCase()
+  const explicitGrade = String(option.match_status || option.grade || '').toUpperCase()
+  if (explicitGrade) {
+    return explicitGrade
   }
   const rawScore = option.match_score ?? option.matchScore ?? option.score
   if (rawScore === null || rawScore === undefined || rawScore === '') return 'UNRATED'
@@ -220,7 +221,8 @@ const gradeFor = (option) => {
   if (!Number.isFinite(score)) return 'UNRATED'
   if (score >= 85) return 'BEST'
   if (score >= 70) return 'GOOD'
-  if (score >= 55) return 'OK'
+  if (score >= 55) return 'MIX'
+  if (score < 40) return 'AVOID'
   return 'CAUTION'
 }
 
@@ -311,8 +313,16 @@ svg {
   stroke: #7aa52e;
 }
 
+.dot.mix {
+  stroke: #c98734;
+}
+
 .dot.caution {
   stroke: #d6a400;
+}
+
+.dot.avoid {
+  stroke: #8f4d44;
 }
 
 .dot.pending {

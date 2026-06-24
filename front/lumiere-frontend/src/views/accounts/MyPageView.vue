@@ -110,26 +110,29 @@
 
       <section class="dashboard-card analysis-log">
         <div class="section-heading">
-          <h3>최근 URL 분석 기록</h3>
-          <button type="button" class="view-all-btn" @click="goToList('mypage-url-analyses')">
+          <h3>최근 제품 분석 기록</h3>
+          <button type="button" class="view-all-btn" @click="goToList('mypage-product-analyses')">
             전체 보기
           </button>
         </div>
 
         <div v-if="analysisList.length === 0" class="empty-msg">
-          URL 분석 기록이 없습니다.
+          제품 분석 기록이 없습니다.
         </div>
 
         <ul v-else class="log-list">
           <li
             v-for="analysis in analysisList"
             :key="analysis.id"
-            class="log-item"
+            class="log-item analysis-item"
             @click="goToAnalysisResult(analysis.id)"
           >
+            <img v-if="analysis.image" :src="analysis.image" :alt="analysis.title" class="analysis-thumb" />
+            <div v-else class="analysis-thumb placeholder">{{ analysis.brandInitial }}</div>
             <div class="item-info vertical">
-              <span class="platform-tag">{{ analysis.brand || 'URL 분석' }}</span>
+              <span class="platform-tag">{{ analysis.brand || '제품 분석' }}</span>
               <p class="url-title">{{ analysis.title }}</p>
+              <small v-if="analysis.summary">{{ analysis.summary }}</small>
             </div>
 
             <span class="analysis-date">{{ analysis.date }}</span>
@@ -189,7 +192,7 @@
       <section class="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
         <h3 id="delete-account-title">회원탈퇴</h3>
         <p class="delete-warning">
-          회원탈퇴 시 계정 정보, 진단 기록, 찜한 제품, URL 분석 기록, 작성한 커뮤니티 글과 댓글이 모두
+          회원탈퇴 시 계정 정보, 진단 기록, 찜한 제품, 제품 분석 기록, 작성한 커뮤니티 글과 댓글이 모두
           삭제되며 복구할 수 없습니다.
         </p>
 
@@ -244,7 +247,9 @@ import { useRequireLogin } from '@/composables/useRequireLogin'
 import { DEFAULT_PROFILE_IMAGE } from '@/constants/images'
 import { getMyPosts } from '@/services/communityApi'
 import { getDiagnosisResults, getLatestDiagnosis } from '@/services/diagnosisApi'
-import { getLikedProductOptions, getUrlAnalysisRecords } from '@/services/engagementApi'
+import { getLikedProductOptions } from '@/services/engagementApi'
+import { getProductImageAnalyses } from '@/services/productApi'
+import { useEngagementStore } from '@/stores/engagement'
 import { deleteCurrentUser } from '@/services/userApi'
 import { clearAuthTokens } from '@/utils/auth'
 import { getSavedMockDiagnosisResult } from '@/utils/diagnosisMockStorage'
@@ -256,6 +261,7 @@ const DELETE_CONFIRMATION_TEXT = '탈퇴합니다'
 const router = useRouter()
 const { currentUser, loadCurrentUser, saveCurrentUser, clearCurrentUser } = useCurrentUser()
 const { handleAuthFailure } = useRequireLogin()
+const engagementStore = useEngagementStore()
 
 const isEditModalOpen = ref(false)
 const isSavingProfile = ref(false)
@@ -269,7 +275,7 @@ const diagnosisResultsFromApi = ref([])
 const primaryDiagnosisFromApi = ref(null)
 const savedMockDiagnosis = ref(null)
 const likedOptionsFromApi = ref([])
-const urlAnalysesFromApi = ref([])
+const productAnalysesFromApi = ref([])
 const communityPostsFromApi = ref([])
 
 const userInfo = computed(() => ({
@@ -367,12 +373,15 @@ const wishlist = computed(() => {
 })
 
 const analysisList = computed(() => {
-  return sortLatest(urlAnalysesFromApi.value, (item) => item.created_at)
+  return sortLatest(productAnalysesFromApi.value, (item) => item.created_at)
     .slice(0, PREVIEW_LIMIT)
     .map((item) => ({
       id: item.id,
-      title: item.title || item.product_name || item.source_url || 'URL 분석 기록',
-      brand: item.brand,
+      title: item.product_name || '제품 색상 분석',
+      brand: item.brand_name || '제품 분석',
+      image: item.uploaded_image_url || '',
+      brandInitial: (item.brand_name || item.product_name || 'L').slice(0, 1).toUpperCase(),
+      summary: item.confirmed ? '분석 확정 완료' : '검토 중',
       date: formatDate(item.created_at),
     }))
 })
@@ -491,11 +500,11 @@ const viewDiagnosisResult = (item) => {
 
 const goToProductDetail = (productId) => {
   if (!productId) return
-  router.push(`/product-detail/${productId}`)
+  router.push({ name: 'recommendAnalysisResult', params: { id: productId } })
 }
 
 const goToAnalysisResult = (id) => {
-  router.push(`/analysis/result/${id}`)
+  router.push({ name: 'productAnalysisResult', params: { id } })
 }
 
 const goToPost = (id) => {
@@ -509,18 +518,20 @@ onMounted(async () => {
 
   try {
     await loadCurrentUser({ force: true })
-    const [primaryDiagnosis, diagnoses, likedOptions, urlAnalyses, posts] = await Promise.all([
+    const [primaryDiagnosis, diagnoses, likedOptions, productAnalyses, posts] = await Promise.all([
       getLatestDiagnosis(),
       getDiagnosisResults({ limit: PREVIEW_LIMIT }),
       getLikedProductOptions({ limit: PREVIEW_LIMIT }),
-      getUrlAnalysisRecords({ limit: PREVIEW_LIMIT }),
+      getProductImageAnalyses({ limit: PREVIEW_LIMIT }),
       getMyPosts({ limit: PREVIEW_LIMIT }),
     ])
     primaryDiagnosisFromApi.value = primaryDiagnosis
     diagnosisResultsFromApi.value = asArray(diagnoses)
     likedOptionsFromApi.value = asArray(likedOptions)
-    urlAnalysesFromApi.value = asArray(urlAnalyses)
+    productAnalysesFromApi.value = asArray(productAnalyses)
     communityPostsFromApi.value = asArray(posts)
+    await engagementStore.loadLikedOptions({ force: true })
+    likedOptionsFromApi.value = engagementStore.likedItems.slice(0, PREVIEW_LIMIT)
   } catch (error) {
     if (handleAuthFailure(error)) return
     console.error('마이페이지 데이터를 가져오지 못했습니다.', error)
@@ -700,6 +711,31 @@ onMounted(async () => {
   border-bottom: none;
 }
 
+.analysis-item {
+  justify-content: flex-start;
+}
+
+.analysis-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: 0 0 46px;
+  background: #fff0f1;
+}
+
+.analysis-thumb.placeholder {
+  display: grid;
+  place-items: center;
+  color: #8b3a4a;
+  font-weight: 800;
+}
+
+.analysis-item .analysis-date {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .item-info {
   display: flex;
   align-items: center;
@@ -825,6 +861,11 @@ onMounted(async () => {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.item-info small {
+  color: #888;
+  font-size: 0.76rem;
 }
 
 .post-title {

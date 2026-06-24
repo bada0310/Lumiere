@@ -51,7 +51,9 @@ const groups = computed(() => {
   const order = [
     { grade: 'BEST', label: 'BEST' },
     { grade: 'GOOD', label: 'GOOD' },
+    { grade: 'MIX', label: 'MIX' },
     { grade: 'CAUTION', label: 'CAUTION' },
+    { grade: 'AVOID', label: 'AVOID' },
     { grade: 'PENDING', label: '분석 대기' },
   ]
   return order.map((item) => ({
@@ -76,15 +78,17 @@ watch(
 
 const normalizedGrade = (option) => {
   const status = String(option?.analysis_status || option?.analysisStatus || '').toUpperCase()
-  const grade = String(option?.grade || '').toUpperCase()
+  const grade = String(option?.match_status || option?.grade || '').toUpperCase()
   if (status === 'PENDING_COLOR_ANALYSIS' || grade === 'PENDING') return 'PENDING'
-  if (grade === 'BEST' || grade === 'GOOD' || grade === 'CAUTION') return grade
+  if (['BEST', 'GOOD', 'MIX', 'CAUTION', 'AVOID'].includes(grade)) return grade
   const rawScore = option?.match_score
   if (rawScore === null || rawScore === undefined || rawScore === '') return ''
   const score = Number(rawScore)
   if (!Number.isFinite(score)) return ''
   if (score >= 85) return 'BEST'
   if (score >= 70) return 'GOOD'
+  if (score >= 55) return 'MIX'
+  if (score < 40) return 'AVOID'
   return 'CAUTION'
 }
 </script>
@@ -147,8 +151,16 @@ const normalizedGrade = (option) => {
   background: #7aa52e;
 }
 
+.grade-dot.mix {
+  background: #c98734;
+}
+
 .grade-dot.caution {
   background: #d6a400;
+}
+
+.grade-dot.avoid {
+  background: #8f4d44;
 }
 
 .grade-dot.pending {

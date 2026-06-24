@@ -224,6 +224,8 @@ EMAIL_HOST = 'smtp.gmail.com' # 구글 우체국 주소
 EMAIL_PORT = 587 # 구글이 열어둔 보안 포트
 EMAIL_USE_TLS = True # 보안 터널 사용 여부 (필수)
 
-# ★ 수정 필요: 수빈님의 실제 정보로 바꿔주세요!
-EMAIL_HOST_USER = '수빈님의구글이메일@gmail.com' 
+# ★ 수정 필요: host님의 실제 정보로 바꿔주세요!
+EMAIL_HOST_USER = 'host님의구글이메일@gmail.com' 
 EMAIL_HOST_PASSWORD = '여기에_16자리_앱비밀번호_띄어쓰기없이_입력'
+
+BACKEND_ORIGIN = os.getenv('BACKEND_ORIGIN', 'http://127.0.0.1:8000')

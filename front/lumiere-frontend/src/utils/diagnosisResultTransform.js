@@ -88,9 +88,13 @@ const normalizeImageFeatures = (features) =>
 
 const defaultMakeoverStyles = () => [
   {
-    key: 'natural_daily',
-    name: '내추럴 데일리메이크업',
-    description: '피부결과 혈색을 은은하게 살린 자연스러운 메이크업',
+    key: 'daily',
+    style_key: 'daily',
+    name: '데일리 메이크업',
+    title: '데일리 메이크업',
+    description: '자연스러운 혈색과 은은한 음영으로 단정하고 깨끗한 인상을 연출해요.',
+    points: ['브라운 베이지 섀도우', '자연스러운 아이라인', '코랄 핑크 블러셔', 'MLBB 립'],
+    disclaimer: 'AI 기술로 생성된 예시 메이크업 이미지로, 실제 화장 결과와 제품 발색은 다를 수 있어요.',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -98,9 +102,13 @@ const defaultMakeoverStyles = () => [
     is_default: true,
   },
   {
-    key: 'pure_daily',
-    name: '청순 데일리메이크업',
-    description: '맑은 눈매와 투명한 혈색을 중심으로 한 메이크업',
+    key: 'lovely',
+    style_key: 'lovely',
+    name: '러블리 메이크업',
+    title: '러블리 메이크업',
+    description: '생기 있는 핑크 톤으로 화사하고 사랑스러운 분위기를 강조해요.',
+    points: ['핑크 코랄 섀도우', '애교살 강조', '로즈 핑크 블러셔', '촉촉한 핑크 립'],
+    disclaimer: 'AI 기술로 생성된 예시 메이크업 이미지로, 실제 화장 결과와 제품 발색은 다를 수 있어요.',
     image_url: '',
     status: 'none',
     error_message: '',
@@ -108,54 +116,57 @@ const defaultMakeoverStyles = () => [
     is_default: false,
   },
   {
-    key: 'romantic',
-    name: '로맨틱 메이크업',
-    description: '톤에 맞는 립과 블러셔로 분위기를 더한 메이크업',
+    key: 'smoky',
+    style_key: 'smoky',
+    name: '스모키 메이크업',
+    title: '스모키 메이크업',
+    description: '깊이 있는 음영과 또렷한 눈매로 세련되고 시크한 분위기를 연출해요.',
+    points: ['브라운/모브 스모키 섀도우', '딥 브라운 아이라인', '음영 블러셔', '뮤트 로즈 립'],
+    disclaimer: 'AI 기술로 생성된 예시 메이크업 이미지로, 실제 화장 결과와 제품 발색은 다를 수 있어요.',
     image_url: '',
     status: 'none',
     error_message: '',
     order: 3,
     is_default: false,
   },
-  {
-    key: 'chic',
-    name: '시크 메이크업',
-    description: '정돈된 음영과 선명한 포인트를 살린 메이크업',
-    image_url: '',
-    status: 'none',
-    error_message: '',
-    order: 4,
-    is_default: false,
-  },
-  {
-    key: 'smoky',
-    name: '스모키 메이크업',
-    description: '톤에 맞는 깊은 음영으로 눈매를 또렷하게 만든 메이크업',
-    image_url: '',
-    status: 'none',
-    error_message: '',
-    order: 5,
-    is_default: false,
-  },
 ]
 
+const canonicalMakeoverKey = (key) =>
+  ({
+    natural_daily: 'daily',
+    pure_daily: 'daily',
+    romantic: 'lovely',
+    chic: 'smoky',
+  })[key] || key
+
 const mergeDefaultMakeoverStyles = (styles = []) => {
-  const normalized = asArray(styles)
-  const styleMap = new Map(normalized.map((style) => [style.key, style]))
+  const normalized = asArray(styles).map((style) => ({
+    ...style,
+    key: canonicalMakeoverKey(style.style_key || style.key),
+    style_key: canonicalMakeoverKey(style.style_key || style.key),
+  }))
+  const styleMap = new Map(normalized.map((style) => [style.style_key || style.key, style]))
 
   return defaultMakeoverStyles().map((defaultStyle) => ({
     ...defaultStyle,
     ...(styleMap.get(defaultStyle.key) || {}),
     name: defaultStyle.name,
+    title: defaultStyle.title,
     description: defaultStyle.description,
+    points: defaultStyle.points,
+    disclaimer: defaultStyle.disclaimer,
   }))
 }
 
 const normalizeMakeoverStyles = (raw) => {
   const mockItems = asArray(raw.makeoverImages).map((item, index) => ({
-    key: item.id || item.key || `style-${index}`,
+    key: canonicalMakeoverKey(item.style_key || item.id || item.key || `style-${index}`),
+    style_key: canonicalMakeoverKey(item.style_key || item.id || item.key || `style-${index}`),
     name: item.styleName || item.name || `스타일 ${index + 1}`,
+    title: item.title || item.styleName || item.name || `스타일 ${index + 1}`,
     description: item.description || '',
+    points: asArray(item.points),
+    disclaimer: item.disclaimer || '',
     image_url: item.imageUrl || item.image_url || '',
     status: item.status || (item.imageUrl || item.image_url ? 'complete' : 'none'),
     error_message: item.error_message || item.error || '',
@@ -164,10 +175,14 @@ const normalizeMakeoverStyles = (raw) => {
   }))
   if (mockItems.length) return mergeDefaultMakeoverStyles(mockItems)
 
-  const apiItems = asArray(raw.makeover_styles || raw.ai_makeover?.styles).map((item, index) => ({
-    key: item.key || item.id || `style-${index}`,
+  const apiItems = asArray(raw.makeup_images || raw.makeover_styles || raw.ai_makeover?.makeup_images || raw.ai_makeover?.styles).map((item, index) => ({
+    key: canonicalMakeoverKey(item.style_key || item.key || item.id || `style-${index}`),
+    style_key: canonicalMakeoverKey(item.style_key || item.key || item.id || `style-${index}`),
     name: item.name || item.styleName || `스타일 ${index + 1}`,
+    title: item.title || item.name || item.styleName || `스타일 ${index + 1}`,
     description: item.description || '',
+    points: asArray(item.points),
+    disclaimer: item.disclaimer || '',
     image_url: item.image_url || item.image || '',
     status: item.status || (item.image_url || item.image ? 'complete' : 'none'),
     error_message: item.error_message || item.error || '',

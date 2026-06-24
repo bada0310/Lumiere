@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from .models import (
@@ -19,6 +20,28 @@ def prefetched_options(product):
 def option_offers(option):
     return list(getattr(option, '_prefetched_objects_cache', {}).get('offers', []) or option.offers.all())
 
+def absolute_media_url(request, file_field):
+    if not file_field:
+        return ''
+
+    try:
+        url = file_field.url
+    except ValueError:
+        return ''
+
+    if url.startswith('http://') or url.startswith('https://'):
+        return url
+
+    if request:
+        return request.build_absolute_uri(url)
+
+    base_url = (
+        getattr(settings, 'BACKEND_ORIGIN', '')
+        or getattr(settings, 'SITE_URL', '')
+        or 'http://127.0.0.1:8000'
+    )
+
+    return f'{base_url.rstrip("/")}{url}'
 
 class ProductOfferSerializer(serializers.ModelSerializer):
     class Meta:
@@ -263,14 +286,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class ProductColorAnalysisRequestSerializer(serializers.Serializer):
-    product_url = serializers.URLField(max_length=1000)
-
-
-class ProductScrapeRequestSerializer(serializers.Serializer):
-    product_url = serializers.URLField(max_length=1000)
-
-
 class ProductImageAnalysisRequestSerializer(serializers.Serializer):
     image = serializers.ImageField()
     product_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
@@ -331,7 +346,8 @@ class ProductImageAnalysisSummarySerializer(serializers.ModelSerializer):
         ]
 
     def get_uploaded_image_url(self, obj):
-        return obj.uploaded_image.url if obj.uploaded_image else ''
+        request = self.context.get('request')
+        return absolute_media_url(request, obj.uploaded_image)
 
     def get_colors(self, obj):
         return [
@@ -342,3 +358,4 @@ class ProductImageAnalysisSummarySerializer(serializers.ModelSerializer):
 
     def get_confirmed(self, obj):
         return obj.status == ProductImageAnalysis.Status.CONFIRMED
+

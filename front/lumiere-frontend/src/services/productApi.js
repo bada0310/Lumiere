@@ -38,12 +38,19 @@ export const getProductColorAnalysis = async (productId, params = {}) => {
   return response.data
 }
 
-export const analyzeProductColorUrl = async (productUrl) => {
-  const response = await axios.post(
-    `${API_BASE_URL}/api/products/color-analysis/`,
-    { product_url: productUrl },
-    { headers: authHeaders() },
-  )
+export const getPersonalizedRecommendedProducts = async (params = {}) => {
+  const response = await axios.get(`${API_BASE_URL}/api/recommendations/personalized-products/`, {
+    headers: authHeaders(),
+    params,
+  })
+  return response.data
+}
+
+export const getRecommendationColorMatching = async (productId, params = {}) => {
+  const response = await axios.get(`${API_BASE_URL}/api/recommendations/${productId}/color-matching/`, {
+    headers: authHeaders(),
+    params,
+  })
   return response.data
 }
 

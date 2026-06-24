@@ -373,6 +373,7 @@ import { makeDetailPayload, makeProductGroups } from './productCatalog'
 import { getLatestDiagnosis } from '@/services/diagnosisApi'
 import { getLikedProductOptions, toggleLikedProductOption } from '@/services/engagementApi'
 import { getProducts } from '@/services/productApi'
+import { useEngagementStore } from '@/stores/engagement'
 import {
   TONE_PROFILE_PRESETS,
   calculateProductMatchScore,
@@ -385,6 +386,7 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const engagementStore = useEngagementStore()
 
 const products = ref([])
 const productGroups = computed(() => makeProductGroups(products.value))
@@ -1006,10 +1008,11 @@ const loadLikedOptions = async () => {
     const response = await getLikedProductOptions({ page: 1, page_size: 50 })
     const nextKeys = new Set(
       asArray(response)
-        .map((item) => item.group_key)
+        .map((item) => item.group_key || item.snapshot?.groupKey)
         .filter(Boolean),
     )
     likedGroupKeys.value = nextKeys
+    await engagementStore.loadLikedOptions({ force: true })
   } catch (error) {
     console.warn('찜한 제품 옵션 목록을 불러오지 못했습니다.', error)
   }
@@ -1148,11 +1151,11 @@ const previewCount = computed(() => {
 })
 
 const isGroupLiked = (product) => {
-  return likedGroupKeys.value.has(product.groupKey)
+  return likedGroupKeys.value.has(product.groupKey) || engagementStore.isLiked(buildLikedOptionPayload(product))
 }
 
 const isGroupLiking = (product) => {
-  return likingGroupKeys.value.has(product.groupKey)
+  return likingGroupKeys.value.has(product.groupKey) || engagementStore.isLiking(buildLikedOptionPayload(product))
 }
 
 const buildLikedOptionPayload = (product) => {
@@ -1216,6 +1219,7 @@ const toggleLike = async (product) => {
       syncedKeys.delete(product.groupKey)
     }
     likedGroupKeys.value = syncedKeys
+    await engagementStore.loadLikedOptions({ force: true })
   } catch (error) {
     likedGroupKeys.value = previousKeys
     console.error('찜 상태를 저장하지 못했습니다.', error)
@@ -1244,9 +1248,13 @@ const goDetail = (product, option = product.representative) => {
   localStorage.setItem('selectedProductGroup', JSON.stringify(product))
 
   router.push({
-    name: 'product-detail',
+    name: 'recommendAnalysisResult',
     params: {
-      id: detailPayload.id,
+      id: detailPayload.productId || detailPayload.parentId || detailPayload.id,
+    },
+    query: {
+      ...(detailPayload.optionId ? { option: detailPayload.optionId } : {}),
+      ...(routeToneKey.value ? { tone_key: routeToneKey.value } : {}),
     },
   })
 }

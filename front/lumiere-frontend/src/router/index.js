@@ -11,7 +11,7 @@ import LoadingView from '@/views/diagnosis/LoadingView.vue'
 import PersonalColorResultView from '@/views/diagnosis/PersonalColorResultView.vue'
 
 import ProductRecommendView from '@/views/products/ProductRecommendView.vue'
-import ProductColorMatchingPage from '@/views/products/ProductColorMatchingPage.vue'
+import RecommendationAnalysisResultView from '@/views/products/RecommendationAnalysisResultView.vue'
 
 import AnalysisView from '@/views/Analysis/AnalysisView.vue'
 import CommunityView from '@/views/community/CommunityView.vue'
@@ -65,12 +65,12 @@ const router = createRouter({
       },
     },
     {
-      path: '/mypage/url-analyses',
-      name: 'mypage-url-analyses',
+      path: '/mypage/product-analyses',
+      name: 'mypage-product-analyses',
       component: MyPageListView,
       meta: {
         requiresAuth: true,
-        listType: 'url-analyses',
+        listType: 'product-analyses',
         authMessage,
       },
     },
@@ -122,12 +122,25 @@ const router = createRouter({
     {
       path: '/product-detail/:id?',
       name: 'product-detail',
-      component: ProductColorMatchingPage,
+      redirect: (to) => {
+        if (!to.params.id) return { name: 'products' }
+        return { name: 'recommendAnalysisResult', params: { id: to.params.id }, query: to.query }
+      },
     },
     {
       path: '/products/:id/color-matching',
       name: 'product-color-matching',
-      component: ProductColorMatchingPage,
+      redirect: (to) => ({ name: 'recommendAnalysisResult', params: { id: to.params.id }, query: to.query }),
+    },
+    {
+      path: '/recommend-analysis/result/:id',
+      name: 'recommendAnalysisResult',
+      component: RecommendationAnalysisResultView,
+    },
+    {
+      path: '/recommand-analysis/result/:id',
+      name: 'recommand_analysis',
+      redirect: (to) => ({ name: 'recommendAnalysisResult', params: { id: to.params.id }, query: to.query }),
     },
     {
       path: '/product-analysis',
@@ -136,9 +149,14 @@ const router = createRouter({
       component: AnalysisView,
     },
     {
+      path: '/product-analysis/result/:id',
+      name: 'productAnalysisResult',
+      component: AnalysisView,
+    },
+    {
       path: '/analysis/result/:id',
       name: 'analysis-result',
-      component: AnalysisView,
+      redirect: (to) => ({ name: 'productAnalysisResult', params: { id: to.params.id }, query: to.query }),
     },
     {
       path: '/community',
