@@ -23,11 +23,9 @@ from products.models import (
     Review,
 )
 from products.serializers import (
-    ProductColorAnalysisRequestSerializer,
     ProductImageAnalysisRequestSerializer,
     ProductImageAnalysisSummarySerializer,
     ProductImageAnalysisUpdateSerializer,
-    ProductScrapeRequestSerializer,
     ProductSerializer,
     ReviewSerializer,
 )
@@ -40,20 +38,11 @@ from products.services.image_color_analysis import (
     update_analysis_from_review,
 )
 from products.services.recommendation import build_user_tone_profile, calculate_option_match
-from products.services.url_color_analysis import ProductColorAnalysisError, analyze_product_color_url
 
 
 logger = logging.getLogger(__name__)
 IMAGE_ANALYSIS_SAVE_FAILED_MESSAGE = 'The uploaded image could not be saved for analysis.'
 IMAGE_ANALYSIS_FAILED_MESSAGE = 'Product image analysis failed unexpectedly.'
-SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE = '상품 정보를 가져올 수 없습니다. URL을 다시 확인해주세요.'
-SHORT_URL_RESOLVE_ERROR_MESSAGE = '단축 링크를 분석하지 못했습니다. 올리브영 상품 상세 페이지의 전체 URL을 입력해주세요.'
-
-
-def safe_product_analysis_error_message(code):
-    if code == 'SHORT_URL_RESOLVE_FAILED':
-        return SHORT_URL_RESOLVE_ERROR_MESSAGE
-    return SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE
 
 
 def validation_error_message(exc):
@@ -261,93 +250,232 @@ def product_catalog_color_analysis(request, product_id):
     return Response(build_product_color_analysis_payload(product, request=request))
 
 
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def product_color_analysis(request):
-    serializer = ProductColorAnalysisRequestSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(
-            {
-                'success': False,
-                'message': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
-                'detail': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
-                'code': 'invalid_url',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticatedOrReadOnly])
+def personalized_recommendation_products(request):
+    limit = _positive_int(request.query_params.get('limit'), 12)
+    per_category = _positive_int(request.query_params.get('per_category'), 2)
+    user_profile = user_tone_profile_from_request(request)
+    queryset = product_queryset(request, apply_filters=False).filter(options__isnull=False).distinct()
+    sorted_products = sort_products_by_best_option(list(queryset), user_profile)
+    sorted_products = [
+        product
+        for product in sorted_products
+        if _product_recommendation_status(product, user_profile) != 'AVOID'
+    ]
+    selected_products, balance = _balanced_recommendation_products(
+        sorted_products,
+        limit=limit,
+        per_category=per_category,
+    )
+    results = [_recommendation_summary(product, request) for product in selected_products]
+    return Response(
+        {
+            'count': len(results),
+            'results': results,
+            'category_balance': balance,
+        },
+        status=status.HTTP_200_OK,
+    )
 
-    try:
-        payload = analyze_product_color_url(
-            serializer.validated_data['product_url'],
-            user=request.user,
-        )
-    except ProductColorAnalysisError as exc:
-        logger.exception('Product color analysis failed with handled error code=%s', exc.code)
-        message = safe_product_analysis_error_message(exc.code)
-        return Response(
-            {
-                'success': False,
-                'message': message,
-                'detail': message,
-                'code': exc.code,
-            },
-            status=exc.status_code,
-        )
-    except Exception as exc:
-        logger.exception('Unexpected product color analysis failure: %s', exc)
-        return Response(
-            {
-                'success': False,
-                'message': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
-                'detail': SAFE_PRODUCT_ANALYSIS_ERROR_MESSAGE,
-                'code': 'PRODUCT_URL_ANALYSIS_FAILED',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
 
+def _product_recommendation_status(product, user_profile):
+    options = list(getattr(product, '_prefetched_objects_cache', {}).get('options', []) or product.options.all())
+    if not options:
+        return _recommendation_status(getattr(product, 'match_score', None))
+    best_score = max(
+        calculate_option_match(option, user_profile, product.category)['match_score']
+        for option in options
+    )
+    return _recommendation_status(best_score)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticatedOrReadOnly])
+def recommendation_color_matching(request, product_id):
+    product = get_object_or_404(
+        product_queryset(request, apply_filters=False).filter(options__isnull=False).distinct(),
+        pk=product_id,
+    )
+    payload = build_product_color_analysis_payload(product, request=request)
+    best_option = _enrich_recommendation_option(payload.get('best_option'))
+    options = [_enrich_recommendation_option(option) for option in payload.get('options', [])]
+    payload['product'] = {
+        **payload.get('product', {}),
+        'brand': product.brand,
+        'name': product.name,
+        'image_url': product.display_image_url,
+        'product_url': product.product_url,
+    }
+    payload['options'] = options
+    payload['best_option'] = best_option
+    payload['match_status'] = best_option.get('match_status') if best_option else ''
+    payload['summary_reason'] = _friendly_recommendation_reason(best_option)
+    payload['comparison_metrics'] = _comparison_metrics(payload.get('user_tone'), best_option)
     return Response(payload, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def product_scrape(request):
-    serializer = ProductScrapeRequestSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(
-            {
-                'status': 'fail',
-                'message': 'The URL is unsupported or temporarily inaccessible.',
-                'code': 'INVALID_URL',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+def _balanced_recommendation_products(products, *, limit, per_category):
+    target_categories = [Product.Category.LIP, Product.Category.EYE, Product.Category.BASE, Product.Category.CHEEK]
+    selected = []
+    selected_ids = set()
+    actual = {category: 0 for category in target_categories}
 
+    for category in target_categories:
+        category_products = [product for product in products if product.category == category]
+        for product in category_products[:per_category]:
+            selected.append(product)
+            selected_ids.add(product.id)
+            actual[category] += 1
+
+    for product in products:
+        if len(selected) >= limit:
+            break
+        if product.id in selected_ids:
+            continue
+        selected.append(product)
+        selected_ids.add(product.id)
+        if product.category in actual:
+            actual[product.category] += 1
+
+    return selected[:limit], {
+        'requested_total': limit,
+        'requested_per_category': per_category,
+        'actual': actual,
+        'filled_with_alternatives': max(0, len(selected[:limit]) - sum(min(per_category, actual[category]) for category in target_categories)),
+    }
+
+
+def _recommendation_summary(product, request):
+    payload = build_product_color_analysis_payload(product, request=request)
+    best_option = _enrich_recommendation_option(payload.get('best_option'))
+    options = [_enrich_recommendation_option(option) for option in payload.get('options', [])]
+    representative_offer = best_option.get('representative_offer') if best_option else None
+    return {
+        'id': product.id,
+        'brand': product.brand,
+        'name': product.name,
+        'category': product.category,
+        'image_url': best_option.get('image_url') if best_option else product.display_image_url,
+        'product_url': (representative_offer or {}).get('product_url') or product.product_url,
+        'best_option': best_option,
+        'options': options,
+        'match_status': best_option.get('match_status') if best_option else '',
+        'match_score': best_option.get('match_score') if best_option else None,
+        'short_reason': _friendly_recommendation_reason(best_option),
+        'detail_reason': best_option.get('detail_reason') if best_option else '',
+        'usage_tip': best_option.get('usage_tip') if best_option else '',
+        'personalized': payload.get('personalized', False),
+    }
+
+
+def _enrich_recommendation_option(option):
+    if not option:
+        return {}
+    status_label = _recommendation_status(option.get('match_score'))
+    return {
+        **option,
+        'match_status': status_label,
+        'is_precise_color': _has_complete_color_metrics(option),
+    }
+
+
+def _recommendation_status(score):
     try:
-        from products.services.scraping import ScrapingError, scrape_product_url
+        number = float(score)
+    except (TypeError, ValueError):
+        return ''
+    if number >= 85:
+        return 'BEST'
+    if number >= 70:
+        return 'GOOD'
+    if number >= 40:
+        return 'CAUTION'
+    return 'AVOID'
 
-        scraped = scrape_product_url(serializer.validated_data['product_url'])
-    except ScrapingError as exc:
-        logger.exception('Product scrape failed with handled error code=%s', exc.code)
-        return Response(
-            {
-                'status': 'fail',
-                'message': 'The URL is unsupported or temporarily inaccessible.',
-                'code': exc.code,
-            },
-            status=exc.status_code,
-        )
-    except Exception as exc:
-        logger.exception('Unexpected product scrape failure: %s', exc)
-        return Response(
-            {
-                'status': 'fail',
-                'message': 'The URL is unsupported or temporarily inaccessible.',
-                'code': 'SCRAPE_FAILED',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
 
-    return Response(scraped.public_payload(), status=status.HTTP_200_OK)
+def _friendly_recommendation_reason(option):
+    if not option:
+        return '아직 추천할 수 있는 색상 옵션 정보가 충분하지 않아요.'
+    status_label = option.get('match_status') or _recommendation_status(option.get('match_score'))
+    brightness = _metric_value(option, 'brightness')
+    saturation = _metric_value(option, 'saturation')
+    coolness = _metric_value(option, 'coolness')
+    option_name = ' '.join(part for part in [option.get('option_no'), option.get('option_name')] if part) or '이 옵션'
+    light_word = '밝고 맑은' if brightness >= 65 else '차분한' if brightness >= 45 else '깊이 있는'
+    chroma_word = '생기 있는' if saturation >= 55 else '부드러운'
+    temp_word = '쿨한' if coolness >= 60 else '따뜻한' if coolness <= 40 else '중립적인'
+
+    if status_label == 'BEST':
+        return f'{option_name}은 {light_word} {temp_word} 톤이라 피부가 맑아 보이기 쉬운 추천 옵션이에요.'
+    if status_label == 'GOOD':
+        return f'{option_name}은 {chroma_word} 색감이 부담 없이 어울려 데일리로 쓰기 좋은 편이에요.'
+    if status_label == 'MIX':
+        return f'{option_name}은 단독보다 비슷한 계열의 밝은 색과 섞으면 더 자연스럽게 어울려요.'
+    if status_label == 'CAUTION':
+        return f'{option_name}은 살짝 튀어 보일 수 있어 양을 줄이거나 포인트로 쓰는 편이 좋아요.'
+    if status_label == 'AVOID':
+        return f'{option_name}은 현재 퍼스널 컬러 기준과 차이가 커서 신중하게 테스트해보는 편이 좋아요.'
+    return '퍼스널 컬러 진단을 설정하면 더 정확한 추천 이유를 볼 수 있어요.'
+
+
+def _comparison_metrics(user_tone, option):
+    if not option:
+        return []
+    axis = (user_tone or {}).get('axis_profile') or {}
+    metric_specs = [
+        ('brightness', '명도'),
+        ('saturation', '채도'),
+        ('coolness', '쿨 경향'),
+        ('warmth', '웜 경향'),
+        ('softness', '부드러움'),
+        ('contrast', '대비'),
+    ]
+    rows = []
+    for key, label in metric_specs:
+        user_value = _metric_value(axis, key)
+        product_value = _metric_value(option, key)
+        diff = abs(user_value - product_value)
+        rows.append(
+            {
+                'key': key,
+                'label': label,
+                'user_value': user_value,
+                'product_value': product_value,
+                'diff': diff,
+                'explanation': _metric_explanation(label, diff),
+            }
+        )
+    return rows
+
+
+def _metric_explanation(label, diff):
+    if diff <= 8:
+        return f'{label} 차이가 작아 자연스럽게 이어지는 편이에요.'
+    if diff <= 20:
+        return f'{label} 차이가 있어 발색 강도를 조절하면 좋아요.'
+    return f'{label} 차이가 커서 포인트 사용을 권장해요.'
+
+
+def _has_complete_color_metrics(option):
+    required = ['hex_code', 'brightness', 'saturation', 'coolness', 'warmth']
+    return all(option.get(key) not in [None, ''] for key in required)
+
+
+def _metric_value(source, key):
+    try:
+        return round(float(source.get(key, 0)))
+    except (AttributeError, TypeError, ValueError):
+        return 0
+
+
+def _positive_int(value, default):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(1, number)
+
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
