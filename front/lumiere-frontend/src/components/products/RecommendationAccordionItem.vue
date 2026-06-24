@@ -50,7 +50,7 @@ defineEmits(['toggle'])
 
 const isPending = computed(() => {
   const status = String(props.option.analysis_status || props.option.analysisStatus || '').toUpperCase()
-  const grade = String(props.option.grade || '').toUpperCase()
+  const grade = String(props.option.match_status || props.option.grade || '').toUpperCase()
   return status === 'PENDING_COLOR_ANALYSIS' || grade === 'PENDING'
 })
 
@@ -58,7 +58,7 @@ const color = computed(() => props.option.hex_code || props.option.hex || '#d9d3
 const optionLabel = computed(() => {
   return [props.option.option_no, props.option.display_name || props.option.option_name].filter(Boolean).join(' ') || '기본 옵션'
 })
-const gradeLabel = computed(() => (isPending.value ? '분석 대기' : props.option.grade || '분석 완료'))
+const gradeLabel = computed(() => (isPending.value ? '분석 대기' : props.option.match_status || props.option.grade || '분석 완료'))
 const scoreLabel = computed(() => {
   if (isPending.value) return '분석 대기'
   const rawScore = props.option.match_score
@@ -83,7 +83,8 @@ const fallbackDetailReason = computed(() => {
 })
 const fallbackUsageTip = computed(() => {
   if (isPending.value) return 'HEX 색상을 확인하거나 직접 수정하면 추천 점수를 다시 계산할 수 있습니다.'
-  if (gradeLabel.value === 'CAUTION') return '포인트 사용이나 양 조절로 톤 차이를 완화해보세요.'
+  if (gradeLabel.value === 'MIX') return '밝은 베이스 컬러와 섞으면 톤 차이를 완화할 수 있어요.'
+  if (gradeLabel.value === 'CAUTION' || gradeLabel.value === 'AVOID') return '포인트 사용이나 양 조절로 톤 차이를 완화해보세요.'
   return '실제 발색은 조명과 피부톤에 따라 달라질 수 있습니다.'
 })
 
