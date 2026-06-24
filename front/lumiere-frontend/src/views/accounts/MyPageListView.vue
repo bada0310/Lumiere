@@ -23,7 +23,7 @@
           :class="{ 'primary-card': item.isPrimary }"
           @click="openItem(item)"
         >
-          <div v-if="item.type === 'liked-options' || item.type === 'diagnoses'" class="thumb-wrap">
+          <div v-if="item.type === 'liked-options' || item.type === 'diagnoses' || item.type === 'product-analyses'" class="thumb-wrap">
             <img v-if="item.image" :src="item.image" :alt="item.title" />
             <span v-else>{{ item.brandInitial }}</span>
           </div>
@@ -123,7 +123,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { getMyPosts } from '@/services/communityApi'
 import { deleteDiagnosisResult, getDiagnosisResults, setPrimaryDiagnosis, unsetPrimaryDiagnosis } from '@/services/diagnosisApi'
-import { getLikedProductOptions, getUrlAnalysisRecords } from '@/services/engagementApi'
+import { getLikedProductOptions } from '@/services/engagementApi'
+import { getProductImageAnalyses } from '@/services/productApi'
 import { normalizeDiagnosisResult } from '@/utils/diagnosisResultTransform'
 
 const PAGE_SIZE = 10
@@ -219,14 +220,16 @@ const normalizeLikedOption = (raw) => {
   }
 }
 
-const normalizeUrlAnalysis = (raw) => ({
-  type: 'url-analyses',
+const normalizeProductAnalysis = (raw) => ({
+  type: 'product-analyses',
   id: raw.id,
-  title: raw.title || raw.product_name || raw.source_url || 'URL 분석 기록',
-  description: raw.source_url,
-  badge: raw.brand || 'URL 분석',
+  title: raw.product_name || '제품 색상 분석',
+  description: raw.confirmed ? '분석 확정 완료' : '검토 중',
+  badge: raw.brand_name || '제품 분석',
   dateLabel: formatDate(raw.created_at),
   colors: raw.colors || [],
+  image: raw.uploaded_image_url || '',
+  brandInitial: (raw.brand_name || raw.product_name || 'L').slice(0, 1).toUpperCase(),
 })
 
 const normalizePost = (raw) => ({
@@ -253,12 +256,12 @@ const configs = {
     fetch: (params) => getLikedProductOptions(params),
     normalize: normalizeLikedOption,
   },
-  'url-analyses': {
-    title: 'URL 분석 기록 전체 목록',
-    description: 'URL로 분석한 제품 기록을 최신순으로 확인합니다.',
-    emptyText: 'URL 분석 기록이 없습니다.',
-    fetch: (params) => getUrlAnalysisRecords(params),
-    normalize: normalizeUrlAnalysis,
+  'product-analyses': {
+    title: '제품 분석 기록 전체 목록',
+    description: '업로드한 제품 색상 분석 기록을 최신순으로 확인합니다.',
+    emptyText: '제품 분석 기록이 없습니다.',
+    fetch: (params) => getProductImageAnalyses(params),
+    normalize: normalizeProductAnalysis,
   },
   posts: {
     title: '내가 쓴 커뮤니티 글 전체 목록',
@@ -397,14 +400,14 @@ const openItem = (item) => {
       return
     }
     router.push({
-      name: 'product-color-matching',
+      name: 'recommendAnalysisResult',
       params: { id: item.productId },
       query: item.optionId ? { option: item.optionId } : {},
     })
     return
   }
-  if (item.type === 'url-analyses') {
-    router.push(`/analysis/result/${item.id}`)
+  if (item.type === 'product-analyses') {
+    router.push({ name: 'productAnalysisResult', params: { id: item.id } })
     return
   }
   if (item.type === 'posts') {
