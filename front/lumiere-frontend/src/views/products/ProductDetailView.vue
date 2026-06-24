@@ -1396,8 +1396,9 @@ const goDetail = (item) => {
   localStorage.setItem('selectedProductOption', JSON.stringify(item))
 
   router.push({
-    name: 'product-detail',
-    params: { id: item.id },
+    name: 'recommendAnalysisResult',
+    params: { id: item.productId || item.parentId || item.id },
+    query: item.optionId ? { option: item.optionId } : {},
   })
 }
 
