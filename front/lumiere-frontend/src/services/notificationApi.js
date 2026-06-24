@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-import { API_BASE_URL } from '@/services/userApi'
+import { API_BASE_URL } from '@/config/api'
 
 const authHeaders = () => {
   const token = localStorage.getItem('access_token')
