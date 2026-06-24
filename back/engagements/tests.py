@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from products.models import Product, ProductOption
 
-from .models import LikedProductOption, UrlAnalysisRecord
+from .models import LikedProductOption, Notification
 
 
 class EngagementApiTests(APITestCase):
@@ -83,20 +84,45 @@ class EngagementApiTests(APITestCase):
         self.assertFalse(unliked.data['is_liked'])
         self.assertEqual(LikedProductOption.objects.count(), 0)
 
-    def test_url_analysis_records_support_limit_and_pagination(self):
-        for index in range(3):
-            UrlAnalysisRecord.objects.create(
-                user=self.user,
-                source_url=f'https://example.com/products/{index}',
-                title=f'analysis {index}',
-            )
+    def test_duplicate_liked_option_with_blank_option_id_updates_existing_row(self):
         self.client.force_authenticate(self.user)
+        payload = {
+            'product_id': self.products[0].id,
+            'product_option_id': self.options[0].id,
+            'option_id': '',
+            'brand': 'brand',
+            'name': 'product 0',
+        }
 
-        preview = self.client.get('/api/engagements/url-analyses/?limit=2')
-        page = self.client.get('/api/engagements/url-analyses/?page=1&page_size=2')
+        first = self.client.post('/api/engagements/liked-options/', payload, format='json')
+        second = self.client.post(
+            '/api/engagements/liked-options/',
+            {**payload, 'name': 'product 0 renamed'},
+            format='json',
+        )
 
-        self.assertEqual(preview.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(preview.data), 2)
-        self.assertEqual(page.status_code, status.HTTP_200_OK)
-        self.assertEqual(page.data['count'], 3)
-        self.assertEqual(len(page.data['results']), 2)
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(LikedProductOption.objects.count(), 1)
+        liked = LikedProductOption.objects.get()
+        self.assertEqual(liked.option_id, str(self.options[0].id))
+        self.assertEqual(liked.product_id, self.products[0].id)
+
+    def test_notification_unread_count_and_mark_read_endpoints(self):
+        self.client.force_authenticate(self.user)
+        first = Notification.objects.create(user=self.user, title='first', body='body')
+        Notification.objects.create(user=self.user, title='second', body='body')
+        Notification.objects.create(user=self.user, title='old', body='body', read_at=timezone.now())
+
+        unread = self.client.get('/api/notifications/unread-count/')
+        mark_one = self.client.patch(f'/api/notifications/{first.id}/read/')
+        mark_all = self.client.post('/api/notifications/mark-all-read/')
+        final_unread = self.client.get('/api/notifications/unread-count/')
+
+        self.assertEqual(unread.status_code, status.HTTP_200_OK)
+        self.assertEqual(unread.data['unread_count'], 2)
+        self.assertEqual(mark_one.status_code, status.HTTP_200_OK)
+        self.assertEqual(mark_one.data['unread_count'], 1)
+        self.assertEqual(mark_all.status_code, status.HTTP_200_OK)
+        self.assertEqual(mark_all.data['unread_count'], 0)
+        self.assertEqual(final_unread.data['unread_count'], 0)

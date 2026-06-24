@@ -3,7 +3,7 @@ from rest_framework import serializers
 from products.models import Product, ProductOption
 from products.serializers import ProductOptionSerializer, ProductSerializer
 
-from .models import LikedProductOption, UrlAnalysisRecord
+from .models import LikedProductOption, Notification
 
 
 class LikedProductOptionSerializer(serializers.ModelSerializer):
@@ -58,15 +58,20 @@ class LikedProductOptionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('product_id or product_option_id is required.')
         return attrs
 
-    def create(self, validated_data):
-        product = validated_data['product']
-        product_option = validated_data.get('product_option')
+    def _normalize_product_option_fields(self, validated_data, instance=None):
+        product_option = validated_data.get('product_option') or getattr(instance, 'product_option', None)
         if product_option:
-            validated_data.setdefault('option_id', str(product_option.id))
+            validated_data['option_id'] = str(product_option.id)
             validated_data.setdefault(
                 'option',
                 ' '.join(part for part in [product_option.option_no, product_option.option_name] if part),
             )
+        return validated_data
+
+    def create(self, validated_data):
+        product = validated_data['product']
+        product_option = validated_data.get('product_option')
+        validated_data = self._normalize_product_option_fields(validated_data)
         validated_data.setdefault('brand', product.brand)
         validated_data.setdefault('name', product.name)
         validated_data.setdefault('image_url', product.display_image_url)
@@ -78,30 +83,24 @@ class LikedProductOptionSerializer(serializers.ModelSerializer):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        return super().update(instance, self._normalize_product_option_fields(validated_data, instance))
 
-class UrlAnalysisRecordSerializer(serializers.ModelSerializer):
+
+class NotificationSerializer(serializers.ModelSerializer):
+    is_read = serializers.BooleanField(read_only=True)
+
     class Meta:
-        model = UrlAnalysisRecord
+        model = Notification
         fields = [
             'id',
-            'source_url',
+            'notification_type',
             'title',
-            'brand',
-            'product_name',
-            'image_url',
-            'colors',
-            'result_payload',
+            'body',
+            'route',
+            'metadata',
+            'is_read',
+            'read_at',
             'created_at',
-            'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-    def validate_colors(self, value):
-        return value or []
-
-    def validate_result_payload(self, value):
-        return value or {}
-
-    def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data)
+        read_only_fields = fields

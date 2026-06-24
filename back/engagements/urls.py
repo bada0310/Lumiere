@@ -5,7 +5,6 @@ from . import views
 
 router = DefaultRouter()
 router.register('liked-options', views.LikedProductOptionViewSet, basename='liked-option')
-router.register('url-analyses', views.UrlAnalysisRecordViewSet, basename='url-analysis')
 
 urlpatterns = [
     path('', include(router.urls)),
