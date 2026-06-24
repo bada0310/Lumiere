@@ -1,10 +1,10 @@
 <template>
   <div class="search-bar-container">
     <div class="page-header">
-      <h1 class="title">제품 검색 & URL 분석</h1>
+      <h1 class="title">제품 색상 분석</h1>
       <p class="subtitle">
-        제품명을 검색하거나 제품 URL을 입력하면<br />
-        색상 옵션을 분석해 퍼스널컬러 기준으로 비교합니다.
+        제품명을 검색하고 저장된 색상 옵션을<br />
+        퍼스널컬러 기준으로 비교합니다.
       </p>
     </div>
 
@@ -64,41 +64,6 @@
           </div>
         </div>
       </section>
-
-      <section class="search-card">
-        <div class="card-header">
-          <span class="icon link-icon" aria-hidden="true">U</span>
-          <div>
-            <h2 class="card-title">URL로 분석하기</h2>
-            <p class="card-subtitle">제품 상세 페이지 URL을 입력해 옵션 색상을 분석합니다.</p>
-          </div>
-        </div>
-
-        <form class="input-group" @submit.prevent="handleUrlAnalysis">
-          <input
-            v-model="urlInput"
-            type="url"
-            placeholder="https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do..."
-            class="search-input"
-          />
-          <span class="inside-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-          </span>
-        </form>
-
-        <button
-          type="button"
-          class="analyze-btn"
-          :disabled="isUrlAnalysisDisabled"
-          @click="handleUrlAnalysis"
-        >
-          {{ isAnalyzingUrl ? '분석 중...' : '분석하기' }}
-        </button>
-        <p class="helper-text">제품의 색상 옵션을 추출하고 내 퍼스널컬러와 비교합니다.</p>
-      </section>
     </div>
   </div>
 </template>
@@ -107,25 +72,19 @@
 import { computed, ref } from 'vue'
 
 const props = defineProps({
-  isAnalyzingUrl: {
-    type: Boolean,
-    default: false,
-  },
   isSearchingProduct: {
     type: Boolean,
     default: false,
   },
 })
 
-const emit = defineEmits(['search-product', 'analyze-url'])
+const emit = defineEmits(['search-product'])
 
 const productKeyword = ref('')
-const urlInput = ref('')
 
 const popularTags = ['롬앤 틴트', '페리페라 틴트', '에스쁘아 파운데이션', '3CE 블러셔', '데이지크 섀도우']
 
 const isProductSearchDisabled = computed(() => !productKeyword.value.trim() || props.isSearchingProduct)
-const isUrlAnalysisDisabled = computed(() => !urlInput.value.trim() || props.isAnalyzingUrl)
 
 const handleProductSearch = () => {
   const keyword = productKeyword.value.trim()
@@ -136,12 +95,6 @@ const handleProductSearch = () => {
 const clickPopularTag = (tag) => {
   productKeyword.value = tag
   handleProductSearch()
-}
-
-const handleUrlAnalysis = () => {
-  const url = urlInput.value.trim()
-  if (!url || props.isAnalyzingUrl) return
-  emit('analyze-url', url)
 }
 </script>
 
@@ -174,7 +127,8 @@ const handleUrlAnalysis = () => {
 
 .search-panels-wrapper {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 640px);
+  justify-content: center;
   gap: 24px;
 }
 
@@ -268,8 +222,7 @@ const handleUrlAnalysis = () => {
   pointer-events: none;
 }
 
-.panel-action-btn,
-.analyze-btn {
+.panel-action-btn {
   width: 100%;
   background-color: #b75a73;
   color: white;
@@ -283,13 +236,11 @@ const handleUrlAnalysis = () => {
   margin-bottom: 12px;
 }
 
-.panel-action-btn:hover,
-.analyze-btn:hover {
+.panel-action-btn:hover {
   background-color: #9d495f;
 }
 
-.panel-action-btn:disabled,
-.analyze-btn:disabled {
+.panel-action-btn:disabled {
   background-color: #d8c2c9;
   cursor: not-allowed;
 }
