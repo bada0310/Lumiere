@@ -58,7 +58,7 @@ const goToDetail = () => router.push({
   name: 'community-detail',
   params: { id: props.post.id },
 });
-const goToProduct = (product) => router.push({ name: 'product-detail', params: { id: product.id } });
+const goToProduct = (product) => router.push({ name: 'recommendAnalysisResult', params: { id: product.id } });
 const toggleLike = () => emit('like', props.post);
 </script>
 
