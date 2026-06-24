@@ -435,6 +435,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { makeDetailPayload, makeProductGroups } from './productCatalog'
+import { API_BASE_URL } from '@/config/api'
 import { getLatestDiagnosis } from '@/services/diagnosisApi'
 import { toggleLikedProductOption } from '@/services/engagementApi'
 import { clearDiagnosisColorProfile, saveDiagnosisColorProfile } from '@/utils/colorRecommendationHelpers'
@@ -888,7 +889,7 @@ const loadProducts = async () => {
     let response
 
     try {
-      response = await axios.get('http://127.0.0.1:8000/api/products/')
+      response = await axios.get(`${API_BASE_URL}/api/products/`)
     } catch (apiError) {
       console.warn('API 상세 데이터 대신 로컬 products_raw.json을 사용합니다:', apiError)
       response = await axios.get('/products_raw.json')

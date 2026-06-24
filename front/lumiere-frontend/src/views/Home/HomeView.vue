@@ -279,6 +279,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { API_ORIGIN } from '@/config/api'
 import { getLatestDiagnosis } from '@/services/diagnosisApi'
 import { getPersonalizedRecommendedProducts } from '@/services/productApi'
 import { getLatestDiagnosisToneImageUrl } from '@/data/toneImages'
@@ -575,10 +576,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   stopMakeoverTimer()
 })
-
-const API_ORIGIN =
-  import.meta.env.VITE_API_ORIGIN ||
-  String(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/api\/?$/, '')
 
 const resolveMediaUrl = (url) => {
   if (!url) return ''
