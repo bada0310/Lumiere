@@ -168,7 +168,12 @@ class ProductImageAnalysisPipeline:
                 len(merged_options),
                 bool(user_profile),
             )
-            payload = build_product_image_analysis_payload(self.analysis, user_profile=user_profile, user_tone=user_tone)
+            payload = build_product_image_analysis_payload(
+                self.analysis,
+                user_profile=user_profile,
+                user_tone=user_tone,
+                load_user_profile=False,
+            )
         except ProductImageAnalysisPersonalizationError as exc:
             logger.warning(
                 'Product image personalization failed; retrying without personalization. analysis_id=%s error=%s',
@@ -183,7 +188,12 @@ class ProductImageAnalysisPipeline:
                 image=image,
                 mark_all_user_edited=False,
             )
-            payload = build_product_image_analysis_payload(self.analysis, user_profile=None, user_tone=None)
+            payload = build_product_image_analysis_payload(
+                self.analysis,
+                user_profile=None,
+                user_tone=None,
+                load_user_profile=False,
+            )
         logger.info(
             'Product image analysis completed. analysis_id=%s response_options=%s ai_used=%s personalized=%s',
             self.analysis.id,
@@ -700,6 +710,25 @@ def clamp_percent(value):
 def clean_text(value):
     return ' '.join(str(value or '').strip().split())
 
+def build_absolute_media_url(file_field):
+    if not file_field:
+        return ''
+
+    try:
+        url = file_field.url
+    except ValueError:
+        return ''
+
+    if url.startswith('http://') or url.startswith('https://'):
+        return url
+
+    base_url = (
+        getattr(settings, 'BACKEND_ORIGIN', '')
+        or getattr(settings, 'SITE_URL', '')
+        or 'http://127.0.0.1:8000'
+    )
+
+    return f'{base_url.rstrip("/")}{url}'
 
 def build_image_analysis_prompt():
     schema_text = json.dumps(PRODUCT_IMAGE_ANALYSIS_SCHEMA, ensure_ascii=False)
@@ -984,10 +1013,32 @@ def hex_to_rgb_strict(value):
         raise ValidationError('A valid HEX color is required.')
     return tuple(int(value[index:index + 2], 16) for index in (1, 3, 5))
 
+def build_absolute_media_url(file_field):
+    if not file_field:
+        return ''
 
-def build_product_image_analysis_payload(analysis, *, user_profile=None, user_tone=None):
-    if user_profile is None or user_tone is None:
+    try:
+        url = file_field.url
+    except ValueError:
+        return ''
+
+    if url.startswith('http://') or url.startswith('https://'):
+        return url
+
+    base_url = (
+        getattr(settings, 'BACKEND_ORIGIN', '')
+        or getattr(settings, 'SITE_URL', '')
+        or 'http://127.0.0.1:8000'
+    )
+
+    return f'{base_url.rstrip("/")}{url}'
+
+
+def build_product_image_analysis_payload(analysis, *, user_profile=None, user_tone=None, load_user_profile=True):
+    if load_user_profile and (user_profile is None or user_tone is None):
         user_profile, user_tone = user_profile_payload(analysis.user)
+
+    uploaded_image_url = build_absolute_media_url(analysis.uploaded_image)
 
     options = [
         serialize_analysis_option(option, index=index, personalized=bool(user_profile))
@@ -998,6 +1049,7 @@ def build_product_image_analysis_payload(analysis, *, user_profile=None, user_to
     raw_labels = raw_payload.get('chart_labels') or {}
     raw_meta = raw_payload.get('analysis_meta') or {}
     confirmed = analysis.status == ProductImageAnalysis.Status.CONFIRMED
+
     return {
         'analysis_id': analysis.id,
         'success': True,
@@ -1008,7 +1060,7 @@ def build_product_image_analysis_payload(analysis, *, user_profile=None, user_to
         'confirmed': confirmed,
         'review_required': True,
         'analysis_status': 'CONFIRMED' if confirmed else 'DRAFT',
-        'uploaded_image_url': analysis.uploaded_image.url if analysis.uploaded_image else '',
+        'uploaded_image_url': uploaded_image_url,
         'product': {
             'id': analysis.id,
             'brand_name': analysis.brand_name,
@@ -1017,9 +1069,9 @@ def build_product_image_analysis_payload(analysis, *, user_profile=None, user_to
             'name': analysis.product_name,
             'category': analysis.category,
             'description': '',
-            'thumbnail_url': analysis.uploaded_image.url if analysis.uploaded_image else '',
-            'image_url': analysis.uploaded_image.url if analysis.uploaded_image else '',
-            'uploaded_image_url': analysis.uploaded_image.url if analysis.uploaded_image else '',
+            'thumbnail_url': uploaded_image_url,
+            'image_url': uploaded_image_url,
+            'uploaded_image_url': uploaded_image_url,
             'source': LOCAL_PRODUCT_SOURCE,
         },
         'user_tone': user_tone,
@@ -1173,3 +1225,4 @@ def confirm_analysis(analysis):
         analysis.confirmed_at = timezone.now()
         analysis.save(update_fields=['status', 'confirmed_at', 'updated_at'])
     return build_product_image_analysis_payload(analysis)
+
