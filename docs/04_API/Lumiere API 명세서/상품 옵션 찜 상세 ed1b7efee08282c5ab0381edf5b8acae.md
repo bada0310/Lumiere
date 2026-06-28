@@ -1,0 +1,60 @@
+# 상품 옵션 찜 상세
+
+Method: GET
+URL: /api/engagements/liked-options/{id}/
+param: id
+사용자: 회원
+설명: 찜한 상품 옵션 상세를 조회합니다.
+순서: 63
+인증필요여부: 로그인 필요
+카테고리: 참여/찜 6
+
+### Request Syntax
+
+```jsx
+GET /api/engagements/liked-options/{id}/
+```
+
+### Parameters
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | 확인 필요 | 확인 필요 | id 값 |
+
+### Request Header
+
+| Header | 필수 | 설명 | 예시 |
+| --- | --- | --- | --- |
+| Authorization | O | JWT access token | Bearer {access_token} |
+
+### Request Body
+
+요청 바디 없음.
+
+### Response
+
+응답 형식은 해당 API의 Serializer 또는 View 반환값 기준으로 확인합니다.
+
+```json
+{
+  "message": "확인 필요"
+}
+```
+
+### Status
+
+| status | response content |
+| --- | --- |
+| 200 | 조회 성공 |
+| 400 | 잘못된 요청 |
+| 401 | 인증 실패 |
+| 404 | 대상 없음 |
+| 500 | 서버 내부 오류 |
+
+### Example
+
+```json
+{
+  "message": "확인 필요"
+}
+```
