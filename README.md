@@ -455,8 +455,8 @@ lumiere260625/
 
 | 이름 | 주요 담당 |
 |---|---|
-| 김수진 | 서비스 기획 및 요구사항 정리, 사용자 흐름 설계, 화면 구성 개선, Vue/Django/DRF 기반 기능 구현 및 API 연동 |
-| 박성은 | AI 퍼스널 컬러 진단 파이프라인 설계, 상품 이미지/옵션 색상 분석 로직, 옵션 단위 추천 및 AI’s Pick 설명 구성, Cloudflare 배포, Wrangler 빌드/배포, ngrok/Tunnel 기반 백엔드 외부 연결, CORS/CSRF 및 환경변수 문제 해결, README 문서화 |
+| 김수진 | 서비스 기획 및 요구사항 정리, 사용자 흐름 설계, 화면 구성 개선, Vue/Django/DRF 기반 기능 구현 및 API 연동, 문서화 |
+| 박성은 | AI 퍼스널 컬러 진단 파이프라인 설계, 상품 이미지/옵션 색상 분석 로직, 옵션 단위 추천 및 AI’s Pick 설명 구성, Cloudflare 배포, Wrangler 빌드/배포, ngrok/Tunnel 기반 백엔드 외부 연결, CORS/CSRF 및 환경변수 문제 해결, README |
 
 ---
 
