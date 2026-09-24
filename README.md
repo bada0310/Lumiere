@@ -8,7 +8,7 @@
 
 </div>
 
-> **臾몄젣 ?뺤쓽 쨌 湲곗닠 ?섏궗寃곗젙 쨌 ?몃윭釉붿뒋??*? ?ы듃?대━?ㅼ뿉 ?뺣━?덉뒿?덈떎 &rarr; **[https://sungeun-portfolio.vercel.app/projects/lumiere](https://sungeun-portfolio.vercel.app/projects/lumiere)**
+> **문제 정의 · 기술 의사결정 · 트러블슈팅**은 포트폴리오에 정리했습니다 → **[https://sungeun-portfolio.vercel.app/projects/lumiere](https://sungeun-portfolio.vercel.app/projects/lumiere)**
 
 ---
 
